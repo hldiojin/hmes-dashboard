@@ -5,6 +5,8 @@ export const paths = {
     overview: '/dashboard',
     account: '/dashboard/account',
     customers: '/dashboard/customers',
+    category: '/dashboard/category',
+    products: '/dashboard/product',
     integrations: '/dashboard/integrations',
     settings: '/dashboard/settings',
   },

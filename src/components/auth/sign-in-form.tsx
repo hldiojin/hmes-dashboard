@@ -3,6 +3,7 @@
 import * as React from 'react';
 import RouterLink from 'next/link';
 import { useRouter } from 'next/navigation';
+import { authService } from '@/services/authService';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -19,7 +20,6 @@ import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
 
 import { paths } from '@/paths';
-import { authClient } from '@/lib/auth/client';
 import { useUser } from '@/hooks/use-user';
 
 const schema = zod.object({
@@ -29,7 +29,7 @@ const schema = zod.object({
 
 type Values = zod.infer<typeof schema>;
 
-const defaultValues = { email: 'sofia@devias.io', password: 'Secret1' } satisfies Values;
+const defaultValues = { email: '', password: '' } satisfies Values;
 
 export function SignInForm(): React.JSX.Element {
   const router = useRouter();
@@ -51,20 +51,60 @@ export function SignInForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { error } = await authClient.signInWithPassword(values);
+      try {
+        console.log('Attempting login with:', values.email);
+        const { data, error } = await authService.login(values);
 
-      if (error) {
-        setError('root', { type: 'server', message: error });
+        if (error) {
+          console.error('Login error:', error);
+          setError('root', { type: 'server', message: error });
+          setIsPending(false);
+          return;
+        }
+
+        console.log('Login successful, user data:', data);
+
+        // Make sure to wait for the session check to complete BEFORE navigation
+        if (checkSession) {
+          console.log('Checking session before navigation');
+          await checkSession();
+          console.log('Session check completed');
+        } else {
+          console.warn('checkSession function is not available');
+        }
+
+        // Wait a moment to ensure user context is updated
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        console.log(
+          'User status after login:',
+          authService.getCurrentUser(),
+          'Is authenticated:',
+          authService.isAuthenticated()
+        );
+
+        // Only navigate if we're properly authenticated
+        if (authService.isAuthenticated()) {
+          console.log('Authentication confirmed, redirecting to dashboard');
+
+          // Use replace instead of push to avoid history issues
+          router.replace(paths.dashboard.overview);
+        } else {
+          console.error('Authentication failed despite successful login response');
+          setError('root', {
+            type: 'server',
+            message: 'Authentication failed. Please try again.',
+          });
+          setIsPending(false);
+        }
+      } catch (err) {
+        console.error('Unexpected error during login:', err);
+        setError('root', {
+          type: 'server',
+          message: 'An unexpected error occurred. Please try again.',
+        });
         setIsPending(false);
-        return;
       }
-
-      // Refresh the auth state
-      await checkSession?.();
-
-      // UserProvider, for this case, will not refresh the router
-      // After refresh, GuestGuard will handle the redirect
-      router.refresh();
     },
     [checkSession, router, setError]
   );
@@ -138,16 +178,6 @@ export function SignInForm(): React.JSX.Element {
           </Button>
         </Stack>
       </form>
-      <Alert color="warning">
-        Use{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          sofia@devias.io
-        </Typography>{' '}
-        with password{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          Secret1
-        </Typography>
-      </Alert>
     </Stack>
   );
 }

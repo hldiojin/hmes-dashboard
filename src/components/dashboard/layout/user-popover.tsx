@@ -1,6 +1,7 @@
 import * as React from 'react';
 import RouterLink from 'next/link';
 import { useRouter } from 'next/navigation';
+import { authService } from '@/services/authService';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -13,7 +14,6 @@ import { SignOut as SignOutIcon } from '@phosphor-icons/react/dist/ssr/SignOut';
 import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 
 import { paths } from '@/paths';
-import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
 
@@ -24,13 +24,13 @@ export interface UserPopoverProps {
 }
 
 export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): React.JSX.Element {
-  const { checkSession } = useUser();
-
+  const { checkSession, user } = useUser();
   const router = useRouter();
 
   const handleSignOut = React.useCallback(async (): Promise<void> => {
     try {
-      const { error } = await authClient.signOut();
+      logger.debug('Signing out user');
+      const { error } = await authService.logout();
 
       if (error) {
         logger.error('Sign out error', error);
@@ -38,15 +38,24 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
       }
 
       // Refresh the auth state
-      await checkSession?.();
+      if (checkSession) {
+        await checkSession();
+      }
 
-      // UserProvider, for this case, will not refresh the router and we need to do it manually
-      router.refresh();
-      // After refresh, AuthGuard will handle the redirect
+      logger.debug('Sign out successful, redirecting to sign-in page');
+
+      // Close the popover
+      onClose();
+
+      // Navigate to sign-in page
+      router.push(paths.auth.signIn);
     } catch (err) {
       logger.error('Sign out error', err);
     }
-  }, [checkSession, router]);
+  }, [checkSession, router, onClose]);
+
+  // Get user data from context
+  const userData = user || { name: 'User', email: 'user@example.com' };
 
   return (
     <Popover
@@ -57,9 +66,9 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
       slotProps={{ paper: { sx: { width: '240px' } } }}
     >
       <Box sx={{ p: '16px 20px ' }}>
-        <Typography variant="subtitle1">Sofia Rivers</Typography>
+        <Typography variant="subtitle1">{userData.name}</Typography>
         <Typography color="text.secondary" variant="body2">
-          sofia.rivers@devias.io
+          {userData.email}
         </Typography>
       </Box>
       <Divider />
