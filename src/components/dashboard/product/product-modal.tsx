@@ -3,6 +3,7 @@
 import * as React from 'react';
 import categoryService from '@/services/categoryService';
 import { zodResolver } from '@hookform/resolvers/zod';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -15,6 +16,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import { Controller, useForm } from 'react-hook-form';
 import * as z from 'zod';
 
@@ -25,7 +27,7 @@ const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   categoryId: z.string().min(1, 'Category is required'),
   description: z.string().min(1, 'Description is required'),
-  mainImage: z.any().refine((file) => file !== null, 'Main image is required'),
+  mainImage: z.any().optional(),
   amount: z.string().min(1, 'Amount is required'),
   price: z.string().min(1, 'Price is required'),
   status: z.enum(['Active', 'Inactive']),
@@ -47,31 +49,90 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
   const [loading, setLoading] = React.useState(false);
   const [oldImages, setOldImages] = React.useState<string[]>([]);
 
+  const formRef = React.useRef<HTMLFormElement>(null);
+
+  React.useEffect(() => {
+    if (product) {
+      console.log('Product received in modal:', product);
+      console.log('Description:', product.description);
+      console.log('Amount:', product.amount);
+    }
+  }, [product]);
+
   const {
     control,
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
+    watch,
   } = useForm<ProductFormData>({
-    resolver: zodResolver(productSchema),
+    resolver: zodResolver(mode === 'update' ? productSchema.partial({ mainImage: true }) : productSchema),
     defaultValues: {
-      name: product?.name || '',
-      categoryId: product?.categoryId || '',
-      description: product?.description || '',
+      name: '',
+      categoryId: '',
+      description: '',
       mainImage: null,
-      amount: product?.amount?.toString() || '',
-      price: product?.price?.toString() || '',
-      status: (product?.status as 'Active' | 'Inactive') || 'Active',
+      amount: '',
+      price: '',
+      status: 'Active' as 'Active' | 'Inactive',
       images: [],
     },
   });
 
-  // Set old images when product changes
+  // Add a watcher to monitor form values
+  const formValues = watch();
   React.useEffect(() => {
-    if (product?.images) {
-      setOldImages(product.images);
+    console.log('Current form values:', formValues);
+  }, [formValues]);
+
+  // Reset form and set initial values when product or modal state changes
+  React.useEffect(() => {
+    if (open && product && mode === 'update') {
+      console.log('Setting form values for update:', {
+        name: product.name,
+        categoryId: product.categoryId,
+        description: product.description,
+        amount: product.amount?.toString(),
+        price: product.price?.toString(),
+        status: product.status,
+      });
+
+      reset({
+        name: product.name || '',
+        categoryId: product.categoryId || '',
+        description: product.description || '',
+        mainImage: null, // Will be handled separately
+        amount: product.amount?.toString() || '',
+        price: product.price?.toString() || '',
+        status: (product.status as 'Active' | 'Inactive') || 'Active',
+        images: [],
+      });
+
+      // Use setValue as an alternative approach to ensure values are set
+      setValue('description', product.description || '');
+      setValue('amount', product.amount?.toString() || '');
+
+      // Log after reset to verify values were set
+      console.log('Form values after reset:', watch());
+
+      if (product.images) {
+        setOldImages(product.images);
+      }
+    } else if (open && mode === 'create') {
+      reset({
+        name: '',
+        categoryId: '',
+        description: '',
+        mainImage: null,
+        amount: '',
+        price: '',
+        status: 'Active',
+        images: [],
+      });
+      setOldImages([]);
     }
-  }, [product]);
+  }, [open, product, mode, reset, setValue, watch]);
 
   // Fetch categories when modal opens
   React.useEffect(() => {
@@ -92,13 +153,19 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
   }, [open]);
 
   const handleFormSubmit = async (data: ProductFormData) => {
+    console.log('Form submitted with data:', data);
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append('name', data.name);
       formData.append('categoryId', data.categoryId);
       formData.append('description', data.description);
-      formData.append('mainImage', data.mainImage);
+
+      // Only append mainImage if it exists (a file was selected)
+      if (data.mainImage) {
+        formData.append('mainImage', data.mainImage);
+      }
+
       formData.append('amount', data.amount);
       formData.append('price', data.price);
       formData.append('status', data.status);
@@ -109,13 +176,13 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
         oldImages.forEach((image) => {
           formData.append('OldImages', image);
         });
-      } else {
-        // In create mode, append new images
-        if (data.images && data.images.length > 0) {
-          data.images.forEach((image) => {
-            formData.append('Images', image);
-          });
-        }
+      }
+
+      // Append new images in both modes
+      if (data.images && data.images.length > 0) {
+        data.images.forEach((image) => {
+          formData.append('Images', image);
+        });
       }
 
       await onSubmit(formData);
@@ -131,50 +198,86 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>{mode === 'create' ? 'Add New Product' : 'Update Product'}</DialogTitle>
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
+      <form ref={formRef} onSubmit={handleSubmit(handleFormSubmit)}>
         <DialogContent>
           <Stack spacing={3}>
             <Controller
               name="name"
               control={control}
-              render={({ field }) => (
-                <TextField {...field} label="Name" fullWidth error={!!errors.name} helperText={errors.name?.message} />
-              )}
+              render={({ field }) => {
+                console.log('Rendering name field with value:', field.value);
+                return (
+                  <TextField
+                    {...field}
+                    label="Name"
+                    fullWidth
+                    error={!!errors.name}
+                    helperText={errors.name?.message}
+                  />
+                );
+              }}
             />
 
             <Controller
               name="categoryId"
               control={control}
-              render={({ field }) => (
-                <FormControl fullWidth error={!!errors.categoryId}>
-                  <InputLabel>Category</InputLabel>
-                  <Select {...field} label="Category">
-                    {categories.map((category) => (
-                      <MenuItem key={category.id} value={category.id}>
-                        {category.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  <FormHelperText>{errors.categoryId?.message}</FormHelperText>
-                </FormControl>
-              )}
+              render={({ field }) => {
+                console.log('Rendering categoryId field with value:', field.value);
+                return (
+                  <FormControl fullWidth error={!!errors.categoryId}>
+                    <InputLabel>Category</InputLabel>
+                    <Select {...field} label="Category">
+                      {categories.map((category) => (
+                        <MenuItem key={category.id} value={category.id}>
+                          {category.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <FormHelperText>{errors.categoryId?.message}</FormHelperText>
+                  </FormControl>
+                );
+              }}
             />
 
             <Controller
               name="description"
               control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Description"
-                  multiline
-                  rows={4}
-                  fullWidth
-                  error={!!errors.description}
-                  helperText={errors.description?.message}
-                />
-              )}
+              render={({ field }) => {
+                console.log('Rendering description field with value:', field.value);
+                return (
+                  <TextField
+                    {...field}
+                    label="Description"
+                    multiline
+                    rows={4}
+                    fullWidth
+                    error={!!errors.description}
+                    helperText={errors.description?.message}
+                  />
+                );
+              }}
             />
+
+            {/* Show current main image when in update mode */}
+            {mode === 'update' && product?.mainImage && (
+              <Box>
+                <Typography variant="subtitle2" gutterBottom>
+                  Current Main Image:
+                </Typography>
+                <Box
+                  component="img"
+                  src={product.mainImage}
+                  alt="Current main image"
+                  sx={{
+                    width: 100,
+                    height: 100,
+                    objectFit: 'cover',
+                    borderRadius: 1,
+                    mb: 1,
+                  }}
+                />
+              </Box>
+            )}
 
             <Controller
               name="mainImage"
@@ -183,7 +286,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                 <TextField
                   {...field}
                   type="file"
-                  label="Main Image"
+                  label={mode === 'update' ? 'New Main Image (optional)' : 'Main Image'}
                   fullWidth
                   error={!!errors.mainImage}
                   helperText={errors.mainImage?.message as string}
@@ -199,47 +302,82 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
             <Controller
               name="amount"
               control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Amount"
-                  type="number"
-                  fullWidth
-                  error={!!errors.amount}
-                  helperText={errors.amount?.message}
-                />
-              )}
+              render={({ field }) => {
+                console.log('Rendering amount field with value:', field.value);
+                return (
+                  <TextField
+                    {...field}
+                    label="Amount"
+                    type="number"
+                    fullWidth
+                    error={!!errors.amount}
+                    helperText={errors.amount?.message}
+                  />
+                );
+              }}
             />
 
             <Controller
               name="price"
               control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Price"
-                  type="number"
-                  fullWidth
-                  error={!!errors.price}
-                  helperText={errors.price?.message}
-                />
-              )}
+              render={({ field }) => {
+                console.log('Rendering price field with value:', field.value);
+                return (
+                  <TextField
+                    {...field}
+                    label="Price"
+                    type="number"
+                    fullWidth
+                    error={!!errors.price}
+                    helperText={errors.price?.message}
+                  />
+                );
+              }}
             />
 
             <Controller
               name="status"
               control={control}
-              render={({ field }) => (
-                <FormControl fullWidth error={!!errors.status}>
-                  <InputLabel>Status</InputLabel>
-                  <Select {...field} label="Status">
-                    <MenuItem value="Active">Active</MenuItem>
-                    <MenuItem value="Inactive">Inactive</MenuItem>
-                  </Select>
-                  <FormHelperText>{errors.status?.message}</FormHelperText>
-                </FormControl>
-              )}
+              render={({ field }) => {
+                console.log('Rendering status field with value:', field.value);
+                return (
+                  <FormControl fullWidth error={!!errors.status}>
+                    <InputLabel>Status</InputLabel>
+                    <Select {...field} label="Status">
+                      <MenuItem value="Active">Active</MenuItem>
+                      <MenuItem value="Inactive">Inactive</MenuItem>
+                    </Select>
+                    <FormHelperText>{errors.status?.message}</FormHelperText>
+                  </FormControl>
+                );
+              }}
             />
+
+            {/* Show current additional images when in update mode */}
+            {mode === 'update' && oldImages.length > 0 && (
+              <Box>
+                <Typography variant="subtitle2" gutterBottom>
+                  Current Additional Images:
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  {oldImages.map((image, index) => (
+                    <Box
+                      key={index}
+                      component="img"
+                      src={image}
+                      alt={`Product image ${index}`}
+                      sx={{
+                        width: 80,
+                        height: 80,
+                        objectFit: 'cover',
+                        borderRadius: 1,
+                        m: 0.5,
+                      }}
+                    />
+                  ))}
+                </Stack>
+              </Box>
+            )}
 
             <Controller
               name="images"
@@ -248,7 +386,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                 <TextField
                   {...field}
                   type="file"
-                  label="Additional Images"
+                  label={mode === 'update' ? 'New Additional Images (optional)' : 'Additional Images'}
                   fullWidth
                   error={!!errors.images}
                   helperText={errors.images?.message}
