@@ -10,7 +10,7 @@ export function CategoryFilters(): React.JSX.Element {
       <OutlinedInput
         defaultValue=""
         fullWidth
-        placeholder="Search customer"
+        placeholder="Search category"
         startAdornment={
           <InputAdornment position="start">
             <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
