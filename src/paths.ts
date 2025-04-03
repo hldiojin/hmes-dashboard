@@ -4,12 +4,15 @@ export const paths = {
   dashboard: {
     overview: '/dashboard',
     account: '/dashboard/account',
-    customers: '/dashboard/customers',
+    // customers: '/dashboard/customers',
     category: '/dashboard/category',
     products: '/dashboard/product',
+    plants: '/dashboard/plant',
     tickets: '/dashboard/tickets',
-    integrations: '/dashboard/integrations',
-    settings: '/dashboard/settings',
+    //  integrations: '/dashboard/integrations',
+    //  settings: '/dashboard/settings',
+    targetValue: '/dashboard/target-value',
+    users: '/dashboard/users',
   },
   errors: { notFound: '/errors/not-found' },
 } as const;
