@@ -5,15 +5,24 @@ import { AuthResponse, AuthResult, LoginCredentials } from '@/types/auth';
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResult> {
     try {
-      const response = await axiosInstance.post<AuthResponse>('auth/login', credentials);
+      const response = await axiosInstance.post('auth/login', credentials);
 
-      // Store token in localStorage for subsequent API calls
-      if (response.data && response.data.auth && response.data.auth.token) {
-        localStorage.setItem('token', response.data.auth.token);
-        localStorage.setItem('user', JSON.stringify(response.data));
+      // Handle the new response structure
+      if (response.data && response.data.statusCodes === 200 && response.data.response && response.data.response.data) {
+        const userData = response.data.response.data;
+
+        // Store token in localStorage for subsequent API calls
+        if (userData.auth && userData.auth.token) {
+          localStorage.setItem('token', userData.auth.token);
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+
+        return { data: userData };
+      } else {
+        // Handle unsuccessful login or unexpected response format
+        console.error('Unexpected login response format:', response.data);
+        return { error: 'Invalid response from server' };
       }
-
-      return { data: response.data };
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to sign in. Please try again.';
       return { error: errorMessage };

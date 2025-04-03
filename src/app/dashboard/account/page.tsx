@@ -1,20 +1,31 @@
+'use client';
+
 import * as React from 'react';
-import type { Metadata } from 'next';
+import { authService } from '@/services/authService';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
 
-import { config } from '@/config';
 import { AccountDetailsForm } from '@/components/dashboard/account/account-details-form';
 import { AccountInfo } from '@/components/dashboard/account/account-info';
 
-export const metadata = { title: `Account | Dashboard | ${config.site.name}` } satisfies Metadata;
-
 export default function Page(): React.JSX.Element {
+  const [user, setUser] = React.useState<ReturnType<typeof authService.getCurrentUser>>(null);
+
+  React.useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    setUser(currentUser);
+  }, []);
+
   return (
     <Stack spacing={3}>
       <div>
-        <Typography variant="h4">Account</Typography>
+        <Typography variant="h4">{user ? `${user.name}'s Account` : 'Account'}</Typography>
+        {user && (
+          <Typography variant="subtitle1" color="text.secondary">
+            Manage your account settings and profile
+          </Typography>
+        )}
       </div>
       <Grid container spacing={3}>
         <Grid lg={4} md={6} xs={12}>
