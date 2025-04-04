@@ -1,410 +1,276 @@
-import { Order, OrderItem, OrderStatus } from '../types/order';
+import axiosInstance from '../api/axiosInstance';
+import { Order, OrderItem, OrderStatus, PaymentMethod, TransactionStatus } from '../types/order';
 
-// Mock data (replace with actual API calls in production)
-let mockOrders: Order[] = [
-  {
-    id: '1',
-    userId: 'user1',
-    orderNumber: 'ORD-2025-0001',
-    date: '2025-04-01',
-    status: 'delivered',
-    items: [
-      {
-        id: 'item1',
-        productId: 'prod1',
-        productName: 'Laptop',
-        quantity: 1,
-        price: 1200,
-        subtotal: 1200
+// API response types
+export interface OrdersResponse {
+  statusCodes: number;
+  response: {
+    data: ApiOrder[];
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    pageSize: number;
+    lastPage: boolean;
+  };
+}
+
+export interface ApiOrder {
+  id: string;
+  userId: string;
+  fullName: string;
+  userAddressId: string;
+  totalPrice: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Order details response types
+export interface OrderDetailsResponse {
+  statusCodes: number;
+  response: {
+    data: OrderDetailsData;
+  };
+}
+
+export interface OrderDetailsData {
+  orderId: string;
+  totalPrice: number;
+  status: string;
+  orderDetailsItems: OrderDetailsItem[];
+  userAddress: UserAddress;
+  transactions: Transaction[];
+}
+
+export interface OrderDetailsItem {
+  orderDetailsId: string;
+  productName: string;
+  productImage: string;
+  price: number;
+  quantity: number;
+  totalPrice: number;
+}
+
+export interface UserAddress {
+  addressId: string;
+  name: string;
+  phone: string;
+  address: string;
+  status: string;
+  longitude: string | null;
+  latitude: string | null;
+}
+
+export interface Transaction {
+  transactionId: string;
+  paymentMethod: PaymentMethod;
+  paymentStatus: TransactionStatus;
+  createdAt: string;
+}
+
+// READ - Get all orders with pagination and filters
+export interface OrdersFilter {
+  keyword?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  pageIndex?: number;
+  pageSize?: number;
+}
+
+export interface PaginatedOrders {
+  orders: Order[];
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  lastPage: boolean;
+}
+
+export const getOrders = async (filters: OrdersFilter = {}): Promise<PaginatedOrders> => {
+  try {
+    console.log('Fetching orders with filters:', filters);
+
+    // Build query parameters
+    const params = new URLSearchParams();
+
+    if (filters.keyword) params.append('keyword', filters.keyword);
+    if (filters.minPrice) params.append('minPrice', filters.minPrice.toString());
+    if (filters.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
+
+    if (filters.startDate) {
+      // Convert datetime-local format to ISO string for API
+      params.append('startDate', filters.startDate);
+    }
+
+    if (filters.endDate) {
+      // Convert datetime-local format to ISO string for API
+      params.append('endDate', filters.endDate);
+    }
+
+    if (filters.status) {
+      if (filters.status !== '') {
+        params.append('status', filters.status);
       }
-    ],
-    totalAmount: 1200,
-    shippingAddress: {
-      street: '123 Main St',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94105',
-      country: 'USA'
-    },
-    paymentMethod: 'Credit Card',
-    trackingNumber: 'TRK123456'
-  },
-  {
-    id: '2',
-    userId: 'user1',
-    orderNumber: 'ORD-2025-0002',
-    date: '2025-04-03',
-    status: 'shipped',
-    items: [
-      {
-        id: 'item2',
-        productId: 'prod2',
-        productName: 'Smartphone',
-        quantity: 1,
-        price: 800,
-        subtotal: 800
-      }
-    ],
-    totalAmount: 800,
-    shippingAddress: {
-      street: '123 Main St',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94105',
-      country: 'USA'
-    },
-    paymentMethod: 'PayPal',
-    trackingNumber: 'TRK789012'
-  },
-  // Adding more orders with various statuses for testing
-  {
-    id: '3',
-    userId: 'user2',
-    orderNumber: 'ORD-2025-0003',
-    date: '2025-04-04',
-    status: 'pending',
-    items: [
-      {
-        id: 'item3',
-        productId: 'prod3',
-        productName: 'Headphones',
-        quantity: 1,
-        price: 150,
-        subtotal: 150
+    }
+
+    // Always include pagination parameters with defaults
+    params.append('pageIndex', String(filters.pageIndex || 1));
+    params.append('pageSize', String(filters.pageSize || 10));
+
+    // Call API with query parameters
+    const response = await axiosInstance.get<OrdersResponse>(`order?${params.toString()}`);
+    console.log('API response:', response.data);
+
+    // Validate response structure
+    if (!response.data || !response.data.response || !Array.isArray(response.data.response.data)) {
+      throw new Error('Invalid response format from API');
+    }
+
+    // Map API response to our internal Order type
+    const orders = response.data.response.data.map((apiOrder) => ({
+      id: apiOrder.id,
+      userId: apiOrder.userId,
+      orderNumber: apiOrder.id.substring(0, 8).toUpperCase(), // Generate a shorter order number from ID
+      date: new Date(apiOrder.createdAt).toISOString(),
+      status: mapApiStatus(apiOrder.status),
+      totalAmount: apiOrder.totalPrice,
+      items: [], // We'll need another API call to get items for details view
+      shippingAddress: {
+        street: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        country: '',
       },
-      {
-        id: 'item4',
-        productId: 'prod4',
-        productName: 'Mouse',
-        quantity: 2,
-        price: 35,
-        subtotal: 70
-      }
-    ],
-    totalAmount: 220,
-    shippingAddress: {
-      street: '456 Elm St',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-      country: 'USA'
-    },
-    paymentMethod: 'Credit Card'
-  },
-  {
-    id: '4',
-    userId: 'user1',
-    orderNumber: 'ORD-2025-0004',
-    date: '2025-04-04',
-    status: 'processing',
-    items: [
-      {
-        id: 'item5',
-        productId: 'prod5',
-        productName: 'Monitor',
-        quantity: 1,
-        price: 350,
-        subtotal: 350
-      }
-    ],
-    totalAmount: 350,
-    shippingAddress: {
-      street: '123 Main St',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94105',
-      country: 'USA'
-    },
-    paymentMethod: 'Credit Card'
-  },
-  {
-    id: '5',
-    userId: 'user3',
-    orderNumber: 'ORD-2025-0005',
-    date: '2025-04-04',
-    status: 'cancelled',
-    items: [
-      {
-        id: 'item6',
-        productId: 'prod6',
-        productName: 'Keyboard',
-        quantity: 1,
-        price: 85,
-        subtotal: 85
-      }
-    ],
-    totalAmount: 85,
-    shippingAddress: {
-      street: '789 Oak St',
-      city: 'Chicago',
-      state: 'IL',
-      zipCode: '60601',
-      country: 'USA'
-    },
-    paymentMethod: 'PayPal'
-  },
-  {
-    id: '6',
-    userId: 'user2',
-    orderNumber: 'ORD-2025-0006',
-    date: '2025-04-05',
-    status: 'pending',
-    items: [
-      {
-        id: 'item7',
-        productId: 'prod7',
-        productName: 'External SSD',
-        quantity: 1,
-        price: 120,
-        subtotal: 120
-      }
-    ],
-    totalAmount: 120,
-    shippingAddress: {
-      street: '456 Elm St',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-      country: 'USA'
-    },
-    paymentMethod: 'Bank Transfer'
-  },
-  {
-    id: '7',
-    userId: 'user4',
-    orderNumber: 'ORD-2025-0007',
-    date: '2025-04-05',
-    status: 'processing',
-    items: [
-      {
-        id: 'item8',
-        productId: 'prod8',
-        productName: 'Wireless Earbuds',
-        quantity: 1,
-        price: 95,
-        subtotal: 95
-      },
-      {
-        id: 'item9',
-        productId: 'prod9',
-        productName: 'Phone Case',
-        quantity: 1,
-        price: 25,
-        subtotal: 25
-      }
-    ],
-    totalAmount: 120,
-    shippingAddress: {
-      street: '101 Pine St',
-      city: 'Seattle',
-      state: 'WA',
-      zipCode: '98101',
-      country: 'USA'
-    },
-    paymentMethod: 'Credit Card'
-  },
-  {
-    id: '8',
-    userId: 'user1',
-    orderNumber: 'ORD-2025-0008',
-    date: '2025-04-05',
-    status: 'pending',
-    items: [
-      {
-        id: 'item10',
-        productId: 'prod10',
-        productName: 'Tablet',
-        quantity: 1,
-        price: 450,
-        subtotal: 450
-      }
-    ],
-    totalAmount: 450,
-    shippingAddress: {
-      street: '123 Main St',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94105',
-      country: 'USA'
-    },
-    paymentMethod: 'Credit Card'
+      paymentMethod: 'BANK' as PaymentMethod, // Default value
+      fullName: apiOrder.fullName,
+    }));
+
+    return {
+      orders,
+      currentPage: response.data.response.currentPage,
+      totalPages: response.data.response.totalPages,
+      totalItems: response.data.response.totalItems,
+      pageSize: response.data.response.pageSize,
+      lastPage: response.data.response.lastPage,
+    };
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    throw error;
   }
-];
-
-// Generate a unique ID
-const generateId = (): string => {
-  return Math.random().toString(36).substring(2, 9);
 };
 
-// Generate order number
-const generateOrderNumber = (): string => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `ORD-${year}${month}-${random}`;
-};
+// Helper function to map API status to our OrderStatus enum
+function mapApiStatus(apiStatus: string): OrderStatus {
+  // Convert to consistent casing for matching
+  const status = apiStatus.toUpperCase();
 
-// READ - Get all orders
-export const getOrders = async (): Promise<Order[]> => {
-  // In real app: return await api.get('/orders');
-  return new Promise((resolve) => {
-    setTimeout(() => resolve([...mockOrders]), 500);
-  });
+  // Match to our OrderStatus type
+  switch (status) {
+    case 'PENDING':
+      return 'Pending';
+    case 'DELIVERING':
+      return 'Delivering';
+    case 'SUCCESS':
+      return 'Success';
+    case 'CANCELLED':
+    case 'CANCELED': // Handle both spellings
+      return 'Cancelled';
+    default:
+      console.warn(`Unknown status from API: ${apiStatus}, defaulting to 'Pending'`);
+      return 'Pending';
+  }
+}
+
+// READ - Get order details by ID
+export const getOrderDetails = async (orderId: string): Promise<OrderDetailsData | null> => {
+  try {
+    const response = await axiosInstance.get<OrderDetailsResponse>(`order/${orderId}`);
+    console.log('Order details response:', response.data);
+
+    if (response.data && response.data.statusCodes === 200 && response.data.response.data) {
+      return response.data.response.data;
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`Error fetching order details for ID ${orderId}:`, error);
+    return null;
+  }
 };
 
 // READ - Get order by ID
 export const getOrderById = async (orderId: string): Promise<Order | null> => {
-  // In real app: return await api.get(`/orders/${orderId}`);
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const order = mockOrders.find(o => o.id === orderId) || null;
-      resolve(order);
-    }, 500);
-  });
-};
+  try {
+    const response = await axiosInstance.get<OrderDetailsResponse>(`order/${orderId}`);
+    console.log('Order details response:', response.data);
 
-// CREATE - Create a new order
-export interface CreateOrderInput {
-  userId: string;
-  items: {
-    productId: string;
-    productName: string;
-    price: number;
-    quantity: number;
-  }[];
-  shippingAddress: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
-  paymentMethod: string;
-}
-
-export const createOrder = async (orderData: CreateOrderInput): Promise<Order> => {
-  // In real app: return await api.post('/orders', orderData);
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Calculate subtotals and total
-      const items = orderData.items.map(item => ({
-        id: generateId(),
-        productId: item.productId,
+    if (response.data && response.data.statusCodes === 200 && response.data.response.data) {
+      // Map API order details to Order type
+      const orderDetails = response.data.response.data;
+      const items = orderDetails.orderDetailsItems.map((item) => ({
+        id: item.orderDetailsId,
+        productId: item.orderDetailsId,
         productName: item.productName,
         quantity: item.quantity,
         price: item.price,
-        subtotal: item.price * item.quantity
+        subtotal: item.totalPrice,
       }));
-      
-      const totalAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
-      
-      // Create new order
-      const newOrder: Order = {
-        id: generateId(),
-        userId: orderData.userId,
-        orderNumber: generateOrderNumber(),
-        date: new Date().toISOString().split('T')[0],
-        status: 'pending' as OrderStatus,
+
+      // Get transaction if available
+      const transaction =
+        orderDetails.transactions && orderDetails.transactions.length > 0 ? orderDetails.transactions[0] : null;
+
+      // Create an Order object from OrderDetailsData
+      const order: Order = {
+        id: orderDetails.orderId,
+        userId: orderDetails.userAddress?.name || '',
+        orderNumber: orderDetails.orderId.slice(0, 8).toUpperCase(),
+        date: transaction ? transaction.createdAt : new Date().toISOString(),
+        status: orderDetails.status as OrderStatus,
         items,
-        totalAmount,
-        shippingAddress: orderData.shippingAddress,
-        paymentMethod: orderData.paymentMethod
+        totalAmount: orderDetails.totalPrice,
+        shippingAddress: {
+          street: orderDetails.userAddress?.address || '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: '',
+        },
+        paymentMethod: transaction?.paymentMethod || 'BANK',
+        fullName: orderDetails.userAddress?.name,
       };
-      
-      mockOrders.push(newOrder);
-      resolve(newOrder);
-    }, 500);
-  });
+
+      return order;
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`Error fetching order details for ID ${orderId}:`, error);
+    return null;
+  }
 };
 
 // UPDATE - Update order status
 export const updateOrderStatus = async (orderId: string, status: OrderStatus): Promise<Order> => {
-  // In real app: return await api.put(`/orders/${orderId}/status`, { status });
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const orderIndex = mockOrders.findIndex(o => o.id === orderId);
-      if (orderIndex >= 0) {
-        const updatedOrder = { 
-          ...mockOrders[orderIndex],
-          status 
-        };
-        
-        // Add tracking number if status is changing to shipped
-        if (status === 'shipped' && !updatedOrder.trackingNumber) {
-          updatedOrder.trackingNumber = `TRK${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
-        }
-        
-        mockOrders[orderIndex] = updatedOrder;
-        resolve(updatedOrder);
-      } else {
-        reject(new Error('Order not found'));
-      }
-    }, 500);
-  });
-};
+  try {
+    // In a real application, this would call the API to update the order status
+    const response = await axiosInstance.put<OrderDetailsResponse>(`order/${orderId}/status`, { status });
 
-// UPDATE - Update entire order
-export const updateOrder = async (orderId: string, orderData: Partial<Order>): Promise<Order> => {
-  // In real app: return await api.put(`/orders/${orderId}`, orderData);
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const orderIndex = mockOrders.findIndex(o => o.id === orderId);
-      if (orderIndex >= 0) {
-        // Calculate new total if items are updated
-        let totalAmount = mockOrders[orderIndex].totalAmount;
-        
-        if (orderData.items) {
-          const items = orderData.items.map(item => ({
-            ...item,
-            subtotal: item.price * item.quantity
-          }));
-          
-          totalAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
-          orderData.items = items;
-        }
-        
-        const updatedOrder = { 
-          ...mockOrders[orderIndex],
-          ...orderData,
-          totalAmount: orderData.items ? totalAmount : mockOrders[orderIndex].totalAmount
-        };
-        
-        mockOrders[orderIndex] = updatedOrder;
-        resolve(updatedOrder);
-      } else {
-        reject(new Error('Order not found'));
+    if (response.data && response.data.statusCodes === 200) {
+      // Return the updated order by getting it again
+      const updatedOrder = await getOrderById(orderId);
+      if (updatedOrder) {
+        return updatedOrder;
       }
-    }, 500);
-  });
-};
+    }
 
-// DELETE - Delete an order
-export const deleteOrder = async (orderId: string): Promise<boolean> => {
-  return new Promise((resolve, reject) => {
-    console.log(`Attempting to delete order with ID: ${orderId}`);
-    setTimeout(() => {
-      const orderIndex = mockOrders.findIndex(o => o.id === orderId);
-      console.log(`Order index in mock data: ${orderIndex}`);
-      
-      if (orderIndex >= 0) {
-        const order = mockOrders[orderIndex];
-        
-        // Check status
-        if (order.status === 'shipped' || order.status === 'delivered') {
-          console.error(`Cannot delete order with status: ${order.status}`);
-          reject(new Error(`Cannot delete order with status: ${order.status}`));
-          return;
-        }
-        
-        const orderNumber = order.orderNumber;
-        mockOrders = mockOrders.filter(o => o.id !== orderId);
-        console.log(`Order ${orderNumber} deleted successfully`);
-        resolve(true);
-      } else {
-        console.error('Order not found');
-        reject(new Error('Order not found'));
-      }
-    }, 500);
-  });
+    throw new Error('Failed to update order status');
+  } catch (error) {
+    console.error(`Error updating order status for ID ${orderId}:`, error);
+    throw error;
+  }
 };
