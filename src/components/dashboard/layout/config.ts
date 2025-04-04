@@ -14,4 +14,6 @@ export const navItems = [
   // { key: 'settings', title: 'Settings', href: paths.dashboard.settings, icon: 'gear-six' },
   { key: 'account', title: 'Account', href: paths.dashboard.account, icon: 'user' },
   // { key: 'error', title: 'Error', href: paths.errors.notFound, icon: 'x-square' },
+  { key: 'order', title: 'Orders', href: paths.dashboard.order, icon: 'shopping-cart' },
+  { key: 'employee-income', title: 'Employee Income', href: paths.dashboard.employeeIncome, icon: 'money' },
 ] satisfies NavItemConfig[];
