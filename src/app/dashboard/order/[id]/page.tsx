@@ -1,52 +1,63 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import EditIcon from '@mui/icons-material/Edit';
 import {
   Box,
-  Typography,
   Button,
   Card,
   CardContent,
-  Grid,
   Chip,
-  Divider,
   CircularProgress,
+  Divider,
+  Grid,
+  Paper,
+  Step,
+  StepLabel,
+  Stepper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Stepper,
-  Step,
-  StepLabel,
-  Paper
+  Typography,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import EditIcon from '@mui/icons-material/Edit';
-import { Order, OrderStatus } from '../../../../types/order';
-import { getOrderById, updateOrderStatus } from '../../../../services/orderService';
 
-const getStatusColor = (status: OrderStatus): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+import { getOrderById, updateOrderStatus } from '../../../../services/orderService';
+import { Order, OrderStatus } from '../../../../types/order';
+
+const getStatusColor = (
+  status: OrderStatus
+): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
   switch (status) {
-    case 'pending': return 'warning';
-    case 'processing': return 'info';
-    case 'shipped': return 'primary';
-    case 'delivered': return 'success';
-    case 'cancelled': return 'error';
-    default: return 'default';
+    case 'Pending':
+      return 'warning';
+    case 'Delivering':
+      return 'info';
+    case 'Success':
+      return 'success';
+    case 'Cancelled':
+      return 'error';
+    default:
+      return 'default';
   }
 };
 
 const getOrderStatusStep = (status: OrderStatus) => {
   switch (status) {
-    case 'pending': return 0;
-    case 'processing': return 1;
-    case 'shipped': return 2;
-    case 'delivered': return 3;
-    case 'cancelled': return -1;
-    default: return 0;
+    case 'Pending':
+      return 0;
+    case 'Delivering':
+      return 1;
+    case 'Success':
+      return 3;
+    case 'Cancelled':
+      return -1;
+    default:
+      return 0;
   }
 };
 
@@ -68,7 +79,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
         setLoading(false);
       }
     };
-    
+
     if (orderId) {
       loadOrderDetails();
     }
@@ -76,7 +87,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
 
   const handleUpdateStatus = async (newStatus: OrderStatus) => {
     if (!order) return;
-    
+
     setUpdating(true);
     try {
       const updatedOrder = await updateOrderStatus(order.id, newStatus);
@@ -99,11 +110,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
   if (!order) {
     return (
       <Box sx={{ p: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => router.push('/dashboard/order')}
-          sx={{ mb: 3 }}
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={() => router.push('/dashboard/order')} sx={{ mb: 3 }}>
           Back to Orders
         </Button>
         <Card>
@@ -120,10 +127,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => router.push('/dashboard/order')}
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={() => router.push('/dashboard/order')}>
           Back to Orders
         </Button>
         <Chip
@@ -136,49 +140,41 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
         Order #{order.orderNumber}
       </Typography>
 
-      {order.status !== 'cancelled' && order.status !== 'delivered' && (
+      {order.status !== 'Cancelled' && order.status !== 'Success' && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant="h6" sx={{ mb: 2 }}>Order Actions</Typography>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Order Actions
+            </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              {order.status === 'pending' && (
+              {order.status === 'Pending' && (
                 <>
-                  <Button 
-                    variant="contained" 
+                  <Button
+                    variant="contained"
                     color="primary"
                     disabled={updating}
-                    onClick={() => handleUpdateStatus('processing')}
+                    onClick={() => handleUpdateStatus('Delivering')}
                   >
                     Process Order
                   </Button>
-                  <Button 
-                    variant="outlined" 
+                  <Button
+                    variant="outlined"
                     color="error"
                     disabled={updating}
-                    onClick={() => handleUpdateStatus('cancelled')}
+                    onClick={() => handleUpdateStatus('Cancelled')}
                   >
                     Cancel Order
                   </Button>
                 </>
               )}
-              {order.status === 'processing' && (
-                <Button 
-                  variant="contained" 
+              {order.status === 'Delivering' && (
+                <Button
+                  variant="contained"
                   color="primary"
                   disabled={updating}
-                  onClick={() => handleUpdateStatus('shipped')}
+                  onClick={() => handleUpdateStatus('Success')}
                 >
-                  Mark as Shipped
-                </Button>
-              )}
-              {order.status === 'shipped' && (
-                <Button 
-                  variant="contained" 
-                  color="success"
-                  disabled={updating}
-                  onClick={() => handleUpdateStatus('delivered')}
-                >
-                  Mark as Delivered
+                  Mark as Success
                 </Button>
               )}
               <Button
@@ -186,7 +182,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
                 startIcon={<EditIcon />}
                 onClick={() => router.push(`/dashboard/order/${order.id}/edit`)}
                 sx={{ mr: 1 }}
-                disabled={(order.status as OrderStatus) === 'delivered' || (order.status as OrderStatus) === 'cancelled'}
+                disabled={(order.status as OrderStatus) === 'Success' || (order.status as OrderStatus) === 'Cancelled'}
               >
                 Edit Order
               </Button>
@@ -200,8 +196,10 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
         <Grid item xs={12}>
           <Card sx={{ mb: 3 }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Order Progress</Typography>
-              {order.status === 'cancelled' ? (
+              <Typography variant="h6" gutterBottom>
+                Order Progress
+              </Typography>
+              {order.status === 'Cancelled' ? (
                 <Box sx={{ p: 2, bgcolor: 'error.light', borderRadius: 1 }}>
                   <Typography>This order has been cancelled</Typography>
                 </Box>
@@ -228,27 +226,39 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
         <Grid item xs={12} md={6}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Order Information</Typography>
+              <Typography variant="h6" gutterBottom>
+                Order Information
+              </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="text.secondary">Order Number</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Order Number
+                  </Typography>
                   <Typography variant="body1">{order.orderNumber}</Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="text.secondary">Order Date</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Order Date
+                  </Typography>
                   <Typography variant="body1">{new Date(order.date).toLocaleDateString()}</Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="text.secondary">Customer ID</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Customer ID
+                  </Typography>
                   <Typography variant="body1">{order.userId}</Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="text.secondary">Payment Method</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Payment Method
+                  </Typography>
                   <Typography variant="body1">{order.paymentMethod}</Typography>
                 </Grid>
                 {order.trackingNumber && (
                   <Grid item xs={12}>
-                    <Typography variant="body2" color="text.secondary">Tracking Number</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Tracking Number
+                    </Typography>
                     <Typography variant="body1">{order.trackingNumber}</Typography>
                   </Grid>
                 )}
@@ -260,10 +270,14 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
         <Grid item xs={12} md={6}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Shipping Address</Typography>
+              <Typography variant="h6" gutterBottom>
+                Shipping Address
+              </Typography>
               <Typography variant="body1">
-                {order.shippingAddress.street}<br />
-                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}<br />
+                {order.shippingAddress.street}
+                <br />
+                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
+                <br />
                 {order.shippingAddress.country}
               </Typography>
             </CardContent>
@@ -273,7 +287,9 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Order Items</Typography>
+              <Typography variant="h6" gutterBottom>
+                Order Items
+              </Typography>
               <TableContainer>
                 <Table>
                   <TableHead>
@@ -298,9 +314,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
               </TableContainer>
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Typography variant="h6">
-                  Total: ${order.totalAmount.toFixed(2)}
-                </Typography>
+                <Typography variant="h6">Total: ${order.totalAmount.toFixed(2)}</Typography>
               </Box>
             </CardContent>
           </Card>
