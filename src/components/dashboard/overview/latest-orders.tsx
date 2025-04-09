@@ -23,18 +23,20 @@ const statusMap = {
 
 export interface Order {
   id: string;
+  reference: string;
   customer: { name: string };
   amount: number;
   status: 'pending' | 'delivered' | 'refunded';
-  createdAt: Date;
+  createdAt: string;
 }
 
 export interface LatestOrdersProps {
   orders?: Order[];
   sx?: SxProps;
+  onViewAll?: () => void;
 }
 
-export function LatestOrders({ orders = [], sx }: LatestOrdersProps): React.JSX.Element {
+export function LatestOrders({ orders = [], sx, onViewAll }: LatestOrdersProps): React.JSX.Element {
   return (
     <Card sx={sx}>
       <CardHeader title="Latest orders" />
@@ -45,6 +47,7 @@ export function LatestOrders({ orders = [], sx }: LatestOrdersProps): React.JSX.
             <TableRow>
               <TableCell>Order</TableCell>
               <TableCell>Customer</TableCell>
+              <TableCell>Amount</TableCell>
               <TableCell sortDirection="desc">Date</TableCell>
               <TableCell>Status</TableCell>
             </TableRow>
@@ -55,11 +58,12 @@ export function LatestOrders({ orders = [], sx }: LatestOrdersProps): React.JSX.
 
               return (
                 <TableRow hover key={order.id}>
-                  <TableCell>{order.id}</TableCell>
+                  <TableCell>{order.reference}</TableCell>
                   <TableCell>{order.customer.name}</TableCell>
-                  <TableCell>{dayjs(order.createdAt).format('MMM D, YYYY')}</TableCell>
+                  <TableCell>${order.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                  <TableCell>{dayjs(order.createdAt).format('DD MMM YYYY')}</TableCell>
                   <TableCell>
-                    <Chip color={color} label={label} size="small" />
+                    <Chip color={color as 'warning' | 'success' | 'error'} label={label} size="small" />
                   </TableCell>
                 </TableRow>
               );
@@ -71,9 +75,10 @@ export function LatestOrders({ orders = [], sx }: LatestOrdersProps): React.JSX.
       <CardActions sx={{ justifyContent: 'flex-end' }}>
         <Button
           color="inherit"
-          endIcon={<ArrowRightIcon fontSize="var(--icon-fontSize-md)" />}
+          endIcon={<ArrowRightIcon fontSize="var(--icon-fontSize-md)" weight="bold" />}
           size="small"
           variant="text"
+          onClick={onViewAll}
         >
           View all
         </Button>

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create base axios instance with common configurations
 const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'https://api.hmes.buubuu.id.vn/api/',
+  baseURL: process.env.REACT_APP_API_URL || 'https://api.hmes.site/api/',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
