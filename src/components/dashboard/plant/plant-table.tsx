@@ -259,19 +259,7 @@ function PlantTable({
           <Table sx={{ minWidth: '800px' }}>
             <TableHead>
               <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedAll}
-                    indeterminate={selectedSome}
-                    onChange={(event) => {
-                      if (event.target.checked) {
-                        selectAll();
-                      } else {
-                        deselectAll();
-                      }
-                    }}
-                  />
-                </TableCell>
+                <TableCell>ID</TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right">Actions</TableCell>
@@ -297,19 +285,7 @@ function PlantTable({
                       onClick={() => onRowClick?.(plant.id)}
                       sx={{ cursor: 'pointer' }}
                     >
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={isSelected}
-                          onChange={(event) => {
-                            event.stopPropagation();
-                            if (event.target.checked) {
-                              selectOne(plant.id);
-                            } else {
-                              deselectOne(plant.id);
-                            }
-                          }}
-                        />
-                      </TableCell>
+                      <TableCell>{plant.id.slice(0, 8)}...</TableCell>
                       <TableCell>
                         <Typography variant="subtitle2">{plant.name}</Typography>
                       </TableCell>

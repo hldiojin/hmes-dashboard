@@ -10,7 +10,7 @@ export const paths = {
     plants: '/dashboard/plant',
     tickets: '/dashboard/tickets',
     //  integrations: '/dashboard/integrations',
-    //  settings: '/dashboard/settings',
+    settings: '/dashboard/settings',
     targetValue: '/dashboard/target-value',
     users: '/dashboard/users',
     order: '/dashboard/order',

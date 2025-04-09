@@ -11,6 +11,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
 import FormHelperText from '@mui/material/FormHelperText';
+import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
@@ -48,6 +49,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
   const [categories, setCategories] = React.useState<Category[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [oldImages, setOldImages] = React.useState<string[]>([]);
+  const [mainImageRemoved, setMainImageRemoved] = React.useState(false);
 
   const formRef = React.useRef<HTMLFormElement>(null);
 
@@ -58,6 +60,16 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
       console.log('Amount:', product.amount);
     }
   }, [product]);
+
+  // Handle removing an image from oldImages
+  const handleRemoveImage = (indexToRemove: number) => {
+    setOldImages(oldImages.filter((_, index) => index !== indexToRemove));
+  };
+
+  // Handle removing the main image
+  const handleRemoveMainImage = () => {
+    setMainImageRemoved(true);
+  };
 
   const {
     control,
@@ -119,6 +131,9 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
       if (product.images) {
         setOldImages(product.images);
       }
+
+      // Reset main image removal state
+      setMainImageRemoved(false);
     } else if (open && mode === 'create') {
       reset({
         name: '',
@@ -131,6 +146,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
         images: [],
       });
       setOldImages([]);
+      setMainImageRemoved(false);
     }
   }, [open, product, mode, reset, setValue, watch]);
 
@@ -157,31 +173,38 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append('name', data.name);
-      formData.append('categoryId', data.categoryId);
-      formData.append('description', data.description);
 
-      // Only append mainImage if it exists (a file was selected)
-      if (data.mainImage) {
-        formData.append('mainImage', data.mainImage);
+      // Add product ID when in update mode
+      if (mode === 'update' && product?.id) {
+        formData.append('Id', product.id);
       }
 
-      formData.append('amount', data.amount);
-      formData.append('price', data.price);
-      formData.append('status', data.status);
+      formData.append('Name', data.name);
+      formData.append('CategoryId', data.categoryId);
+      formData.append('Description', data.description);
+      formData.append('Amount', data.amount);
+      formData.append('Price', data.price);
+      formData.append('Status', data.status);
 
-      // Handle images based on mode
+      // Only append MainImage if it exists (a file was selected)
+      if (data.mainImage) {
+        formData.append('MainImage', data.mainImage);
+      } else if (mainImageRemoved) {
+        // If main image was removed, send empty string to indicate removal
+        formData.append('MainImage', '');
+      }
+
+      // Handle old images in update mode
       if (mode === 'update') {
-        // In update mode, append old images
         oldImages.forEach((image) => {
           formData.append('OldImages', image);
         });
       }
 
-      // Append new images in both modes
+      // Handle new images
       if (data.images && data.images.length > 0) {
         data.images.forEach((image) => {
-          formData.append('Images', image);
+          formData.append('NewImages', image);
         });
       }
 
@@ -259,23 +282,46 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
             />
 
             {/* Show current main image when in update mode */}
-            {mode === 'update' && product?.mainImage && (
+            {mode === 'update' && product?.mainImage && !mainImageRemoved && (
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
                   Current Main Image:
                 </Typography>
-                <Box
-                  component="img"
-                  src={product.mainImage}
-                  alt="Current main image"
-                  sx={{
-                    width: 100,
-                    height: 100,
-                    objectFit: 'cover',
-                    borderRadius: 1,
-                    mb: 1,
-                  }}
-                />
+                <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
+                  <Box
+                    component="img"
+                    src={product.mainImage}
+                    alt="Current main image"
+                    sx={{
+                      width: 100,
+                      height: 100,
+                      objectFit: 'cover',
+                      borderRadius: 1,
+                    }}
+                  />
+                  <IconButton
+                    size="small"
+                    sx={{
+                      position: 'absolute',
+                      top: -10,
+                      right: -10,
+                      bgcolor: 'error.main',
+                      color: 'white',
+                      '&:hover': {
+                        bgcolor: 'error.dark',
+                      },
+                      width: 24,
+                      height: 24,
+                      minWidth: 24,
+                      p: 0,
+                    }}
+                    onClick={handleRemoveMainImage}
+                  >
+                    <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                      X
+                    </Typography>
+                  </IconButton>
+                </Box>
               </Box>
             )}
 
@@ -363,17 +409,45 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                   {oldImages.map((image, index) => (
                     <Box
                       key={index}
-                      component="img"
-                      src={image}
-                      alt={`Product image ${index}`}
                       sx={{
-                        width: 80,
-                        height: 80,
-                        objectFit: 'cover',
-                        borderRadius: 1,
+                        position: 'relative',
                         m: 0.5,
                       }}
-                    />
+                    >
+                      <Box
+                        component="img"
+                        src={image}
+                        alt={`Product image ${index}`}
+                        sx={{
+                          width: 80,
+                          height: 80,
+                          objectFit: 'cover',
+                          borderRadius: 1,
+                        }}
+                      />
+                      <IconButton
+                        size="small"
+                        sx={{
+                          position: 'absolute',
+                          top: -10,
+                          right: -10,
+                          bgcolor: 'error.main',
+                          color: 'white',
+                          '&:hover': {
+                            bgcolor: 'error.dark',
+                          },
+                          width: 24,
+                          height: 24,
+                          minWidth: 24,
+                          p: 0,
+                        }}
+                        onClick={() => handleRemoveImage(index)}
+                      >
+                        <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                          X
+                        </Typography>
+                      </IconButton>
+                    </Box>
                   ))}
                 </Stack>
               </Box>

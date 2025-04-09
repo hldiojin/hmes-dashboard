@@ -478,6 +478,18 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                   </TableRow>
                 ))}
                 <TableRow>
+                  <TableCell colSpan={4} align="right">
+                    Subtotal:
+                  </TableCell>
+                  <TableCell align="right">{formatCurrency(orderDetails.price)}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell colSpan={4} align="right">
+                    Shipping Fee:
+                  </TableCell>
+                  <TableCell align="right">{formatCurrency(orderDetails.shippingFee)}</TableCell>
+                </TableRow>
+                <TableRow>
                   <TableCell colSpan={4} align="right" sx={{ fontWeight: 'bold' }}>
                     Total:
                   </TableCell>

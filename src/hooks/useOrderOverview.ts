@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
 import { getOrders, OrdersFilter } from '../services/orderService';
-import { Order } from '../types/order';
+import { Order, OrderStatus } from '../types/order';
 
 export interface OrderOverviewData {
   totalRevenue: number;
@@ -10,7 +11,7 @@ export interface OrderOverviewData {
     reference: string;
     customer: { name: string };
     amount: number;
-    status: 'pending' | 'delivered' | 'refunded';
+    status: OrderStatus;
     createdAt: string;
   }>;
   revenueByDay: { date: string; revenue: number }[];
@@ -37,7 +38,7 @@ export const useOrderOverview = () => {
       const apiFilters: OrdersFilter = {
         pageIndex: 1,
         pageSize: 10,
-        ...searchFilters
+        ...searchFilters,
       };
 
       // Fetch orders using your existing service
@@ -45,16 +46,16 @@ export const useOrderOverview = () => {
 
       // Calculate total revenue from orders
       const totalRevenue = response.orders.reduce((sum, order) => sum + order.totalAmount, 0);
-      
+
       // Map to the format needed for LatestOrders component
-      const latestOrders = response.orders.map(order => ({
+      const latestOrders = response.orders.map((order) => ({
         id: order.id,
         reference: order.orderNumber,
         customer: { name: order.fullName || 'Unknown Customer' },
         amount: order.totalAmount,
         // Map your OrderStatus to the statuses used in the component
         status: mapOrderStatusToComponent(order.status),
-        createdAt: order.date
+        createdAt: order.date,
       }));
 
       // Calculate revenue by day for charts
@@ -64,7 +65,7 @@ export const useOrderOverview = () => {
         totalRevenue,
         totalOrders: response.totalItems,
         latestOrders,
-        revenueByDay
+        revenueByDay,
       });
     } catch (err) {
       console.error('Failed to fetch order overview data:', err);
@@ -89,16 +90,17 @@ export const useOrderOverview = () => {
 };
 
 // Helper function to map order status to component status
-function mapOrderStatusToComponent(status: string): 'pending' | 'delivered' | 'refunded' {
+function mapOrderStatusToComponent(status: string): OrderStatus {
   switch (status) {
     case 'Success':
-      return 'delivered';
+      return 'Success';
     case 'Cancelled':
-      return 'refunded';
-    case 'Pending':
+      return 'Cancelled';
     case 'Delivering':
+      return 'Delivering';
+    case 'Pending':
     default:
-      return 'pending';
+      return 'Pending';
   }
 }
 
@@ -106,14 +108,15 @@ function mapOrderStatusToComponent(status: string): 'pending' | 'delivered' | 'r
 function calculateRevenueByDay(orders: Order[]): { date: string; revenue: number }[] {
   // Group orders by date and sum the total
   const revenueMap = new Map<string, number>();
-  
-  orders.forEach(order => {
+
+  orders.forEach((order) => {
     const dateStr = new Date(order.date).toISOString().split('T')[0];
     const currentTotal = revenueMap.get(dateStr) || 0;
     revenueMap.set(dateStr, currentTotal + order.totalAmount);
   });
 
   // Convert to array and sort by date
-  return Array.from(revenueMap, ([date, revenue]) => ({ date, revenue }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return Array.from(revenueMap, ([date, revenue]) => ({ date, revenue })).sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
 }

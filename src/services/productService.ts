@@ -12,6 +12,15 @@ class ProductService {
     }
   }
 
+  async getProductById(id: string): Promise<ApiResponse> {
+    try {
+      const response = await axiosInstance.get<ApiResponse>(`/product/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async createProduct(formData: FormData): Promise<ApiResponse> {
     try {
       const response = await axiosInstance.post<ApiResponse>('/product', formData, {

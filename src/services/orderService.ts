@@ -35,6 +35,8 @@ export interface OrderDetailsResponse {
 
 export interface OrderDetailsData {
   orderId: string;
+  price: number;
+  shippingFee: number;
   totalPrice: number;
   status: string;
   orderDetailsItems: OrderDetailsItem[];
