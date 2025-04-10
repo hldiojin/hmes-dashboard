@@ -14,7 +14,6 @@ export const paths = {
     targetValue: '/dashboard/target-value',
     users: '/dashboard/users',
     order: '/dashboard/order',
-    employeeIncome: '/dashboard/employee-income',
   },
   errors: { notFound: '/errors/not-found' },
 } as const;
