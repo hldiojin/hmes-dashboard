@@ -37,7 +37,7 @@ import {
 } from '@mui/material';
 import { Plus, Trash, X } from '@phosphor-icons/react';
 
-import { ValueType } from '@/types/targetValue';
+import { ValueType, ValueTypeEnums } from '@/types/targetValue';
 
 interface TargetValueDetailsProps {
   open: boolean;
@@ -157,14 +157,14 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
   // Get target type display name
   const getTargetTypeDisplayName = (type: string): string => {
     switch (type) {
-      case 'WaterTemperature':
-        return 'Water Temperature';
-      case 'ConcentrationOfSolutes':
+      case 'SoluteConcentration':
         return 'Concentration of Solutes';
+      case 'Ph':
+        return 'pH';
       case 'WaterLevel':
         return 'Water Level';
-      case 'pH':
-        return 'pH';
+      case 'Temperature':
+        return 'Temperature';
       default:
         return type;
     }
@@ -173,13 +173,13 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
   // Get target type unit
   const getTargetTypeUnit = (type: string): string => {
     switch (type) {
-      case 'WaterTemperature':
+      case 'Temperature':
         return '°C';
-      case 'ConcentrationOfSolutes':
+      case 'SoluteConcentration':
         return 'ppm';
       case 'WaterLevel':
         return 'cm';
-      case 'pH':
+      case 'Ph':
         return '';
       default:
         return '';

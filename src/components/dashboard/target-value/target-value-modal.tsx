@@ -16,7 +16,7 @@ import {
   Typography,
 } from '@mui/material';
 
-import { TargetValue, ValueType } from '@/types/targetValue';
+import { TargetValue, ValueType, ValueTypeEnums } from '@/types/targetValue';
 
 interface TargetValueModalProps {
   open: boolean;
@@ -27,7 +27,7 @@ interface TargetValueModalProps {
 }
 
 function TargetValueModal({ open, onClose, onSubmit, targetValue, mode }: TargetValueModalProps): React.JSX.Element {
-  const [type, setType] = React.useState<ValueType>(targetValue?.type || 'pH');
+  const [type, setType] = React.useState<ValueType>(targetValue?.type || 'Ph');
   const [minValue, setMinValue] = React.useState<number | ''>(targetValue?.minValue ?? '');
   const [maxValue, setMaxValue] = React.useState<number | ''>(targetValue?.maxValue ?? '');
   const [errors, setErrors] = React.useState<{
@@ -39,7 +39,7 @@ function TargetValueModal({ open, onClose, onSubmit, targetValue, mode }: Target
   // Reset form when modal opens/closes or targetValue changes
   React.useEffect(() => {
     if (open) {
-      setType(targetValue?.type || 'pH');
+      setType(targetValue?.type || 'Ph');
       setMinValue(targetValue?.minValue ?? '');
       setMaxValue(targetValue?.maxValue ?? '');
       setErrors({});
@@ -84,13 +84,13 @@ function TargetValueModal({ open, onClose, onSubmit, targetValue, mode }: Target
   // Get target type display name
   const getTargetTypeDisplayName = (type: ValueType): string => {
     switch (type) {
-      case 'WaterTemperature':
-        return 'Water Temperature';
-      case 'ConcentrationOfSolutes':
+      case 'Temperature':
+        return 'Temperature';
+      case 'SoluteConcentration':
         return 'Concentration of Solutes';
       case 'WaterLevel':
         return 'Water Level';
-      case 'pH':
+      case 'Ph':
         return 'pH';
       default:
         return type;
@@ -100,13 +100,13 @@ function TargetValueModal({ open, onClose, onSubmit, targetValue, mode }: Target
   // Get target type unit
   const getTargetTypeUnit = (type: ValueType): string => {
     switch (type) {
-      case 'WaterTemperature':
+      case 'Temperature':
         return '°C';
-      case 'ConcentrationOfSolutes':
+      case 'SoluteConcentration':
         return 'ppm';
       case 'WaterLevel':
         return 'cm';
-      case 'pH':
+      case 'Ph':
         return '';
       default:
         return '';
@@ -127,9 +127,9 @@ function TargetValueModal({ open, onClose, onSubmit, targetValue, mode }: Target
                 label="Type"
                 onChange={(e) => setType(e.target.value as ValueType)}
               >
-                <MenuItem value="pH">pH</MenuItem>
-                <MenuItem value="ConcentrationOfSolutes">Concentration of Solutes</MenuItem>
-                <MenuItem value="WaterTemperature">Water Temperature</MenuItem>
+                <MenuItem value="Ph">pH</MenuItem>
+                <MenuItem value="SoluteConcentration">Concentration of Solutes</MenuItem>
+                <MenuItem value="Temperature">Temperature</MenuItem>
                 <MenuItem value="WaterLevel">Water Level</MenuItem>
               </Select>
             </FormControl>
