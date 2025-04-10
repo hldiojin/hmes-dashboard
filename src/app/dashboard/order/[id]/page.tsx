@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getOrderById, updateOrderStatus } from '@/services/orderService';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import {
@@ -14,6 +15,7 @@ import {
   Divider,
   Grid,
   Paper,
+  Stack,
   Step,
   StepLabel,
   Stepper,
@@ -26,8 +28,7 @@ import {
   Typography,
 } from '@mui/material';
 
-import { getOrderById, updateOrderStatus } from '../../../../services/orderService';
-import { Order, OrderStatus } from '../../../../types/order';
+import { formatCurrency, getOrderStatusLabel, Order, OrderStatus } from '@/types/order';
 
 const getStatusColor = (
   status: OrderStatus
@@ -304,18 +305,35 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
                     {order.items.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>{item.productName}</TableCell>
-                        <TableCell align="right">${item.price.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(item.price)}</TableCell>
                         <TableCell align="right">{item.quantity}</TableCell>
-                        <TableCell align="right">${item.subtotal.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(item.subtotal)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </TableContainer>
               <Divider sx={{ my: 2 }} />
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Typography variant="h6">Total: ${order.totalAmount.toFixed(2)}</Typography>
-              </Box>
+              <Stack spacing={1} sx={{ display: 'flex', alignItems: 'flex-end' }}>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Subtotal:
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatCurrency(order.items.reduce((total, item) => total + item.subtotal, 0))}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Shipping Fee:
+                  </Typography>
+                  <Typography variant="body1">{formatCurrency(order.shippingFee || 0)}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Typography variant="h6">Total:</Typography>
+                  <Typography variant="h6">{formatCurrency(order.totalAmount)}</Typography>
+                </Box>
+              </Stack>
             </CardContent>
           </Card>
         </Grid>

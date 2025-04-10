@@ -50,6 +50,43 @@ export const categoryService = {
       throw error;
     }
   },
+
+  /**
+   * Get a category by ID
+   * @param categoryId - ID of the category to retrieve
+   * @returns Promise with the category response
+   */
+  getCategoryById: async (categoryId: string) => {
+    try {
+      const response = await axiosInstance.get(`category/${categoryId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching category details:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update a category
+   * @param categoryId - ID of the category to update
+   * @param formData - Form data containing updated category details
+   * @returns Promise with the updated category response
+   */
+  updateCategory: async (categoryId: string, formData: FormData) => {
+    try {
+      formData.append('Id', categoryId);
+
+      const response = await axiosInstance.put(`category`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating category:', error);
+      throw error;
+    }
+  },
 };
 
 export default categoryService;

@@ -30,6 +30,7 @@ import { PencilSimple, Trash } from '@phosphor-icons/react';
 
 import { Product } from '@/types/product';
 import { useSelection } from '@/hooks/use-selection';
+
 import ProductModal from './product-modal';
 
 function noop(): void {
@@ -113,9 +114,97 @@ function ProductTable({
   };
 
   // Handle edit button click
-  const handleEditClick = (product: Product) => {
-    setProductToEdit(product);
-    setEditModalOpen(true);
+  const handleEditClick = async (product: Product) => {
+    setEditLoading(true);
+    try {
+      const response = await productService.getProductById(product.id);
+      console.log('Full API response:', response);
+      console.log('Response structure:', {
+        hasResponse: !!response.response,
+        hasData: !!response.response?.data,
+        dataType: typeof response.response?.data,
+        isArray: Array.isArray(response.response?.data),
+        dataLength: Array.isArray(response.response?.data) ? response.response.data.length : 'not an array',
+      });
+
+      if (response.response?.data) {
+        // If data is an array, take the first item
+        const productData = Array.isArray(response.response.data) ? response.response.data[0] : response.response.data;
+
+        if (productData) {
+          setProductToEdit(productData);
+          setEditModalOpen(true);
+        } else {
+          setSnackbar({
+            open: true,
+            message: 'Product not found',
+            severity: 'error',
+          });
+        }
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'Product not found',
+          severity: 'error',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch product details:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to fetch product details',
+        severity: 'error',
+      });
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // Handle row click
+  const handleRowClick = async (product: Product) => {
+    setEditLoading(true);
+    try {
+      const response = await productService.getProductById(product.id);
+      console.log('Full API response:', response);
+      console.log('Response structure:', {
+        hasResponse: !!response.response,
+        hasData: !!response.response?.data,
+        dataType: typeof response.response?.data,
+        isArray: Array.isArray(response.response?.data),
+        dataLength: Array.isArray(response.response?.data) ? response.response.data.length : 'not an array',
+      });
+
+      if (response.response?.data) {
+        // If data is an array, take the first item
+        const productData = Array.isArray(response.response.data) ? response.response.data[0] : response.response.data;
+
+        if (productData) {
+          setProductToEdit(productData);
+          setEditModalOpen(true);
+        } else {
+          setSnackbar({
+            open: true,
+            message: 'Product not found',
+            severity: 'error',
+          });
+        }
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'Product not found',
+          severity: 'error',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch product details:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to fetch product details',
+        severity: 'error',
+      });
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   // Handle confirmation dialog close
@@ -230,21 +319,10 @@ function ProductTable({
           <Table sx={{ minWidth: '800px' }}>
             <TableHead>
               <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedAll}
-                    indeterminate={selectedSome}
-                    onChange={(event) => {
-                      if (event.target.checked) {
-                        selectAll();
-                      } else {
-                        deselectAll();
-                      }
-                    }}
-                  />
-                </TableCell>
+                <TableCell>ID</TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell>Category</TableCell>
+                <TableCell>Amount</TableCell>
                 <TableCell>Price</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right">Actions</TableCell>
@@ -253,7 +331,7 @@ function ProductTable({
             <TableBody>
               {products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={7} align="center">
                     <Typography variant="body1" py={2}>
                       No products found
                     </Typography>
@@ -263,19 +341,14 @@ function ProductTable({
                 products.map((product) => {
                   const isSelected = selected?.has(product.id);
                   return (
-                    <TableRow hover selected={isSelected} key={product.id}>
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={isSelected}
-                          onChange={(event) => {
-                            if (event.target.checked) {
-                              selectOne(product.id);
-                            } else {
-                              deselectOne(product.id);
-                            }
-                          }}
-                        />
-                      </TableCell>
+                    <TableRow
+                      hover
+                      selected={isSelected}
+                      key={product.id}
+                      onClick={() => handleRowClick(product)}
+                      sx={{ cursor: 'pointer' }}
+                    >
+                      <TableCell>{product.id.slice(0, 8)}...</TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={2} alignItems="center">
                           <Avatar src={product.mainImage} variant="rounded" sx={{ width: 40, height: 40 }} />
@@ -283,6 +356,7 @@ function ProductTable({
                         </Stack>
                       </TableCell>
                       <TableCell>{product.categoryName}</TableCell>
+                      <TableCell>{product.amount}</TableCell>
                       <TableCell>{product.price.toLocaleString('vi-VN')}đ</TableCell>
                       <TableCell>
                         <Chip
@@ -291,15 +365,17 @@ function ProductTable({
                           size="small"
                         />
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell>
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Tooltip title="Edit product">
-                            <IconButton color="primary" size="small" onClick={() => handleEditClick(product)}>
-                              <PencilSimple size={20} />
-                            </IconButton>
-                          </Tooltip>
                           <Tooltip title="Delete product">
-                            <IconButton color="error" size="small" onClick={() => handleDeleteClick(product)}>
+                            <IconButton
+                              color="error"
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(product);
+                              }}
+                            >
                               <Trash size={20} />
                             </IconButton>
                           </Tooltip>

@@ -27,10 +27,12 @@ import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import { CaretDown as ChevronDown, CaretRight as ChevronRight, Trash } from '@phosphor-icons/react';
+import { CaretDown as ChevronDown, CaretRight as ChevronRight, PencilSimple, Trash } from '@phosphor-icons/react';
 
 import { Category } from '@/types/category';
 import { useSelection } from '@/hooks/use-selection';
+
+import CategoryModal from './category-modal';
 
 function noop(): void {
   // do nothing
@@ -60,6 +62,10 @@ function CategoryTable({
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [categoryToDelete, setCategoryToDelete] = React.useState<Category | null>(null);
   const [deleteLoading, setDeleteLoading] = React.useState(false);
+
+  // State for edit modal
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [categoryToEdit, setCategoryToEdit] = React.useState<Category | null>(null);
 
   // State for snackbar
   const [snackbar, setSnackbar] = React.useState({
@@ -166,6 +172,51 @@ function CategoryTable({
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
+  // Handle row click for edit
+  const handleRowClick = (category: Category) => {
+    setCategoryToEdit(category);
+    setEditModalOpen(true);
+  };
+
+  // Handle edit modal close
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    setCategoryToEdit(null);
+  };
+
+  // Handle edit submit
+  const handleEditSubmit = async (formData: FormData) => {
+    if (!categoryToEdit) return;
+
+    try {
+      await categoryService.updateCategory(categoryToEdit.id, formData);
+
+      // Show success message
+      setSnackbar({
+        open: true,
+        message: `Category "${categoryToEdit.name}" updated successfully`,
+        severity: 'success',
+      });
+
+      // Trigger refresh either through callback or internal refresh
+      if (onRefreshNeeded) {
+        onRefreshNeeded();
+      } else {
+        // Refresh the list internally
+        const response = await categoryService.getAllCategories();
+        setCategories(response.response.data);
+        setTotalCount(response.response.data.length);
+      }
+    } catch (error) {
+      console.error('Error updating category:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to update category',
+        severity: 'error',
+      });
+    }
+  };
+
   const renderCategoryRow = (category: Category, level = 0) => {
     const isSelected = selected?.has(category.id);
     const isExpanded = expandedRows[category.id];
@@ -173,56 +224,152 @@ function CategoryTable({
 
     return (
       <React.Fragment key={category.id}>
-        <TableRow hover selected={isSelected}>
-          <TableCell padding="checkbox">
-            <Checkbox
-              checked={isSelected}
-              onChange={(event) => {
-                if (event.target.checked) {
-                  selectOne(category.id);
-                } else {
-                  deselectOne(category.id);
-                }
-              }}
-            />
-          </TableCell>
+        <TableRow
+          hover
+          selected={isSelected}
+          sx={{
+            '& td': { py: 1.5 },
+            '&:hover': {
+              backgroundColor: 'action.hover',
+            },
+            ...(isSelected && {
+              backgroundColor: 'action.selected',
+            }),
+            transition: 'background-color 0.2s ease',
+          }}
+        >
+          <TableCell>{category.id.slice(0, 8)}...</TableCell>
           <TableCell>
             <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
               {hasChildren && (
-                <IconButton size="small" onClick={() => toggleExpandRow(category.id)}>
+                <IconButton
+                  size="small"
+                  onClick={() => toggleExpandRow(category.id)}
+                  sx={{
+                    color: 'primary.main',
+                    '&:hover': { backgroundColor: 'primary.lighter' },
+                    transition: 'all 0.2s',
+                  }}
+                >
                   {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                 </IconButton>
               )}
               <Box sx={{ ml: level * 2 }} />
-              <Avatar src={category.attachment} variant="rounded" sx={{ width: 40, height: 40 }} />
-              <Typography variant="subtitle2">{category.name}</Typography>
-              {level > 0 && <Chip label="Child" size="small" color="primary" variant="outlined" sx={{ ml: 1 }} />}
+              <Avatar
+                src={category.attachment}
+                variant="rounded"
+                sx={{
+                  width: 40,
+                  height: 40,
+                  boxShadow: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              />
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.primary',
+                  ...(level > 0 && { color: 'primary.main' }),
+                }}
+              >
+                {category.name}
+              </Typography>
+              {level > 0 && (
+                <Chip
+                  label="Child"
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  sx={{ ml: 1, height: 20, fontSize: '0.75rem' }}
+                />
+              )}
             </Stack>
           </TableCell>
-          <TableCell>{category.description}</TableCell>
-          <TableCell>
-            <Chip label={category.status} color={category.status === 'Active' ? 'success' : 'error'} size="small" />
+          <TableCell sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {category.description}
+          </TableCell>
+          <TableCell sx={{ whiteSpace: 'nowrap' }}>
+            <Chip
+              label={category.status}
+              color={category.status === 'Active' ? 'success' : 'error'}
+              size="small"
+              sx={{
+                fontWeight: 500,
+                borderRadius: '6px',
+                px: 1,
+                fontSize: '0.75rem',
+              }}
+            />
           </TableCell>
           <TableCell align="right">
-            <Tooltip title={hasChildren ? 'Cannot delete category with children' : 'Delete category'}>
-              <span>
+            <Stack direction="row" spacing={1} justifyContent="flex-end">
+              <Tooltip title="Edit category">
                 <IconButton
-                  color="error"
+                  color="primary"
                   size="small"
-                  onClick={() => handleDeleteClick(category)}
-                  disabled={hasChildren}
+                  onClick={() => handleRowClick(category)}
+                  sx={{
+                    border: '1px solid',
+                    borderColor: 'primary.light',
+                    '&:hover': { backgroundColor: 'primary.lighter' },
+                    transition: 'all 0.2s',
+                  }}
                 >
-                  <Trash size={20} />
+                  <PencilSimple size={18} />
                 </IconButton>
-              </span>
-            </Tooltip>
+              </Tooltip>
+              <Tooltip title={hasChildren ? 'Cannot delete category with children' : 'Delete category'}>
+                <span>
+                  <IconButton
+                    color="error"
+                    size="small"
+                    onClick={() => handleDeleteClick(category)}
+                    disabled={hasChildren}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'error.light',
+                      '&:hover': { backgroundColor: 'error.lighter' },
+                      '&.Mui-disabled': {
+                        borderColor: 'action.disabledBackground',
+                      },
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <Trash size={18} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Stack>
           </TableCell>
         </TableRow>
         {hasChildren && isExpanded && (
           <TableRow>
             <TableCell colSpan={5} padding="none" sx={{ border: 0 }}>
               <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                <Box sx={{ py: 1 }}>{category.children.map((child) => renderCategoryRow(child, level + 1))}</Box>
+                <Box
+                  sx={{
+                    py: 1,
+                    borderLeft: '2px solid',
+                    borderColor: 'primary.lighter',
+                    ml: 4,
+                    '& .MuiTableRow-root': {
+                      '& .MuiTableCell-root:nth-of-type(4)': {
+                        // Status column
+                        width: '1%', // Force width to match parent rows
+                        whiteSpace: 'nowrap',
+                      },
+                      '& .MuiTableCell-root:nth-of-type(5)': {
+                        // Actions column
+                        textAlign: 'right',
+                        width: '1%',
+                      },
+                    },
+                  }}
+                >
+                  {category.children.map((child) => renderCategoryRow(child, level + 1))}
+                </Box>
               </Collapse>
             </TableCell>
           </TableRow>
@@ -245,31 +392,32 @@ function CategoryTable({
         <Box sx={{ overflowX: 'auto' }}>
           <Table sx={{ minWidth: '800px' }}>
             <TableHead>
-              <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedAll}
-                    indeterminate={selectedSome}
-                    onChange={(event) => {
-                      if (event.target.checked) {
-                        selectAll();
-                      } else {
-                        deselectAll();
-                      }
-                    }}
-                  />
+              <TableRow
+                sx={{
+                  backgroundColor: 'background.paper',
+                  '& th': {
+                    fontWeight: 'bold',
+                    color: 'text.secondary',
+                    borderBottom: '2px solid',
+                    borderColor: 'divider',
+                    py: 1.5,
+                  },
+                }}
+              >
+                <TableCell width="12%">ID</TableCell>
+                <TableCell width="30%">Name</TableCell>
+                <TableCell width="40%">Description</TableCell>
+                <TableCell width="8%">Status</TableCell>
+                <TableCell width="10%" align="right">
+                  Actions
                 </TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {categories.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    <Typography variant="body1" py={2}>
+                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <Typography variant="body1" color="text.secondary">
                       No categories found
                     </Typography>
                   </TableCell>
@@ -319,6 +467,15 @@ function CategoryTable({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Edit Modal */}
+      <CategoryModal
+        open={editModalOpen}
+        onClose={handleCloseEditModal}
+        onSubmit={handleEditSubmit}
+        category={categoryToEdit || undefined}
+        mode="update"
+      />
 
       {/* Snackbar for notifications */}
       <Snackbar

@@ -21,6 +21,8 @@ export interface Order {
   status: OrderStatus;
   items: OrderItem[];
   totalAmount: number;
+  subtotal?: number; // Optional subtotal before shipping
+  shippingFee?: number; // Optional shipping fee
   shippingAddress: {
     street: string;
     city: string;
@@ -50,10 +52,11 @@ export function isValidPaymentMethod(method: string): method is PaymentMethod {
 
 // Formatting helper functions
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(amount);
 }
 

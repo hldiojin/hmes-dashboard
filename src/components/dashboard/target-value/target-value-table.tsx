@@ -326,19 +326,7 @@ function TargetValueTable({
           <Table sx={{ minWidth: '800px' }}>
             <TableHead>
               <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedAll}
-                    indeterminate={selectedSome}
-                    onChange={(event) => {
-                      if (event.target.checked) {
-                        selectAll();
-                      } else {
-                        deselectAll();
-                      }
-                    }}
-                  />
-                </TableCell>
+                <TableCell>ID</TableCell>
                 <TableCell>Type</TableCell>
                 <TableCell>Min Value</TableCell>
                 <TableCell>Max Value</TableCell>
@@ -365,19 +353,7 @@ function TargetValueTable({
                       onClick={() => onRowClick?.(targetValue.id)}
                       sx={{ cursor: 'pointer' }}
                     >
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={isSelected}
-                          onChange={(event) => {
-                            event.stopPropagation();
-                            if (event.target.checked) {
-                              selectOne(targetValue.id);
-                            } else {
-                              deselectOne(targetValue.id);
-                            }
-                          }}
-                        />
-                      </TableCell>
+                      <TableCell>{targetValue.id.slice(0, 8)}...</TableCell>
                       <TableCell>
                         <Typography variant="subtitle2">{getTargetTypeDisplayName(targetValue.type)}</Typography>
                       </TableCell>

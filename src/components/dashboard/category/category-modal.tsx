@@ -29,9 +29,17 @@ interface CategoryModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (formData: FormData) => Promise<void>;
+  category?: Category;
+  mode?: 'create' | 'update';
 }
 
-export function CategoryModal({ open, onClose, onSubmit }: CategoryModalProps): React.JSX.Element {
+export function CategoryModal({
+  open,
+  onClose,
+  onSubmit,
+  category,
+  mode = 'create',
+}: CategoryModalProps): React.JSX.Element {
   const [name, setName] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [parentCategoryId, setParentCategoryId] = React.useState<string>('');
@@ -68,12 +76,24 @@ export function CategoryModal({ open, onClose, onSubmit }: CategoryModalProps): 
     }
   }, [open]);
 
-  // Reset form when modal is closed
+  // Reset form when modal is closed or set initial values if category is provided
   React.useEffect(() => {
     if (!open) {
       resetForm();
+    } else if (category && mode === 'update') {
+      setName(category.name || '');
+      setDescription(category.description || '');
+      setParentCategoryId(category.parentCategoryId || '');
+      setStatus(category.status || 'Active');
+
+      // Set file preview if attachment exists
+      if (category.attachment) {
+        setFilePreview(category.attachment);
+      }
+    } else {
+      resetForm();
     }
-  }, [open]);
+  }, [open, category, mode]);
 
   const resetForm = () => {
     setName('');
@@ -115,7 +135,7 @@ export function CategoryModal({ open, onClose, onSubmit }: CategoryModalProps): 
     const newErrors = {
       name: name.trim() ? '' : 'Name is required',
       description: description.trim() ? '' : 'Description is required',
-      file: file ? '' : 'Attachment is required',
+      file: mode === 'update' && filePreview ? '' : file ? '' : 'Attachment is required',
     };
 
     setErrors(newErrors);
@@ -129,16 +149,22 @@ export function CategoryModal({ open, onClose, onSubmit }: CategoryModalProps): 
 
     try {
       const formData = new FormData();
-      formData.append('name', name);
-      formData.append('description', description);
-      formData.append('status', status);
+
+      // Include ID for updates
+      if (mode === 'update' && category?.id) {
+        formData.append('Id', category.id);
+      }
+
+      formData.append('Name', name);
+      formData.append('Description', description);
+      formData.append('Status', status);
 
       if (parentCategoryId) {
-        formData.append('parentCategoryId', parentCategoryId);
+        formData.append('ParentCategoryId', parentCategoryId);
       }
 
       if (file) {
-        formData.append('attachment', file);
+        formData.append('Attachment', file);
       }
 
       await onSubmit(formData);
@@ -152,7 +178,7 @@ export function CategoryModal({ open, onClose, onSubmit }: CategoryModalProps): 
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Add New Category</DialogTitle>
+      <DialogTitle>{mode === 'create' ? 'Add New Category' : 'Update Category'}</DialogTitle>
       <DialogContent>
         <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <TextField

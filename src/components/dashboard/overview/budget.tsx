@@ -20,19 +20,14 @@ export function Budget({ difference, positive = false, sx, value }: BudgetProps)
   return (
     <Card sx={sx}>
       <CardContent>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          spacing={3}
-        >
+        <Stack direction="row" justifyContent="space-between" spacing={3}>
           <Stack spacing={1}>
-            <Typography
-              color="text.secondary"
-              variant="overline"
-            >
+            <Typography color="text.secondary" variant="overline">
               Total Revenue
             </Typography>
-            <Typography variant="h4">${value.toFixed(2)}</Typography>
+            <Typography variant="h4">
+              {value.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+            </Typography>
           </Stack>
           <Avatar
             sx={{
@@ -45,27 +40,12 @@ export function Budget({ difference, positive = false, sx, value }: BudgetProps)
           </Avatar>
         </Stack>
         {difference && (
-          <Stack
-            alignItems="center"
-            direction="row"
-            spacing={2}
-            sx={{ mt: 2 }}
-          >
-            {positive ? (
-              <ArrowUpIcon color="success" />
-            ) : (
-              <ArrowDownIcon color="error" />
-            )}
-            <Typography
-              color={positive ? 'success.main' : 'error.main'}
-              variant="body2"
-            >
+          <Stack alignItems="center" direction="row" spacing={2} sx={{ mt: 2 }}>
+            {positive ? <ArrowUpIcon color="success" /> : <ArrowDownIcon color="error" />}
+            <Typography color={positive ? 'success.main' : 'error.main'} variant="body2">
               {difference}%
             </Typography>
-            <Typography
-              color="text.secondary"
-              variant="caption"
-            >
+            <Typography color="text.secondary" variant="caption">
               Since last month
             </Typography>
           </Stack>

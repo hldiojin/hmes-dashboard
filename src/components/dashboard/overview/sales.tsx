@@ -72,7 +72,11 @@ function useChartOptions(): ApexOptions {
     },
     yaxis: {
       labels: {
-        formatter: (value) => (value > 0 ? `${value}K` : `${value}`),
+        formatter: (value) => {
+          if (value === 0) return '0';
+          // Format as millions of VND
+          return value > 0 ? `${value}M VNĐ` : `${Math.abs(value)}M VNĐ`;
+        },
         offsetX: -10,
         style: { colors: theme.palette.text.secondary },
       },
