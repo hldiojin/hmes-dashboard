@@ -207,51 +207,44 @@ export const getOrderDetails = async (orderId: string): Promise<OrderDetailsData
 // READ - Get order by ID
 export const getOrderById = async (orderId: string): Promise<Order | null> => {
   try {
-    const response = await axiosInstance.get<OrderDetailsResponse>(`order/${orderId}`);
-    console.log('Order details response:', response.data);
+    // In a real implementation, you'd use the API to get detailed order information
+    const detailsResponse = await getOrderDetails(orderId);
 
-    if (response.data && response.data.statusCodes === 200 && response.data.response.data) {
-      // Map API order details to Order type
-      const orderDetails = response.data.response.data;
-      const items = orderDetails.orderDetailsItems.map((item) => ({
+    if (!detailsResponse) {
+      return null;
+    }
+
+    // Convert order details to Order type
+    const order: Order = {
+      id: detailsResponse.orderId,
+      userId: '', // Not available in the details
+      orderNumber: detailsResponse.orderId.substring(0, 8).toUpperCase(),
+      date: detailsResponse.transactions[0]?.createdAt || new Date().toISOString(),
+      status: mapApiStatus(detailsResponse.status),
+      items: detailsResponse.orderDetailsItems.map((item) => ({
         id: item.orderDetailsId,
-        productId: item.orderDetailsId,
+        productId: item.orderDetailsId, // Not available in details, using orderDetailsId as substitute
         productName: item.productName,
         quantity: item.quantity,
         price: item.price,
         subtotal: item.totalPrice,
-      }));
+      })),
+      totalAmount: detailsResponse.totalPrice,
+      subtotal: detailsResponse.price,
+      shippingFee: detailsResponse.shippingFee,
+      shippingAddress: {
+        street: detailsResponse.userAddress.address,
+        city: '', // Not available in current API
+        state: '',
+        zipCode: '',
+        country: '',
+      },
+      paymentMethod: detailsResponse.transactions[0]?.paymentMethod || 'BANK',
+    };
 
-      // Get transaction if available
-      const transaction =
-        orderDetails.transactions && orderDetails.transactions.length > 0 ? orderDetails.transactions[0] : null;
-
-      // Create an Order object from OrderDetailsData
-      const order: Order = {
-        id: orderDetails.orderId,
-        userId: orderDetails.userAddress?.name || '',
-        orderNumber: orderDetails.orderId.slice(0, 8).toUpperCase(),
-        date: transaction ? transaction.createdAt : new Date().toISOString(),
-        status: orderDetails.status as OrderStatus,
-        items,
-        totalAmount: orderDetails.totalPrice,
-        shippingAddress: {
-          street: orderDetails.userAddress?.address || '',
-          city: '',
-          state: '',
-          zipCode: '',
-          country: '',
-        },
-        paymentMethod: transaction?.paymentMethod || 'BANK',
-        fullName: orderDetails.userAddress?.name,
-      };
-
-      return order;
-    }
-
-    return null;
+    return order;
   } catch (error) {
-    console.error(`Error fetching order details for ID ${orderId}:`, error);
+    console.error('Error fetching order details:', error);
     return null;
   }
 };
@@ -274,5 +267,69 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus): P
   } catch (error) {
     console.error(`Error updating order status for ID ${orderId}:`, error);
     throw error;
+  }
+};
+
+// CREATE - Create a new order
+export const createOrder = async (orderData: Partial<Order>): Promise<Order | null> => {
+  try {
+    // This is a mock implementation
+    console.log('Creating order with data:', orderData);
+
+    // In a real implementation, you'd make an API call here
+    // const response = await axiosInstance.post('order', orderData);
+
+    // For now, return a mock response
+    return {
+      id: `order-${Date.now()}`,
+      userId: 'user-1',
+      orderNumber: `ORD-${Math.floor(Math.random() * 10000)}`,
+      date: new Date().toISOString(),
+      status: 'Pending',
+      items: orderData.items || [],
+      totalAmount: orderData.totalAmount || 0,
+      shippingAddress: orderData.shippingAddress || {
+        street: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        country: '',
+      },
+      paymentMethod: orderData.paymentMethod || 'BANK',
+      ...orderData,
+    };
+  } catch (error) {
+    console.error('Error creating order:', error);
+    return null;
+  }
+};
+
+// UPDATE - Update an existing order
+export const updateOrder = async (orderId: string, orderData: Partial<Order>): Promise<Order | null> => {
+  try {
+    // This is a mock implementation
+    console.log(`Updating order ${orderId} with data:`, orderData);
+
+    // In a real implementation, you'd make an API call here
+    // const response = await axiosInstance.put(`order/${orderId}`, orderData);
+
+    // For now, just return the combined data
+    const currentOrder = await getOrderById(orderId);
+
+    if (!currentOrder) {
+      throw new Error('Order not found');
+    }
+
+    return {
+      ...currentOrder,
+      ...orderData,
+      // Make sure to calculate the total amount if items are being updated
+      totalAmount: orderData.items
+        ? orderData.items.reduce((sum, item) => sum + item.subtotal, 0)
+        : currentOrder.totalAmount,
+    };
+  } catch (error) {
+    console.error('Error updating order:', error);
+    return null;
   }
 };

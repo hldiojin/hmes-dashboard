@@ -2,25 +2,27 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DeleteIcon from '@mui/icons-material/Delete';
 import {
+  Alert,
   Box,
-  Typography,
   Button,
   Card,
   CardContent,
-  TextField,
-  Grid,
-  MenuItem,
   Divider,
+  Grid,
   IconButton,
+  MenuItem,
   Paper,
-  Alert,
-  Snackbar
+  Snackbar,
+  TextField,
+  Typography,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import { CreateOrderInput, createOrder } from '../../../../services/orderService';
+
+import { createOrder } from '../../../../services/orderService';
+import { Order, PaymentMethod } from '../../../../types/order';
 
 interface OrderItemInput {
   id: string;
@@ -37,47 +39,52 @@ const generateProductId = (): string => {
 export default function CreateOrderPage() {
   const router = useRouter();
   const [items, setItems] = useState<OrderItemInput[]>([
-    { id: `item-${Date.now()}`, productId: generateProductId(), productName: '', price: 0, quantity: 1 }
+    { id: `item-${Date.now()}`, productId: generateProductId(), productName: '', price: 0, quantity: 1 },
   ]);
-  
+
   const [userId, setUserId] = useState('user1'); // In a real app, you'd select from available users
-  
+
   const [shippingAddress, setShippingAddress] = useState({
     street: '',
     city: '',
     state: '',
     zipCode: '',
-    country: ''
+    country: '',
   });
-  
-  const [paymentMethod, setPaymentMethod] = useState('Credit Card');
+
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('BANK');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const addItem = () => {
-    setItems([...items, { 
-      id: `item-${Date.now()}`, 
-      productId: generateProductId(), 
-      productName: '', 
-      price: 0, 
-      quantity: 1 
-    }]);
+    setItems([
+      ...items,
+      {
+        id: `item-${Date.now()}`,
+        productId: generateProductId(),
+        productName: '',
+        price: 0,
+        quantity: 1,
+      },
+    ]);
   };
 
   const removeItem = (id: string) => {
     if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
+      setItems(items.filter((item) => item.id !== id));
     }
   };
 
   const updateItem = (id: string, field: keyof OrderItemInput, value: string | number) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        return { ...item, [field]: value };
-      }
-      return item;
-    }));
+    setItems(
+      items.map((item) => {
+        if (item.id === id) {
+          return { ...item, [field]: value };
+        }
+        return item;
+      })
+    );
   };
 
   const updateShippingAddress = (field: keyof typeof shippingAddress, value: string) => {
@@ -96,41 +103,49 @@ export default function CreateOrderPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form data
-    const emptyItems = items.some(item => !item.productName || item.price <= 0);
+    const emptyItems = items.some((item) => !item.productName || item.price <= 0);
     if (emptyItems) {
       setError('Please fill in all product details with valid prices.');
       return;
     }
-    
-    if (!shippingAddress.street || !shippingAddress.city || !shippingAddress.state || 
-        !shippingAddress.zipCode || !shippingAddress.country) {
+
+    if (
+      !shippingAddress.street ||
+      !shippingAddress.city ||
+      !shippingAddress.state ||
+      !shippingAddress.zipCode ||
+      !shippingAddress.country
+    ) {
       setError('Please fill in the complete shipping address.');
       return;
     }
-    
+
     setIsSubmitting(true);
     setError(null);
-    
+
     try {
       // Prepare order data
-      const orderData: CreateOrderInput = {
+      const orderData: Partial<Order> = {
         userId,
-        items: items.map(item => ({
+        items: items.map((item) => ({
+          id: item.id,
           productId: item.productId,
           productName: item.productName,
           price: item.price,
-          quantity: item.quantity
+          quantity: item.quantity,
+          subtotal: calculateSubtotal(item.price, item.quantity),
         })),
         shippingAddress,
-        paymentMethod
+        paymentMethod,
+        totalAmount: calculateTotal(),
       };
-      
+
       // Create the order
       await createOrder(orderData);
       setSuccess(true);
-      
+
       // Redirect after a short delay
       setTimeout(() => {
         router.push('/dashboard/order');
@@ -146,11 +161,7 @@ export default function CreateOrderPage() {
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => router.push('/dashboard/order')}
-          sx={{ mr: 2 }}
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={() => router.push('/dashboard/order')} sx={{ mr: 2 }}>
           Back to Orders
         </Button>
         <Typography variant="h4">Create New Order</Typography>
@@ -167,7 +178,9 @@ export default function CreateOrderPage() {
           <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Customer Information</Typography>
+                <Typography variant="h6" gutterBottom>
+                  Customer Information
+                </Typography>
                 <TextField
                   select
                   fullWidth
@@ -183,11 +196,13 @@ export default function CreateOrderPage() {
               </CardContent>
             </Card>
           </Grid>
-          
+
           <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Order Items</Typography>
+                <Typography variant="h6" gutterBottom>
+                  Order Items
+                </Typography>
                 {items.map((item, index) => (
                   <Box key={item.id} sx={{ mb: 2 }}>
                     <Grid container spacing={2} alignItems="center">
@@ -231,11 +246,7 @@ export default function CreateOrderPage() {
                         />
                       </Grid>
                       <Grid item xs={12} md={1}>
-                        <IconButton 
-                          color="error" 
-                          onClick={() => removeItem(item.id)}
-                          disabled={items.length === 1}
-                        >
+                        <IconButton color="error" onClick={() => removeItem(item.id)} disabled={items.length === 1}>
                           <DeleteIcon />
                         </IconButton>
                       </Grid>
@@ -243,17 +254,11 @@ export default function CreateOrderPage() {
                     {index < items.length - 1 && <Divider sx={{ my: 2 }} />}
                   </Box>
                 ))}
-                <Button 
-                  startIcon={<AddIcon />} 
-                  onClick={addItem}
-                  sx={{ mt: 2 }}
-                >
+                <Button startIcon={<AddIcon />} onClick={addItem} sx={{ mt: 2 }}>
                   Add Item
                 </Button>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                  <Typography variant="h6">
-                    Total: ${calculateTotal().toFixed(2)}
-                  </Typography>
+                  <Typography variant="h6">Total: ${calculateTotal().toFixed(2)}</Typography>
                 </Box>
               </CardContent>
             </Card>
@@ -262,7 +267,9 @@ export default function CreateOrderPage() {
           <Grid item xs={12} md={6}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Shipping Address</Typography>
+                <Typography variant="h6" gutterBottom>
+                  Shipping Address
+                </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <TextField
@@ -317,47 +324,28 @@ export default function CreateOrderPage() {
           <Grid item xs={12} md={6}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Payment Information</Typography>
+                <Typography variant="h6" gutterBottom>
+                  Payment Information
+                </Typography>
                 <TextField
                   select
                   fullWidth
                   label="Payment Method"
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
                   sx={{ mb: 2 }}
                   required
                 >
-                  <MenuItem value="Credit Card">Credit Card</MenuItem>
-                  <MenuItem value="PayPal">PayPal</MenuItem>
-                  <MenuItem value="Bank Transfer">Bank Transfer</MenuItem>
+                  <MenuItem value="BANK">Bank Transfer</MenuItem>
+                  <MenuItem value="COD">Cash on Delivery</MenuItem>
                 </TextField>
-
-                {paymentMethod === 'Credit Card' && (
-                  <Paper variant="outlined" sx={{ p: 2 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Note: In a real application, you would add fields for:
-                    </Typography>
-                    <Typography variant="body2" component="ul" sx={{ pl: 2 }}>
-                      <li>Card number</li>
-                      <li>Expiration date</li>
-                      <li>CVV</li>
-                      <li>Cardholder name</li>
-                    </Typography>
-                  </Paper>
-                )}
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                size="large"
-                type="submit"
-                disabled={isSubmitting}
-              >
+              <Button variant="contained" color="primary" size="large" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Creating...' : 'Create Order'}
               </Button>
             </Box>

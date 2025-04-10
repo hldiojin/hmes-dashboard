@@ -1,27 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DeleteIcon from '@mui/icons-material/Delete';
 import {
+  Alert,
   Box,
-  Typography,
   Button,
   Card,
   CardContent,
-  TextField,
-  Grid,
-  MenuItem,
-  Divider,
-  IconButton,
   CircularProgress,
-  Alert,
-  Snackbar
+  Divider,
+  Grid,
+  IconButton,
+  MenuItem,
+  Snackbar,
+  TextField,
+  Typography,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import { Order, OrderItem } from '../../../../../types/order';
+
 import { getOrderById, updateOrder } from '../../../../../services/orderService';
+import { Order, OrderItem, PaymentMethod } from '../../../../../types/order';
 
 interface EditOrderItemInput extends OrderItem {
   isNew?: boolean;
@@ -30,7 +31,7 @@ interface EditOrderItemInput extends OrderItem {
 export default function EditOrderPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const orderId = params.id;
-  
+
   const [order, setOrder] = useState<Order | null>(null);
   const [items, setItems] = useState<EditOrderItemInput[]>([]);
   const [shippingAddress, setShippingAddress] = useState({
@@ -38,10 +39,10 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
     city: '',
     state: '',
     zipCode: '',
-    country: ''
+    country: '',
   });
-  
-  const [paymentMethod, setPaymentMethod] = useState('');
+
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('BANK');
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,16 +80,16 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
       price: 0,
       quantity: 1,
       subtotal: 0,
-      isNew: true
+      isNew: true,
     };
-    
+
     setItems([...items, newItem]);
   };
 
   const removeItem = (id: string) => {
     if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
-      
+      setItems(items.filter((item) => item.id !== id));
+
       // Track removed items for API
       if (!id.startsWith('new-item-')) {
         setRemovedItemIds([...removedItemIds, id]);
@@ -97,19 +98,21 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
   };
 
   const updateItem = (id: string, field: keyof OrderItem, value: string | number) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
-        
-        // Update subtotal if price or quantity changes
-        if (field === 'price' || field === 'quantity') {
-          updatedItem.subtotal = updatedItem.price * updatedItem.quantity;
+    setItems(
+      items.map((item) => {
+        if (item.id === id) {
+          const updatedItem = { ...item, [field]: value };
+
+          // Update subtotal if price or quantity changes
+          if (field === 'price' || field === 'quantity') {
+            updatedItem.subtotal = updatedItem.price * updatedItem.quantity;
+          }
+
+          return updatedItem;
         }
-        
-        return updatedItem;
-      }
-      return item;
-    }));
+        return item;
+      })
+    );
   };
 
   const updateShippingAddress = (field: keyof typeof shippingAddress, value: string) => {
@@ -122,44 +125,51 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!order) return;
-    
+
     // Validate form data
-    const emptyItems = items.some(item => !item.productName || item.price <= 0);
+    const emptyItems = items.some((item) => !item.productName || item.price <= 0);
     if (emptyItems) {
       setError('Please fill in all product details with valid prices.');
       return;
     }
-    
-    if (!shippingAddress.street || !shippingAddress.city || !shippingAddress.state || 
-        !shippingAddress.zipCode || !shippingAddress.country) {
+
+    if (
+      !shippingAddress.street ||
+      !shippingAddress.city ||
+      !shippingAddress.state ||
+      !shippingAddress.zipCode ||
+      !shippingAddress.country
+    ) {
       setError('Please fill in the complete shipping address.');
       return;
     }
-    
+
     setIsSubmitting(true);
     setError(null);
-    
+
     try {
       // Prepare updated order data
       const updatedOrderData: Partial<Order> = {
-        items: items.map(item => ({
-          id: item.id.startsWith('new-item-') ? `item-${Date.now()}-${Math.random().toString(36).substring(2, 5)}` : item.id,
+        items: items.map((item) => ({
+          id: item.id.startsWith('new-item-')
+            ? `item-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`
+            : item.id,
           productId: item.productId,
           productName: item.productName,
           price: item.price,
           quantity: item.quantity,
-          subtotal: item.subtotal
+          subtotal: item.subtotal,
         })),
         shippingAddress,
-        paymentMethod,
+        paymentMethod: paymentMethod as PaymentMethod,
       };
-      
+
       // Update the order
       await updateOrder(orderId, updatedOrderData);
       setSuccess(true);
-      
+
       // Redirect after a short delay
       setTimeout(() => {
         router.push(`/dashboard/order/${orderId}`);
@@ -183,11 +193,7 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
   if (!order) {
     return (
       <Box sx={{ p: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => router.push('/dashboard/order')}
-          sx={{ mb: 3 }}
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={() => router.push('/dashboard/order')} sx={{ mb: 3 }}>
           Back to Orders
         </Button>
         <Alert severity="error">Order not found</Alert>
@@ -198,11 +204,7 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => router.push(`/dashboard/order/${orderId}`)}
-          sx={{ mr: 2 }}
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={() => router.push(`/dashboard/order/${orderId}`)} sx={{ mr: 2 }}>
           Back to Order Details
         </Button>
         <Typography variant="h4">Edit Order {order.orderNumber}</Typography>
@@ -219,7 +221,9 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
           <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Order Information</Typography>
+                <Typography variant="h6" gutterBottom>
+                  Order Information
+                </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={3}>
                     <TextField
@@ -238,12 +242,7 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
                     />
                   </Grid>
                   <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      label="Customer ID"
-                      value={order.userId}
-                      InputProps={{ readOnly: true }}
-                    />
+                    <TextField fullWidth label="Customer ID" value={order.userId} InputProps={{ readOnly: true }} />
                   </Grid>
                   <Grid item xs={12} md={3}>
                     <TextField
@@ -257,11 +256,13 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
               </CardContent>
             </Card>
           </Grid>
-          
+
           <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Order Items</Typography>
+                <Typography variant="h6" gutterBottom>
+                  Order Items
+                </Typography>
                 {items.map((item, index) => (
                   <Box key={item.id} sx={{ mb: 2 }}>
                     <Grid container spacing={2} alignItems="center">
@@ -305,11 +306,7 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
                         />
                       </Grid>
                       <Grid item xs={12} md={1}>
-                        <IconButton 
-                          color="error" 
-                          onClick={() => removeItem(item.id)}
-                          disabled={items.length === 1}
-                        >
+                        <IconButton color="error" onClick={() => removeItem(item.id)} disabled={items.length === 1}>
                           <DeleteIcon />
                         </IconButton>
                       </Grid>
@@ -317,17 +314,11 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
                     {index < items.length - 1 && <Divider sx={{ my: 2 }} />}
                   </Box>
                 ))}
-                <Button 
-                  startIcon={<AddIcon />} 
-                  onClick={addItem}
-                  sx={{ mt: 2 }}
-                >
+                <Button startIcon={<AddIcon />} onClick={addItem} sx={{ mt: 2 }}>
                   Add Item
                 </Button>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                  <Typography variant="h6">
-                    Total: ${calculateTotal().toFixed(2)}
-                  </Typography>
+                  <Typography variant="h6">Total: ${calculateTotal().toFixed(2)}</Typography>
                 </Box>
               </CardContent>
             </Card>
@@ -336,7 +327,9 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
           <Grid item xs={12} md={6}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Shipping Address</Typography>
+                <Typography variant="h6" gutterBottom>
+                  Shipping Address
+                </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <TextField
@@ -391,13 +384,15 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
           <Grid item xs={12} md={6}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Payment Information</Typography>
+                <Typography variant="h6" gutterBottom>
+                  Payment Information
+                </Typography>
                 <TextField
                   select
                   fullWidth
                   label="Payment Method"
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
                   sx={{ mb: 2 }}
                   required
                 >
@@ -411,21 +406,15 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
 
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-              <Button 
-                variant="outlined" 
+              <Button
+                variant="outlined"
                 onClick={() => router.push(`/dashboard/order/${orderId}`)}
                 sx={{ mr: 2 }}
                 disabled={isSubmitting}
               >
                 Cancel
               </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                size="large"
-                type="submit"
-                disabled={isSubmitting}
-              >
+              <Button variant="contained" color="primary" size="large" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Saving...' : 'Save Changes'}
               </Button>
             </Box>
