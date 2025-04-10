@@ -1,54 +1,62 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Add as AddIcon } from '@mui/icons-material';
 import {
+  Alert,
   Box,
-  Typography,
   Button,
   Card,
   CardContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
   Chip,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Stack,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
+  FormControl,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select,
   Snackbar,
-  Alert,
-  Grid
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  TextField,
+  Typography,
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
-import { 
-  getEmployeeIncomes, 
-  deleteEmployeeIncome, 
+
+import {
+  deleteEmployeeIncome,
   getAvailablePeriods,
-  getIncomeStatsByDepartment
+  getEmployeeIncomes,
+  getIncomeStatsByDepartment,
 } from '../../../services/employeeIncomeService';
 import { EmployeeIncome, PaymentStatus } from '../../../types/employee-income';
 
 // Helper function to get status color
-const getStatusColor = (status: PaymentStatus): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+const getStatusColor = (
+  status: PaymentStatus
+): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
   switch (status) {
-    case 'Pending': return 'warning';
-    case 'Processed': return 'info';
-    case 'Completed': return 'success';
-    case 'Cancelled': return 'error';
-    default: return 'default';
+    case 'Pending':
+      return 'warning';
+    case 'Processed':
+      return 'info';
+    case 'Completed':
+      return 'success';
+    case 'Cancelled':
+      return 'error';
+    default:
+      return 'default';
   }
 };
 
@@ -69,11 +77,13 @@ export default function EmployeeIncomePage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
-  const [departmentStats, setDepartmentStats] = useState<{
-    department: string;
-    totalNet: number;
-    employeeCount: number;
-  }[]>([]);
+  const [departmentStats, setDepartmentStats] = useState<
+    {
+      department: string;
+      totalNet: number;
+      employeeCount: number;
+    }[]
+  >([]);
 
   useEffect(() => {
     const fetchIncomes = async () => {
@@ -82,14 +92,14 @@ export default function EmployeeIncomePage() {
         const data = await getEmployeeIncomes({
           period: periodFilter || undefined,
           department: departmentFilter || undefined,
-          paymentStatus: statusFilter || undefined
+          paymentStatus: statusFilter || undefined,
         });
         setIncomes(data);
-        
+
         // Fetch periods for filter dropdown
         const periods = await getAvailablePeriods();
         setAvailablePeriods(periods);
-        
+
         // Fetch department stats
         const stats = await getIncomeStatsByDepartment(periodFilter || undefined);
         setDepartmentStats(stats);
@@ -100,14 +110,14 @@ export default function EmployeeIncomePage() {
         setLoading(false);
       }
     };
-    
+
     fetchIncomes();
   }, [refreshTrigger, periodFilter, statusFilter, departmentFilter]);
 
   // Filter incomes based on search
-  const filteredIncomes = incomes.filter(income => {
+  const filteredIncomes = incomes.filter((income) => {
     if (keyword === '') return true;
-    
+
     return (
       income.employeeName.toLowerCase().includes(keyword.toLowerCase()) ||
       income.employeeId.toLowerCase().includes(keyword.toLowerCase()) ||
@@ -116,17 +126,14 @@ export default function EmployeeIncomePage() {
   });
 
   // Paginate the filtered incomes
-  const paginatedIncomes = filteredIncomes.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
+  const paginatedIncomes = filteredIncomes.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   // Get unique departments for filter dropdown
-  const departments = Array.from(new Set(incomes.map(income => income.department)));
+  const departments = Array.from(new Set(incomes.map((income) => income.department)));
 
   // Handle refresh
   const handleRefresh = () => {
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   // Handle search
@@ -158,7 +165,7 @@ export default function EmployeeIncomePage() {
 
   // Handle delete income
   const handleDeleteClick = (incomeId: string) => {
-    const incomeRecord = incomes.find(inc => inc.id === incomeId);
+    const incomeRecord = incomes.find((inc) => inc.id === incomeId);
     if (incomeRecord) {
       console.log(`Attempting to delete income record for: ${incomeRecord.employeeName}`);
       setIncomeToDelete(incomeId);
@@ -168,17 +175,17 @@ export default function EmployeeIncomePage() {
 
   const handleDeleteConfirm = async () => {
     if (!incomeToDelete) return;
-    
+
     console.log(`Confirming deletion of income record: ${incomeToDelete}`);
     setIsDeleting(true);
-    
+
     try {
       const result = await deleteEmployeeIncome(incomeToDelete);
       console.log('Delete operation result:', result);
-      
+
       if (result) {
         // Success - remove from local state
-        setIncomes(prevIncomes => prevIncomes.filter(income => income.id !== incomeToDelete));
+        setIncomes((prevIncomes) => prevIncomes.filter((income) => income.id !== incomeToDelete));
         setSuccessMessage('Income record deleted successfully');
         console.log('Income record deleted from state');
       } else {
@@ -207,12 +214,12 @@ export default function EmployeeIncomePage() {
 
   const calculateTotalIncome = (statusFilter: PaymentStatus | '') => {
     return filteredIncomes
-      .filter(income => statusFilter === '' || income.paymentStatus === statusFilter)
+      .filter((income) => statusFilter === '' || income.paymentStatus === statusFilter)
       .reduce((sum, income) => sum + income.netIncome, 0);
   };
 
   const getStatusCount = (status: PaymentStatus) => {
-    return filteredIncomes.filter(income => income.paymentStatus === status).length;
+    return filteredIncomes.filter((income) => income.paymentStatus === status).length;
   };
 
   if (loading && incomes.length === 0) {
@@ -227,11 +234,7 @@ export default function EmployeeIncomePage() {
     <Box sx={{ p: 3 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={4} sx={{ mb: 3 }}>
         <Typography variant="h4">Employee Income Management</Typography>
-        <Button
-          startIcon={<AddIcon />}
-          variant="contained"
-          onClick={handleCreateIncome}
-        >
+        <Button startIcon={<AddIcon />} variant="contained" onClick={handleCreateIncome}>
           Create Income Record
         </Button>
       </Stack>
@@ -244,9 +247,7 @@ export default function EmployeeIncomePage() {
               <Typography color="text.secondary" variant="overline">
                 Total Net Income ({filteredIncomes.length} records)
               </Typography>
-              <Typography variant="h4">
-                ${calculateTotalIncome('').toLocaleString()}
-              </Typography>
+              <Typography variant="h4">${calculateTotalIncome('').toLocaleString()}</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -351,7 +352,9 @@ export default function EmployeeIncomePage() {
                   >
                     <MenuItem value="">All Periods</MenuItem>
                     {availablePeriods.map((period) => (
-                      <MenuItem key={period} value={period}>{period}</MenuItem>
+                      <MenuItem key={period} value={period}>
+                        {period}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -370,7 +373,9 @@ export default function EmployeeIncomePage() {
                   >
                     <MenuItem value="">All Departments</MenuItem>
                     {departments.map((dept) => (
-                      <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+                      <MenuItem key={dept} value={dept}>
+                        {dept}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -397,17 +402,10 @@ export default function EmployeeIncomePage() {
               </Grid>
               <Grid item xs={12} md={3}>
                 <Box sx={{ display: 'flex', height: '100%', alignItems: 'center' }}>
-                  <Button 
-                    type="submit" 
-                    variant="contained" 
-                    sx={{ mr: 1 }}
-                  >
+                  <Button type="submit" variant="contained" sx={{ mr: 1 }}>
                     Search
                   </Button>
-                  <Button 
-                    variant="outlined" 
-                    onClick={handleRefresh}
-                  >
+                  <Button variant="outlined" onClick={handleRefresh}>
                     Refresh
                   </Button>
                 </Box>
@@ -451,25 +449,15 @@ export default function EmployeeIncomePage() {
                     <TableCell>{income.department}</TableCell>
                     <TableCell>{income.period}</TableCell>
                     <TableCell align="right">${income.baseSalary.toLocaleString()}</TableCell>
-                    <TableCell align="right">
-                      ${(income.totalIncome - income.baseSalary).toLocaleString()}
-                    </TableCell>
+                    <TableCell align="right">${(income.totalIncome - income.baseSalary).toLocaleString()}</TableCell>
                     <TableCell align="right">${income.totalDeductions.toLocaleString()}</TableCell>
                     <TableCell align="right">${income.netIncome.toLocaleString()}</TableCell>
                     <TableCell>
-                      <Chip
-                        label={income.paymentStatus}
-                        color={getStatusColor(income.paymentStatus)}
-                        size="small"
-                      />
+                      <Chip label={income.paymentStatus} color={getStatusColor(income.paymentStatus)} size="small" />
                     </TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => handleViewIncomeDetails(income.id)}
-                        >
+                        <Button variant="outlined" size="small" onClick={() => handleViewIncomeDetails(income.id)}>
                           View
                         </Button>
                         {income.paymentStatus === 'Pending' && (
@@ -490,8 +478,8 @@ export default function EmployeeIncomePage() {
                 <TableRow>
                   <TableCell colSpan={9} align="center">
                     <Typography variant="body1">
-                      {keyword || periodFilter || departmentFilter || statusFilter 
-                        ? 'No matching income records found' 
+                      {keyword || periodFilter || departmentFilter || statusFilter
+                        ? 'No matching income records found'
                         : 'No income records found'}
                     </Typography>
                   </TableCell>
@@ -512,10 +500,7 @@ export default function EmployeeIncomePage() {
       </Card>
 
       {/* Confirmation Dialog for Delete */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleDeleteCancel}
-      >
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
         <DialogTitle>Delete Income Record</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -523,27 +508,23 @@ export default function EmployeeIncomePage() {
             {incomeToDelete && (
               <Box sx={{ mt: 2 }}>
                 <Typography variant="subtitle2" component="div">
-                  Employee: {incomes.find(inc => inc.id === incomeToDelete)?.employeeName}
+                  Employee: {incomes.find((inc) => inc.id === incomeToDelete)?.employeeName}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Period: {incomes.find(inc => inc.id === incomeToDelete)?.period}
+                  Period: {incomes.find((inc) => inc.id === incomeToDelete)?.period}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Status: {incomes.find(inc => inc.id === incomeToDelete)?.paymentStatus}
+                  Status: {incomes.find((inc) => inc.id === incomeToDelete)?.paymentStatus}
                 </Typography>
               </Box>
             )}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteCancel} disabled={isDeleting}>Cancel</Button>
-          <Button 
-            onClick={handleDeleteConfirm} 
-            color="error" 
-            variant="contained"
-            disabled={isDeleting}
-            autoFocus
-          >
+          <Button onClick={handleDeleteCancel} disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained" disabled={isDeleting} autoFocus>
             {isDeleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
