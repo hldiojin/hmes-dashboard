@@ -29,7 +29,7 @@ import TargetValueModal from '@/components/dashboard/target-value/target-value-m
 
 import { useSelection } from '../../../hooks/use-selection';
 import targetValueService from '../../../services/targetValueService';
-import { TargetValue, ValueType } from '../../../types/targetValue';
+import { TargetValue, ValueType, ValueTypeEnums } from '../../../types/targetValue';
 
 function noop(): void {
   // do nothing
@@ -282,13 +282,13 @@ function TargetValueTable({
   // Get target type display name
   const getTargetTypeDisplayName = (type: ValueType): string => {
     switch (type) {
-      case 'WaterTemperature':
-        return 'Water Temperature';
-      case 'ConcentrationOfSolutes':
+      case 'Temperature':
+        return 'Temperature';
+      case 'SoluteConcentration':
         return 'Concentration of Solutes';
       case 'WaterLevel':
         return 'Water Level';
-      case 'pH':
+      case 'Ph':
         return 'pH';
       default:
         return type;
@@ -298,13 +298,13 @@ function TargetValueTable({
   // Get target type unit
   const getTargetTypeUnit = (type: ValueType): string => {
     switch (type) {
-      case 'WaterTemperature':
+      case 'Temperature':
         return '°C';
-      case 'ConcentrationOfSolutes':
+      case 'SoluteConcentration':
         return 'ppm';
       case 'WaterLevel':
         return 'cm';
-      case 'pH':
+      case 'Ph':
         return '';
       default:
         return '';

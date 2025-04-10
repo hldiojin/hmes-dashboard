@@ -32,7 +32,7 @@ import { Plus, Warning, X } from '@phosphor-icons/react';
 
 import type { PlantDetails as PlantDetailsType, TargetValue } from '../../../services/targetValueService';
 import targetValueService from '../../../services/targetValueService';
-import { ValueType } from '../../../types/targetValue';
+import { ValueType, ValueTypeEnums } from '../../../types/targetValue';
 
 interface PlantDetailsProps {
   open: boolean;
@@ -61,9 +61,9 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
 
   // State for all possible target value types
   const [allTargetTypes, setAllTargetTypes] = React.useState<ValueType[]>([
-    'pH',
-    'ConcentrationOfSolutes',
-    'WaterTemperature',
+    'Ph',
+    'SoluteConcentration',
+    'Temperature',
     'WaterLevel',
   ]);
 
@@ -226,13 +226,13 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
   // Get target type display name
   const getTargetTypeDisplayName = (type: string): string => {
     switch (type) {
-      case 'WaterTemperature':
-        return 'Water Temperature';
-      case 'ConcentrationOfSolutes':
+      case 'Temperature':
+        return 'Temperature';
+      case 'SoluteConcentration':
         return 'Concentration of Solutes';
       case 'WaterLevel':
         return 'Water Level';
-      case 'pH':
+      case 'Ph':
         return 'pH';
       default:
         return type;
@@ -242,13 +242,13 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
   // Get target type unit
   const getTargetTypeUnit = (type: string): string => {
     switch (type) {
-      case 'WaterTemperature':
+      case 'Temperature':
         return '°C';
-      case 'ConcentrationOfSolutes':
+      case 'SoluteConcentration':
         return 'ppm';
       case 'WaterLevel':
         return 'cm';
-      case 'pH':
+      case 'Ph':
         return '';
       default:
         return '';

@@ -1,4 +1,11 @@
-export type ValueType = 'pH' | 'ConcentrationOfSolutes' | 'WaterTemperature' | 'WaterLevel';
+export enum ValueTypeEnums {
+  SoluteConcentration = 'SoluteConcentration',
+  Ph = 'Ph',
+  WaterLevel = 'WaterLevel',
+  Temperature = 'Temperature',
+}
+
+export type ValueType = 'Ph' | 'SoluteConcentration' | 'Temperature' | 'WaterLevel';
 
 export interface TargetValue {
   id: string;
