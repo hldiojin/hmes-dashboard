@@ -25,16 +25,16 @@ export function SideNav(): React.JSX.Element {
   return (
     <Box
       sx={{
-        '--SideNav-background': 'var(--mui-palette-neutral-950)',
+        '--SideNav-background': '#00BFB3',
         '--SideNav-color': 'var(--mui-palette-common-white)',
-        '--NavItem-color': 'var(--mui-palette-neutral-300)',
-        '--NavItem-hover-background': 'rgba(255, 255, 255, 0.04)',
-        '--NavItem-active-background': 'var(--mui-palette-primary-main)',
-        '--NavItem-active-color': 'var(--mui-palette-primary-contrastText)',
-        '--NavItem-disabled-color': 'var(--mui-palette-neutral-500)',
-        '--NavItem-icon-color': 'var(--mui-palette-neutral-400)',
-        '--NavItem-icon-active-color': 'var(--mui-palette-primary-contrastText)',
-        '--NavItem-icon-disabled-color': 'var(--mui-palette-neutral-600)',
+        '--NavItem-color': 'rgba(255, 255, 255, 0.9)',
+        '--NavItem-hover-background': 'rgba(255, 255, 255, 0.1)',
+        '--NavItem-active-background': '#6C5CE7',
+        '--NavItem-active-color': 'var(--mui-palette-common-white)',
+        '--NavItem-disabled-color': 'rgba(255, 255, 255, 0.5)',
+        '--NavItem-icon-color': 'rgba(255, 255, 255, 0.7)',
+        '--NavItem-icon-active-color': 'var(--mui-palette-common-white)',
+        '--NavItem-icon-disabled-color': 'rgba(255, 255, 255, 0.3)',
         bgcolor: 'var(--SideNav-background)',
         color: 'var(--SideNav-color)',
         display: { xs: 'none', lg: 'flex' },
@@ -51,9 +51,7 @@ export function SideNav(): React.JSX.Element {
       }}
     >
       <Stack spacing={2} sx={{ p: 3 }}>
-        <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
-          <Logo color="light" height={32} width={122} />
-        </Box>
+        Hydroponic System
         <Box
           sx={{
             alignItems: 'center',
@@ -70,7 +68,7 @@ export function SideNav(): React.JSX.Element {
               Workspace
             </Typography>
             <Typography color="inherit" variant="subtitle1">
-              Devias
+              Hydroponic System
             </Typography>
           </Box>
           <CaretUpDownIcon />

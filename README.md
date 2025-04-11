@@ -1,8 +1,8 @@
-## [Devias Kit - React](https://material-kit-react.devias.io/)
+## [Hydroponic System - React](https://material-kit-react.devias.io/)
 
 ![license](https://img.shields.io/badge/license-MIT-blue.svg)
 
-[![Devias Kit - React](https://github.com/devias-io/material-kit-react/blob/main/public/assets/thumbnail.png)](https://material-kit-react.devias.io/)
+[![Hydroponic System - React](https://github.com/devias-io/material-kit-react/blob/main/public/assets/thumbnail.png)](https://material-kit-react.devias.io/)
 
 > Free React Admin Dashboard made with [MUI's](https://mui.com) components, [React](https://reactjs.org) and of course [Next.js](https://github.com/vercel/next.js) to boost your app development process!
 
@@ -26,7 +26,7 @@
 We also have a pro version of this product which bundles even more pages and components if you want
 to save more time and design efforts :)
 
-| Free Version (this one)  | [Devias Kit Pro](https://mui.com/store/items/devias-kit-pro/)                |
+| Free Version (this one)  | [Hydroponic System Pro](https://mui.com/store/items/devias-kit-pro/)                |
 | ------------------------ | :--------------------------------------------------------------------------- |
 | **8** Pages              | **80+** Pages                                                                |
 | ✔ Custom Authentication  | ✔ Authentication with **Amplify**, **Auth0**, **Firebase** and **Supabase**  |
