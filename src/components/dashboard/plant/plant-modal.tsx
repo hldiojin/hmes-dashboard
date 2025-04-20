@@ -29,20 +29,24 @@ interface PlantModalProps {
 
 function PlantModal({ open, onClose, onSubmit, plant, mode }: PlantModalProps): React.JSX.Element {
   const [name, setName] = React.useState<string>(plant?.name || '');
-  const [status, setStatus] = React.useState<'Active' | 'Inactive'>(plant?.status || 'Active');
+  // Always set status to 'Active' for create mode
+  const [status, setStatus] = React.useState<'Active' | 'Inactive'>(
+    mode === 'create' ? 'Active' : (plant?.status || 'Active')
+  );
   const [errors, setErrors] = React.useState<{ name?: string }>({});
 
-  // Reset form when plant changes
+  // Reset form when plant changes or mode changes
   React.useEffect(() => {
     if (plant) {
       setName(plant.name);
       setStatus(plant.status);
     } else {
       setName('');
-      setStatus('Active');
+      // Always set to Active for create mode
+      setStatus(mode === 'create' ? 'Active' : 'Active');
     }
     setErrors({});
-  }, [plant]);
+  }, [plant, mode]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,8 +62,12 @@ function PlantModal({ open, onClose, onSubmit, plant, mode }: PlantModalProps): 
       return;
     }
 
-    // Submit form
-    onSubmit(name, status);
+    // Always pass 'Active' as status for create mode
+    if (mode === 'create') {
+      onSubmit(name, 'Active');
+    } else {
+      onSubmit(name, status);
+    }
   };
 
   return (
@@ -76,20 +84,24 @@ function PlantModal({ open, onClose, onSubmit, plant, mode }: PlantModalProps): 
               helperText={errors.name}
               fullWidth
               required
+              autoFocus
             />
 
-            <FormControl fullWidth>
-              <InputLabel id="status-label">Status</InputLabel>
-              <Select
-                labelId="status-label"
-                value={status}
-                label="Status"
-                onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive')}
-              >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
-              </Select>
-            </FormControl>
+            {/* Only show status selection for update mode */}
+            {mode === 'update' && (
+              <FormControl fullWidth>
+                <InputLabel id="status-label">Status</InputLabel>
+                <Select
+                  labelId="status-label"
+                  value={status}
+                  label="Status"
+                  onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive')}
+                >
+                  <MenuItem value="Active">Active</MenuItem>
+                  <MenuItem value="Inactive">Inactive</MenuItem>
+                </Select>
+              </FormControl>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>

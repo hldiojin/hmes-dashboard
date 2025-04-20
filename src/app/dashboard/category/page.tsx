@@ -8,9 +8,7 @@ import { Alert, Snackbar } from '@mui/material';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 
 import { CategoryFilters } from '@/components/dashboard/category/category-filter';
 import CategoryModal from '@/components/dashboard/category/category-modal';
@@ -25,6 +23,7 @@ function Category(): React.JSX.Element {
   // Add a refresh trigger state
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
   const [modalOpen, setModalOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
   const [snackbar, setSnackbar] = React.useState({
     open: false,
     message: '',
@@ -69,19 +68,15 @@ function Category(): React.JSX.Element {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+
   return (
     <Stack spacing={3}>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Categories</Typography>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Import
-            </Button>
-            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Export
-            </Button>
-          </Stack>
         </Stack>
         <div>
           <Button
@@ -93,8 +88,17 @@ function Category(): React.JSX.Element {
           </Button>
         </div>
       </Stack>
-      <CategoryFilters />
-      <CategoryTable count={count} page={page} rowsPerPage={rowsPerPage} refreshTrigger={refreshTrigger} />
+      <CategoryFilters 
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+      />
+      <CategoryTable 
+        count={count} 
+        page={page} 
+        rowsPerPage={rowsPerPage} 
+        refreshTrigger={refreshTrigger}
+        searchQuery={searchQuery}
+      />
 
       <CategoryModal open={modalOpen} onClose={handleCloseModal} onSubmit={handleSubmit} />
 

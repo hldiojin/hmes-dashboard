@@ -38,12 +38,14 @@ function noop(): void {
   // do nothing
 }
 
+// Update the interface to include searchQuery
 interface CategoryTableProps {
   count?: number;
   page?: number;
   rowsPerPage?: number;
   refreshTrigger?: number;
-  onRefreshNeeded?: () => void; // New callback for parent component to refresh
+  onRefreshNeeded?: () => void;
+  searchQuery?: string;
 }
 
 function CategoryTable({
@@ -52,8 +54,10 @@ function CategoryTable({
   rowsPerPage = 0,
   refreshTrigger = 0,
   onRefreshNeeded,
+  searchQuery = '',
 }: CategoryTableProps): React.JSX.Element {
   const [categories, setCategories] = React.useState<Category[]>([]);
+  const [filteredCategories, setFilteredCategories] = React.useState<Category[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [expandedRows, setExpandedRows] = React.useState<Record<string, boolean>>({});
   const [totalCount, setTotalCount] = React.useState<number>(0);
@@ -91,6 +95,19 @@ function CategoryTable({
 
     fetchCategories();
   }, [refreshTrigger]); // Add refreshTrigger to dependency array
+
+  // Add useEffect to filter categories based on searchQuery
+  React.useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredCategories(categories);
+    } else {
+      const filtered = categories.filter(category => 
+        category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (category.description && category.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      setFilteredCategories(filtered);
+    }
+  }, [searchQuery, categories]);
 
   const rowIds = React.useMemo(() => {
     return categories.map((category) => category.id);
@@ -414,16 +431,16 @@ function CategoryTable({
               </TableRow>
             </TableHead>
             <TableBody>
-              {categories.length === 0 ? (
+              {filteredCategories.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="text.secondary">
-                      No categories found
+                      {categories.length === 0 ? "No categories found" : "No matching categories found"}
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                categories.map((category) => renderCategoryRow(category))
+                filteredCategories.map((category) => renderCategoryRow(category))
               )}
             </TableBody>
           </Table>

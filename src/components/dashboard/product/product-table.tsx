@@ -37,12 +37,14 @@ function noop(): void {
   // do nothing
 }
 
+// Update the interface to include searchQuery
 interface ProductTableProps {
   count?: number;
   page?: number;
   rowsPerPage?: number;
   refreshTrigger?: number;
   onRefreshNeeded?: () => void;
+  searchQuery?: string; // Add this
 }
 
 function ProductTable({
@@ -51,8 +53,10 @@ function ProductTable({
   rowsPerPage = 0,
   refreshTrigger = 0,
   onRefreshNeeded,
+  searchQuery = '', // Add this with default value
 }: ProductTableProps): React.JSX.Element {
   const [products, setProducts] = React.useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = React.useState<Product[]>([]); // Add this
   const [loading, setLoading] = React.useState<boolean>(true);
   const [totalCount, setTotalCount] = React.useState<number>(0);
 
@@ -91,9 +95,24 @@ function ProductTable({
     fetchProducts();
   }, [refreshTrigger]);
 
+  // Add this effect to filter products based on searchQuery
+  React.useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredProducts(products);
+    } else {
+      const filtered = products.filter(product => 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (product.categoryName && product.categoryName.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      setFilteredProducts(filtered);
+    }
+  }, [searchQuery, products]);
+
+  // Use filteredProducts for rowIds instead of products
   const rowIds = React.useMemo(() => {
-    return products.map((product) => product.id);
-  }, [products]);
+    return filteredProducts.map((product) => product.id);
+  }, [filteredProducts]);
 
   const { selectAll, deselectAll, selectOne, deselectOne, selected } = useSelection(rowIds);
 
@@ -104,8 +123,8 @@ function ProductTable({
     }
   }, [products, deselectAll, selected.size]);
 
-  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < products.length;
-  const selectedAll = products.length > 0 && selected?.size === products.length;
+  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < filteredProducts.length;
+  const selectedAll = filteredProducts.length > 0 && selected?.size === filteredProducts.length;
 
   // Handle delete button click
   const handleDeleteClick = (product: Product) => {
@@ -329,16 +348,16 @@ function ProductTable({
               </TableRow>
             </TableHead>
             <TableBody>
-              {products.length === 0 ? (
+              {filteredProducts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
                     <Typography variant="body1" py={2}>
-                      No products found
+                      {products.length === 0 ? "No products found" : "No matching products found"}
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                products.map((product) => {
+                filteredProducts.map((product) => {
                   const isSelected = selected?.has(product.id);
                   return (
                     <TableRow

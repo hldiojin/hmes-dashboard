@@ -7,9 +7,7 @@ import { Alert, Snackbar } from '@mui/material';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 
 import { ProductFilters } from '@/components/dashboard/product/product-filter';
 import ProductModal from '@/components/dashboard/product/product-modal';
@@ -24,6 +22,7 @@ function Products(): React.JSX.Element {
   // Add a refresh trigger state
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
   const [modalOpen, setModalOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
   const [snackbar, setSnackbar] = React.useState({
     open: false,
     message: '',
@@ -40,6 +39,10 @@ function Products(): React.JSX.Element {
 
   const handleCloseSnackbar = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
+  };
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
   };
 
   const handleSubmit = async (formData: FormData) => {
@@ -69,14 +72,7 @@ function Products(): React.JSX.Element {
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Products</Typography>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Import
-            </Button>
-            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Export
-            </Button>
-          </Stack>
+          {/* Import and Export buttons removed */}
         </Stack>
         <div>
           <Button
@@ -88,8 +84,17 @@ function Products(): React.JSX.Element {
           </Button>
         </div>
       </Stack>
-      <ProductFilters />
-      <ProductTable count={count} page={page} rowsPerPage={rowsPerPage} refreshTrigger={refreshTrigger} />
+      <ProductFilters 
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+      />
+      <ProductTable 
+        count={count} 
+        page={page} 
+        rowsPerPage={rowsPerPage} 
+        refreshTrigger={refreshTrigger}
+        searchQuery={searchQuery}
+      />
 
       <ProductModal open={modalOpen} onClose={handleCloseModal} onSubmit={handleSubmit} mode="create" />
 

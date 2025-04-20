@@ -47,6 +47,11 @@ export default function PlantPage(): React.JSX.Element {
     handleRefresh();
   };
 
+  // Handle search input change with debounce
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setKeyword(e.target.value);
+  };
+
   // Handle status filter change
   const handleStatusFilterChange = (event: SelectChangeEvent<string>) => {
     const newStatus = event.target.value === '' ? null : (event.target.value as 'Active' | 'Inactive');
@@ -82,6 +87,8 @@ export default function PlantPage(): React.JSX.Element {
     try {
       await plantService.createPlant(name, status);
       handleCreateModalClose();
+      
+      // Force a refresh of the table
       handleRefresh();
     } catch (error) {
       console.error('Error creating plant:', error);
@@ -117,8 +124,9 @@ export default function PlantPage(): React.JSX.Element {
             <TextField
               label="Search plants"
               value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              onChange={handleSearchChange}
               sx={{ width: 300 }}
+              placeholder="Search by plant name"
             />
             <FormControl sx={{ minWidth: 200 }}>
               <InputLabel id="status-filter-label">Status</InputLabel>

@@ -51,8 +51,12 @@ export default function TargetValuePage(): React.JSX.Element {
     severity: 'success',
   });
 
+  // New state for just created
+  const [justCreated, setJustCreated] = React.useState<boolean>(false);
+
   // Handle refresh
   const handleRefresh = () => {
+    console.log('Refreshing target values...');
     setRefreshTrigger((prev) => prev + 1);
   };
 
@@ -96,16 +100,31 @@ export default function TargetValuePage(): React.JSX.Element {
     setCreateLoading(true);
     try {
       if (data.type && typeof data.minValue === 'number' && typeof data.maxValue === 'number') {
-        await targetValueService.createTargetValue(data.type, data.minValue, data.maxValue);
+        // Create the target value
+        await targetValueService.createTargetValue({
+          type: data.type,
+          minValue: data.minValue,
+          maxValue: data.maxValue
+        });
+        
         handleCreateModalClose();
-        handleRefresh();
-
-        // Show success message
+        
+        setType(data.type);
+        
+        setMinValue('');
+        setMaxValue('');
+        
         setSnackbar({
           open: true,
           message: 'Target value created successfully',
           severity: 'success',
         });
+        
+        // Add a slightly longer delay before refreshing
+        setTimeout(() => {
+          console.log('Forcing refresh after target value creation');
+          setRefreshTrigger(prev => prev + 1);
+        }, 800);
       }
     } catch (error: any) {
       console.error('Error creating target value:', error);
@@ -125,6 +144,18 @@ export default function TargetValuePage(): React.JSX.Element {
       setCreateLoading(false);
     }
   };
+
+  // Add useEffect to watch for justCreated state
+  React.useEffect(() => {
+    if (justCreated) {
+      // Reset after a short delay
+      const timer = setTimeout(() => {
+        setJustCreated(false);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [justCreated]);
 
   // Handle row click to open details
   const handleRowClick = (targetValueId: string) => {
@@ -164,9 +195,9 @@ export default function TargetValuePage(): React.JSX.Element {
                 onChange={handleTypeFilterChange}
               >
                 <MenuItem value="">All</MenuItem>
-                <MenuItem value="pH">pH</MenuItem>
-                <MenuItem value="ConcentrationOfSolutes">Concentration of Solutes</MenuItem>
-                <MenuItem value="WaterTemperature">Water Temperature</MenuItem>
+                <MenuItem value="Ph">pH</MenuItem>
+                <MenuItem value="SoluteConcentration">Concentration of Solutes</MenuItem>
+                <MenuItem value="Temperature">Water Temperature</MenuItem>
                 <MenuItem value="WaterLevel">Water Level</MenuItem>
               </Select>
             </FormControl>

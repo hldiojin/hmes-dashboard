@@ -81,11 +81,19 @@ function TargetValueTable({
     severity: 'success' as 'success' | 'error',
   });
 
-  // Fetch target values when component mounts or refreshTrigger changes
   React.useEffect(() => {
     const fetchTargetValues = async () => {
       setLoading(true);
       try {
+        console.log('Fetching target values with:', {
+          type, minValue, maxValue, currentPage, rowsPerPage
+        });
+        
+        // Add a small delay to ensure the API has updated
+        if (refreshTrigger > 0) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+        
         const response = await targetValueService.getAllTargetValues(
           type,
           minValue,
@@ -93,12 +101,21 @@ function TargetValueTable({
           currentPage,
           rowsPerPage
         );
-        setTargetValues(response.response.data);
-        setTotalCount(response.response.totalItems);
-        setCurrentPage(response.response.currentPage);
-        setTotalPages(response.response.totalPages);
+        
+        console.log('API Response:', response);
+        
+        if (response.response && Array.isArray(response.response.data)) {
+          setTargetValues(response.response.data);
+          setTotalCount(response.response.totalItems);
+          setCurrentPage(response.response.currentPage);
+          setTotalPages(response.response.totalPages);
+        } else {
+          console.error('Invalid response format:', response);
+          setTargetValues([]);
+        }
       } catch (error) {
         console.error('Failed to fetch target values:', error);
+        setTargetValues([]);
       } finally {
         setLoading(false);
       }
@@ -334,7 +351,15 @@ function TargetValueTable({
               </TableRow>
             </TableHead>
             <TableBody>
-              {targetValues.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                      <CircularProgress size={24} />
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ) : targetValues.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} align="center">
                     <Typography variant="body1" py={2}>

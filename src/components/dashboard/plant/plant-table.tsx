@@ -80,25 +80,38 @@ function PlantTable({
     severity: 'success' as 'success' | 'error',
   });
 
-  // Fetch plants when component mounts or refreshTrigger changes
   React.useEffect(() => {
     const fetchPlants = async () => {
       setLoading(true);
       try {
-        const response = await plantService.getAllPlants(keyword, status, currentPage, rowsPerPage);
+        const params = new URLSearchParams();
+        
+        if (keyword) {
+          params.append('keyword', keyword);
+        }
+        
+        if (status) {
+          params.append('status', status);
+        }
+        
+        params.append('page', (page + 1).toString());
+        params.append('pageSize', rowsPerPage.toString());
+        
+        const response = await plantService.getAllPlants(keyword, status, page + 1, rowsPerPage);
         setPlants(response.response.data);
         setTotalCount(response.response.totalItems);
-        setCurrentPage(response.response.currentPage);
-        setTotalPages(response.response.totalPages);
+        
       } catch (error) {
-        console.error('Failed to fetch plants:', error);
+        console.error('Error fetching plants:', error);
+        setPlants([]);
+        setTotalCount(0);
       } finally {
         setLoading(false);
       }
     };
 
     fetchPlants();
-  }, [refreshTrigger, currentPage, rowsPerPage]);
+  }, [refreshTrigger, page, rowsPerPage, keyword, status]);
 
   const rowIds = React.useMemo(() => {
     return plants.map((plant) => plant.id);

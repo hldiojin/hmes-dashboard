@@ -74,11 +74,14 @@ function TargetValueModal({ open, onClose, onSubmit, targetValue, mode }: Target
       return;
     }
 
-    onSubmit({
+    const formattedData = {
       type,
-      minValue: typeof minValue === 'number' ? minValue : undefined,
-      maxValue: typeof maxValue === 'number' ? maxValue : undefined,
-    });
+      minValue: typeof minValue === 'number' ? minValue : 0,
+      maxValue: typeof maxValue === 'number' ? maxValue : 0,
+      id: targetValue?.id // Include ID for updates
+    };
+
+    onSubmit(formattedData);
   };
 
   // Get target type display name

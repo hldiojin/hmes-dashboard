@@ -2,8 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Alert, Box, Button, CircularProgress, Snackbar, Stack, Typography } from '@mui/material';
-import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
+import { Alert, Box, CircularProgress, Snackbar, Stack, Typography } from '@mui/material';
 
 import OrderModal from '../../../components/dashboard/order/order-modal';
 import OrderTable from '../../../components/dashboard/order/order-table';
@@ -76,11 +75,6 @@ export default function OrdersPage() {
     }));
   };
 
-  // Handle create new order
-  const handleCreateOrder = () => {
-    router.push('/dashboard/order/create');
-  };
-
   // Handle close alerts
   const handleCloseAlert = () => {
     setSuccessMessage(null);
@@ -133,9 +127,7 @@ export default function OrdersPage() {
     <Box sx={{ p: 3 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={4} sx={{ mb: 3 }}>
         <Typography variant="h4">Orders</Typography>
-        <Button startIcon={<PlusIcon />} variant="contained" onClick={handleCreateOrder}>
-          New Order
-        </Button>
+        {/* New Order button removed */}
       </Stack>
 
       {/* Order Table Component */}

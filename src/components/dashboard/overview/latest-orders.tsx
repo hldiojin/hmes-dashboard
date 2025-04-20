@@ -118,15 +118,7 @@ export function LatestOrders({ orders = [], sx, onViewAll }: LatestOrdersProps):
       </TableContainer>
       <Divider />
       <CardActions sx={{ justifyContent: 'flex-end' }}>
-        <Button
-          color="inherit"
-          endIcon={<ArrowRightIcon fontSize="var(--icon-fontSize-md)" weight="bold" />}
-          size="small"
-          variant="text"
-          onClick={onViewAll}
-        >
-          View all
-        </Button>
+        
       </CardActions>
     </Card>
   );

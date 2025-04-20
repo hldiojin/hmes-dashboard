@@ -88,23 +88,36 @@ const targetValueService = {
     if (maxValue !== undefined && maxValue !== null) params.append('maxValue', maxValue.toString());
     params.append('pageIndex', pageIndex.toString());
     params.append('pageSize', pageSize.toString());
+    // Add a cache-busting parameter to avoid browser caching
+    params.append('_t', new Date().getTime().toString());
 
-    const response = await axiosInstance.get(`/target-value?${params.toString()}`);
-    return response.data;
+    const url = `/target-value?${params.toString()}`;
+    console.log('Fetching target values from URL:', url);
+    
+    try {
+      const response = await axiosInstance.get(url);
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching target values:', error);
+      throw error;
+    }
   },
 
-  createTargetValue: async (type: string, minValue: number, maxValue: number): Promise<TargetValue> => {
-    const formData = new FormData();
-    formData.append('type', type);
-    formData.append('minValue', minValue.toString());
-    formData.append('maxValue', maxValue.toString());
-
-    const response = await axiosInstance.post('/target-value', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data.response.data;
+  createTargetValue: async (data: {
+    type: ValueType;
+    minValue: number;
+    maxValue: number;
+  }) => {
+    try {
+      console.log('Creating target value with data:', data);
+      const response = await axiosInstance.post('/target-value', data);
+      console.log('Create response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('API Error:', error.response?.data || error.message);
+      throw error;
+    }
   },
 
   updateTargetValueById: async (id: string, type: string, minValue: number, maxValue: number): Promise<TargetValue> => {
