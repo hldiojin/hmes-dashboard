@@ -15,4 +15,5 @@ export const navItems = [
   { key: 'account', title: 'Tài khoản', href: paths.dashboard.account, icon: 'user' },
   // { key: 'error', title: 'Error', href: paths.errors.notFound, icon: 'x-square' },
   { key: 'order', title: 'Đơn hàng', href: paths.dashboard.order, icon: 'shopping-cart' },
+  { key: 'device', title: 'Thiết bị IoT', href: paths.dashboard.device, icon: 'gauge' },
 ] satisfies NavItemConfig[];

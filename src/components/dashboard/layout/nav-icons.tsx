@@ -12,6 +12,7 @@ import { Target as TargetIcon } from '@phosphor-icons/react/dist/ssr/Target';
 import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
+import { Gauge as GaugeIcon } from '@phosphor-icons/react/dist/ssr/Gauge';
 
 export const navIcons = {
   'chart-pie': ChartPieIcon,
@@ -27,4 +28,5 @@ export const navIcons = {
   target: TargetIcon,
   'shopping-cart': ShoppingCartIcon,
   money: MoneyIcon,
+  'gauge': GaugeIcon,
 } as Record<string, Icon>;
