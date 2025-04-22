@@ -134,7 +134,7 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
           pageSize: response.response.pageSize || 10,
           total: response.response.total || response.response.data.length || 0,
         });
-        
+
         // Show success message for transfer ticket if applicable
         if (endpoint === 'ticket/transfer' && response.response.data.length > 0) {
           setSnackbar({
@@ -151,7 +151,7 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
           pageSize: 10,
           total: 0,
         });
-        
+
         if (endpoint === 'ticket/transfer') {
           setSnackbar({
             open: true,
@@ -168,7 +168,7 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
         pageSize: 10,
         total: 0,
       });
-      
+
       // Show error message
       setSnackbar({
         open: true,
@@ -286,7 +286,12 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
 
               <FormControl size="small" sx={{ minWidth: 150 }}>
                 <InputLabel id="status-filter-label">Trạng thái</InputLabel>
-                <Select labelId="status-filter-label" value={statusFilter} label="Trạng thái" onChange={handleStatusChange}>
+                <Select
+                  labelId="status-filter-label"
+                  value={statusFilter}
+                  label="Trạng thái"
+                  onChange={handleStatusChange}
+                >
                   <MenuItem value="">Tất cả</MenuItem>
                   <MenuItem value={TicketStatus.Pending}>Đang chờ</MenuItem>
                   <MenuItem value={TicketStatus.InProgress}>Đang xử lý</MenuItem>
@@ -373,7 +378,11 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
                       </TableCell>
                       <TableCell>{translateType(ticket.type)}</TableCell>
                       <TableCell>
-                        <Chip label={translateStatus(ticket.status)} color={getStatusColor(ticket.status)} size="small" />
+                        <Chip
+                          label={translateStatus(ticket.status)}
+                          color={getStatusColor(ticket.status)}
+                          size="small"
+                        />
                       </TableCell>
                       <TableCell>{ticket.handledBy || '-'}</TableCell>
                       <TableCell>{new Date(ticket.createdAt).toLocaleDateString()}</TableCell>

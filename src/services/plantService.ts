@@ -32,11 +32,10 @@ const plantService = {
     return plantData;
   },
 
-  createPlant: async (name: string, status: 'Active' | 'Inactive', description?: string): Promise<Plant> => {
+  createPlant: async (name: string, status: 'Active' | 'Inactive'): Promise<Plant> => {
     const formData = new FormData();
     formData.append('name', name);
     formData.append('status', status);
-    if (description) formData.append('description', description);
 
     const response = await axiosInstance.post(`/plant`, formData, {
       headers: {
@@ -46,11 +45,10 @@ const plantService = {
     return response.data.response;
   },
 
-  updatePlant: async (id: string, name: string, status: 'Active' | 'Inactive', description?: string): Promise<Plant> => {
+  updatePlant: async (id: string, name: string, status: 'Active' | 'Inactive'): Promise<Plant> => {
     const formData = new FormData();
     formData.append('name', name);
     formData.append('status', status);
-    if (description) formData.append('description', description);
 
     const response = await axiosInstance.put(`/plant/${id}`, formData, {
       headers: {
