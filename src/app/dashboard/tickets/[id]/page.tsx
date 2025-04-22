@@ -1014,7 +1014,7 @@ function TicketDetail(): React.JSX.Element {
                     startIcon={assigningTicket ? <CircularProgress size={20} /> : <UserCirclePlus />}
                     disabled={assigningTicket}
                   >
-                    {assigningTicket ? 'Đang gán...' : 'Gán ticket'}
+                    {assigningTicket ? 'Đang nhận...' : 'Đảm nhận'}
                   </Button>
                 )}
               </Box>
