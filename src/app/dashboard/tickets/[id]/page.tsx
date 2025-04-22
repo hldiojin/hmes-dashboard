@@ -53,7 +53,39 @@ import {
   XCircle,
 } from '@phosphor-icons/react/dist/ssr';
 
-import { Staff, StaffListResponse, Ticket, TicketResponse, TicketStatus } from '@/types/ticket';
+import { Staff, StaffListResponse, Ticket, TicketResponse, TicketStatus, TicketType } from '@/types/ticket';
+
+// Function to translate ticket type to Vietnamese
+const translateType = (type: string): string => {
+  switch (type) {
+    case TicketType.Shopping:
+      return 'Mua sắm';
+    case TicketType.Technical:
+      return 'Kỹ thuật';
+    default:
+      return type;
+  }
+};
+
+// Function to translate ticket status to Vietnamese
+const translateStatus = (status: string): string => {
+  switch (status) {
+    case TicketStatus.Pending:
+      return 'Đang chờ';
+    case TicketStatus.InProgress:
+      return 'Đang xử lý';
+    case TicketStatus.Done:
+      return 'Hoàn thành';
+    case TicketStatus.Closed:
+      return 'Đã đóng';
+    case TicketStatus.IsTransferring:
+      return 'Đang chuyển';
+    case TicketStatus.TransferRejected:
+      return 'Từ chối chuyển';
+    default:
+      return status;
+  }
+};
 
 // Helper function to get file icon based on file extension
 const getFileIcon = (url: string) => {
@@ -275,7 +307,7 @@ function TicketDetail(): React.JSX.Element {
     if (!responseMessage.trim()) {
       setSnackbar({
         open: true,
-        message: 'Please enter a response message',
+        message: 'Vui lòng nhập nội dung phản hồi',
         severity: 'error',
       });
       return;
@@ -312,7 +344,7 @@ function TicketDetail(): React.JSX.Element {
 
         setSnackbar({
           open: true,
-          message: 'Response submitted successfully',
+          message: 'Phản hồi đã được gửi thành công',
           severity: 'success',
         });
       }
@@ -320,7 +352,7 @@ function TicketDetail(): React.JSX.Element {
       console.error('Error submitting response:', err);
       setSnackbar({
         open: true,
-        message: 'Failed to submit response',
+        message: 'Gửi phản hồi thất bại',
         severity: 'error',
       });
     } finally {
@@ -359,7 +391,7 @@ function TicketDetail(): React.JSX.Element {
       // Show success message
       setSnackbar({
         open: true,
-        message: 'Transfer request accepted',
+        message: 'Đã chấp nhận yêu cầu chuyển ticket',
         severity: 'success',
       });
 
@@ -370,7 +402,7 @@ function TicketDetail(): React.JSX.Element {
       console.error('Error accepting transfer:', err);
       setSnackbar({
         open: true,
-        message: 'Failed to accept transfer',
+        message: 'Chấp nhận yêu cầu chuyển ticket thất bại',
         severity: 'error',
       });
       setAcceptingTransfer(false);
@@ -389,7 +421,7 @@ function TicketDetail(): React.JSX.Element {
       // Show success message
       setSnackbar({
         open: true,
-        message: 'Transfer request rejected',
+        message: 'Đã từ chối yêu cầu chuyển ticket',
         severity: 'success',
       });
 
@@ -400,7 +432,7 @@ function TicketDetail(): React.JSX.Element {
       console.error('Error rejecting transfer:', err);
       setSnackbar({
         open: true,
-        message: 'Failed to reject transfer',
+        message: 'Từ chối yêu cầu chuyển ticket thất bại',
         severity: 'error',
       });
       setRejectingTransfer(false);
@@ -426,7 +458,7 @@ function TicketDetail(): React.JSX.Element {
 
         setSnackbar({
           open: true,
-          message: 'Ticket assigned successfully',
+          message: 'Đã gán ticket thành công',
           severity: 'success',
         });
 
@@ -441,7 +473,7 @@ function TicketDetail(): React.JSX.Element {
       console.error('Error assigning ticket:', err);
       setSnackbar({
         open: true,
-        message: 'Failed to assign ticket. Please try again.',
+        message: 'Gán ticket thất bại. Vui lòng thử lại sau.',
         severity: 'error',
       });
     } finally {
@@ -471,7 +503,7 @@ function TicketDetail(): React.JSX.Element {
       setSelectedStaffId('');
       setSnackbar({
         open: true,
-        message: 'Failed to load staff list',
+        message: 'Không thể tải danh sách nhân viên',
         severity: 'error',
       });
     } finally {
@@ -507,7 +539,7 @@ function TicketDetail(): React.JSX.Element {
     if (!selectedStaffId) {
       setSnackbar({
         open: true,
-        message: 'Please select a staff member',
+        message: 'Vui lòng chọn nhân viên',
         severity: 'error',
       });
       return;
@@ -521,7 +553,7 @@ function TicketDetail(): React.JSX.Element {
       if (result.statusCodes === 200) {
         setSnackbar({
           open: true,
-          message: 'Ticket transferred successfully',
+          message: 'Đã chuyển ticket thành công',
           severity: 'success',
         });
 
@@ -537,7 +569,7 @@ function TicketDetail(): React.JSX.Element {
       console.error('Error transferring ticket:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to transfer ticket',
+        message: 'Chuyển ticket thất bại',
         severity: 'error',
       });
     } finally {
@@ -558,7 +590,7 @@ function TicketDetail(): React.JSX.Element {
       setStatusDialogOpen(false);
       setSnackbar({
         open: true,
-        message: `Ticket status changed to ${selectedStatus}`,
+        message: `Đã thay đổi trạng thái ticket thành ${translateStatus(selectedStatus)}`,
         severity: 'success',
       });
 
@@ -569,7 +601,7 @@ function TicketDetail(): React.JSX.Element {
       console.error('Error updating ticket status:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to update ticket status',
+        message: 'Cập nhật trạng thái ticket thất bại',
         severity: 'error',
       });
       setUpdatingStatus(false);
@@ -596,12 +628,15 @@ function TicketDetail(): React.JSX.Element {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
         <CircularProgress />
+        <Typography variant="body1" sx={{ ml: 2 }}>
+          Đang tải thông tin ticket...
+        </Typography>
       </Box>
     );
   }
 
   if (error) {
-    return <Alert severity="error">Error loading ticket: {error}</Alert>;
+    return <Alert severity="error">Lỗi khi tải thông tin ticket: {error}</Alert>;
   }
 
   return (
@@ -612,9 +647,9 @@ function TicketDetail(): React.JSX.Element {
           startIcon={<ArrowLeftIcon fontSize="var(--icon-fontSize-md)" />}
           onClick={() => router.push(getBackPath())}
         >
-          Back to Tickets
+          Quay lại danh sách
         </Button>
-        <Typography variant="h4">Ticket Details</Typography>
+        <Typography variant="h4">Chi tiết ticket</Typography>
       </Stack>
 
       {ticket && (
@@ -622,36 +657,36 @@ function TicketDetail(): React.JSX.Element {
           <Grid container spacing={3}>
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h6">Ticket ID: {ticket.id.slice(0, 8)}...</Typography>
-                <Chip label={ticket.status} color={getStatusColor(ticket.status)} />
+                <Typography variant="h6">Mã ticket: {ticket.id.slice(0, 8)}...</Typography>
+                <Chip label={translateStatus(ticket.status)} color={getStatusColor(ticket.status)} />
               </Box>
               <Divider sx={{ my: 2 }} />
             </Grid>
 
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle2" color="text.secondary">
-                Created By
+                Người tạo
               </Typography>
               <Typography variant="body1">{ticket.userFullName}</Typography>
             </Grid>
 
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle2" color="text.secondary">
-                Created At
+                Ngày tạo
               </Typography>
               <Typography variant="body1">{new Date(ticket.createdAt).toLocaleDateString()}</Typography>
             </Grid>
 
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle2" color="text.secondary">
-                Type
+                Loại
               </Typography>
-              <Typography variant="body1">{ticket.type}</Typography>
+              <Typography variant="body1">{translateType(ticket.type)}</Typography>
             </Grid>
 
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle2" color="text.secondary">
-                Handled By
+                Người xử lý
               </Typography>
               <Typography variant="body1">{ticket.handledBy || storedHandledBy || '-'}</Typography>
             </Grid>
@@ -659,7 +694,7 @@ function TicketDetail(): React.JSX.Element {
             {(ticket.description || ticket.briefDescription) && (
               <Grid item xs={12}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Description
+                  Mô tả
                 </Typography>
                 <Card variant="outlined" sx={{ mt: 1 }}>
                   <CardContent>
@@ -672,7 +707,7 @@ function TicketDetail(): React.JSX.Element {
             {ticket.attachments && ticket.attachments.length > 0 && (
               <Grid item xs={12}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Attachments
+                  Tệp đính kèm
                 </Typography>
                 <Box sx={{ mt: 2 }}>
                   <Grid container spacing={2}>
@@ -706,7 +741,7 @@ function TicketDetail(): React.JSX.Element {
                                       whiteSpace: 'nowrap',
                                     }}
                                   >
-                                    {fileName || `Image ${index + 1}`}
+                                    {fileName || `Hình ảnh ${index + 1}`}
                                   </Typography>
                                 </CardContent>
                               </Box>
@@ -733,7 +768,7 @@ function TicketDetail(): React.JSX.Element {
                                         whiteSpace: 'nowrap',
                                       }}
                                     >
-                                      {fileName || `Attachment ${index + 1}`}
+                                      {fileName || `Tệp đính kèm ${index + 1}`}
                                     </Typography>
                                   </Stack>
                                 </Box>
@@ -752,7 +787,7 @@ function TicketDetail(): React.JSX.Element {
             {ticket.ticketResponses && ticket.ticketResponses.length > 0 && (
               <Grid item xs={12}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
-                  Responses
+                  Phản hồi
                 </Typography>
                 <Stack spacing={2}>
                   {ticket.ticketResponses.map((response, index) => (
@@ -769,7 +804,7 @@ function TicketDetail(): React.JSX.Element {
                         {response.attachments && response.attachments.length > 0 && (
                           <Box sx={{ mt: 2 }}>
                             <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                              Attachments:
+                              Tệp đính kèm:
                             </Typography>
                             <Grid container spacing={2}>
                               {response.attachments.map((attachment: string, attachIndex: number) => {
@@ -807,7 +842,7 @@ function TicketDetail(): React.JSX.Element {
                                                 whiteSpace: 'nowrap',
                                               }}
                                             >
-                                              {fileName || `Image ${attachIndex + 1}`}
+                                              {fileName || `Hình ảnh ${attachIndex + 1}`}
                                             </Typography>
                                           </CardContent>
                                         </Box>
@@ -834,7 +869,7 @@ function TicketDetail(): React.JSX.Element {
                                                   whiteSpace: 'nowrap',
                                                 }}
                                               >
-                                                {fileName || `Attachment ${attachIndex + 1}`}
+                                                {fileName || `Tệp đính kèm ${attachIndex + 1}`}
                                               </Typography>
                                             </Stack>
                                           </Box>
@@ -858,25 +893,25 @@ function TicketDetail(): React.JSX.Element {
             {(isAssignedTicket || isTransferRequest) && canRespond && (
               <Grid item xs={12}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2, mb: 2 }}>
-                  Add Response
+                  Thêm phản hồi
                 </Typography>
                 <Box component="form" onSubmit={handleSubmitResponse}>
                   <TextField
-                    label="Your response"
+                    label="Nội dung phản hồi"
                     multiline
                     rows={4}
                     value={responseMessage}
                     onChange={handleResponseChange}
                     fullWidth
                     variant="outlined"
-                    placeholder="Type your response here..."
+                    placeholder="Nhập phản hồi của bạn tại đây..."
                     disabled={submitting}
                   />
 
                   {responseAttachments.length > 0 && (
                     <Box sx={{ mt: 2, mb: 2 }}>
                       <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
-                        Attachments:
+                        Tệp đính kèm:
                       </Typography>
                       <Stack direction="row" spacing={1} flexWrap="wrap">
                         {responseAttachments.map((file, index) => (
@@ -893,7 +928,7 @@ function TicketDetail(): React.JSX.Element {
 
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
                     <Button variant="outlined" onClick={handleAddAttachment} disabled={submitting}>
-                      Add Attachment
+                      Thêm tệp đính kèm
                     </Button>
                     <Button
                       type="submit"
@@ -902,7 +937,7 @@ function TicketDetail(): React.JSX.Element {
                       disabled={submitting}
                       startIcon={submitting ? <CircularProgress size={20} /> : <PaperPlaneRight />}
                     >
-                      {submitting ? 'Submitting...' : 'Send Response'}
+                      {submitting ? 'Đang gửi...' : 'Gửi phản hồi'}
                     </Button>
                   </Box>
 
@@ -931,7 +966,7 @@ function TicketDetail(): React.JSX.Element {
                       onClick={handleOpenStatusDialog}
                       disabled={submitting || assigningTicket}
                     >
-                      Change Status
+                      Thay đổi trạng thái
                     </Button>
                   )}
 
@@ -944,7 +979,7 @@ function TicketDetail(): React.JSX.Element {
                       onClick={handleAcceptTransfer}
                       disabled={acceptingTransfer || rejectingTransfer}
                     >
-                      {acceptingTransfer ? 'Accepting...' : 'Accept'}
+                      {acceptingTransfer ? 'Đang xử lý...' : 'Chấp nhận'}
                     </Button>
                     <Button
                       color="error"
@@ -952,7 +987,7 @@ function TicketDetail(): React.JSX.Element {
                       onClick={handleRejectTransfer}
                       disabled={acceptingTransfer || rejectingTransfer}
                     >
-                      {rejectingTransfer ? 'Rejecting...' : 'Reject'}
+                      {rejectingTransfer ? 'Đang xử lý...' : 'Từ chối'}
                     </Button>
                   </ButtonGroup>
                 )}
@@ -966,7 +1001,7 @@ function TicketDetail(): React.JSX.Element {
                     startIcon={<ArrowsClockwise />}
                     disabled={submitting}
                   >
-                    Transfer
+                    Chuyển ticket
                   </Button>
                 )}
 
@@ -979,7 +1014,7 @@ function TicketDetail(): React.JSX.Element {
                     startIcon={assigningTicket ? <CircularProgress size={20} /> : <UserCirclePlus />}
                     disabled={assigningTicket}
                   >
-                    {assigningTicket ? 'Assigning...' : 'Assign'}
+                    {assigningTicket ? 'Đang gán...' : 'Gán ticket'}
                   </Button>
                 )}
               </Box>
@@ -990,32 +1025,32 @@ function TicketDetail(): React.JSX.Element {
 
       {/* Transfer dialog */}
       <Dialog open={transferDialogOpen} onClose={handleCloseTransferDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Transfer Ticket</DialogTitle>
+        <DialogTitle>Chuyển ticket</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>Select a staff member to transfer this ticket to.</DialogContentText>
+          <DialogContentText sx={{ mb: 2 }}>Chọn vai trò và nhân viên để chuyển ticket này</DialogContentText>
 
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel id="role-select-label">Role</InputLabel>
+            <InputLabel id="role-select-label">Vai trò</InputLabel>
             <Select
               labelId="role-select-label"
               id="role-select"
               value={selectedRole}
-              label="Role"
+              label="Vai trò"
               onChange={handleRoleChange}
               disabled={loadingStaff || transferring}
             >
-              <MenuItem value="Consultant">Consultant</MenuItem>
-              <MenuItem value="Technician">Technician</MenuItem>
+              <MenuItem value="Consultant">Tư vấn viên</MenuItem>
+              <MenuItem value="Technician">Kỹ thuật viên</MenuItem>
             </Select>
           </FormControl>
 
           <FormControl fullWidth>
-            <InputLabel id="staff-select-label">Staff Member</InputLabel>
+            <InputLabel id="staff-select-label">Nhân viên</InputLabel>
             <Select
               labelId="staff-select-label"
               id="staff-select"
               value={selectedStaffId}
-              label="Staff Member"
+              label="Nhân viên"
               onChange={handleStaffChange}
               disabled={loadingStaff || transferring || staffList.length === 0}
             >
@@ -1023,7 +1058,7 @@ function TicketDetail(): React.JSX.Element {
                 <MenuItem value="">
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <CircularProgress size={20} sx={{ mr: 1 }} />
-                    Loading...
+                    Đang tải...
                   </Box>
                 </MenuItem>
               ) : staffList.length > 0 ? (
@@ -1033,14 +1068,14 @@ function TicketDetail(): React.JSX.Element {
                   </MenuItem>
                 ))
               ) : (
-                <MenuItem value="">No staff members found</MenuItem>
+                <MenuItem value="">Không tìm thấy nhân viên</MenuItem>
               )}
             </Select>
           </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseTransferDialog} disabled={transferring}>
-            Cancel
+            Hủy
           </Button>
           <Button
             onClick={handleSubmitTransfer}
@@ -1048,35 +1083,37 @@ function TicketDetail(): React.JSX.Element {
             disabled={transferring || !selectedStaffId || loadingStaff}
             startIcon={transferring ? <CircularProgress size={20} /> : null}
           >
-            {transferring ? 'Transferring...' : 'Transfer'}
+            {transferring ? 'Đang chuyển...' : 'Chuyển'}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Status Change dialog */}
       <Dialog open={statusDialogOpen} onClose={handleCloseStatusDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Change Ticket Status</DialogTitle>
+        <DialogTitle>Thay đổi trạng thái ticket</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>Select a new status for this ticket.</DialogContentText>
+          <DialogContentText sx={{ mb: 2 }}>Chọn trạng thái mới cho ticket này</DialogContentText>
 
           <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel id="status-select-label">Status</InputLabel>
+            <InputLabel id="status-select-label">Trạng thái</InputLabel>
             <Select
               labelId="status-select-label"
               id="status-select"
               value={selectedStatus}
-              label="Status"
+              label="Trạng thái"
               onChange={handleStatusChange}
               disabled={updatingStatus}
             >
-              <MenuItem value={TicketStatus.Done}>Done</MenuItem>
-              <MenuItem value={TicketStatus.Closed}>Closed</MenuItem>
+              <MenuItem value={TicketStatus.Pending}>Đang chờ</MenuItem>
+              <MenuItem value={TicketStatus.InProgress}>Đang xử lý</MenuItem>
+              <MenuItem value={TicketStatus.Done}>Hoàn thành</MenuItem>
+              <MenuItem value={TicketStatus.Closed}>Đã đóng</MenuItem>
             </Select>
           </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseStatusDialog} disabled={updatingStatus}>
-            Cancel
+            Hủy
           </Button>
           <Button
             onClick={handleChangeStatus}
@@ -1084,7 +1121,7 @@ function TicketDetail(): React.JSX.Element {
             disabled={updatingStatus || !selectedStatus}
             startIcon={updatingStatus ? <CircularProgress size={20} /> : null}
           >
-            {updatingStatus ? 'Updating...' : 'Update Status'}
+            {updatingStatus ? 'Đang cập nhật...' : 'Cập nhật'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -82,17 +82,17 @@ export default function PlantPage(): React.JSX.Element {
   };
 
   // Handle create submit
-  const handleCreateSubmit = async (name: string, status: 'Active' | 'Inactive', description?: string) => {
+  const handleCreateSubmit = async (name: string, status: 'Active' | 'Inactive') => {
     setCreateLoading(true);
     try {
-      await plantService.createPlant(name, status, description);
+      await plantService.createPlant(name, status);
       handleCreateModalClose();
-      
+
       // Reset to first page and clear filters to ensure new plant is visible
       setPage(0);
       setKeyword('');
       setStatus(null);
-      
+
       // Force a refresh of the table
       handleRefresh();
     } catch (error) {
