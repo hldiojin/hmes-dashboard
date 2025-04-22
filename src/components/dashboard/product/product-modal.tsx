@@ -45,6 +45,80 @@ interface ProductModalProps {
   mode: 'create' | 'update';
 }
 
+// Custom file input component with Vietnamese text
+const CustomFileInput = ({ 
+  label, 
+  error, 
+  helperText, 
+  onChange, 
+  multiple = false 
+}: { 
+  label: string; 
+  error?: boolean; 
+  helperText?: string;
+  onChange: (files: File | File[] | null) => void;
+  multiple?: boolean;
+}) => {
+  const [selectedFiles, setSelectedFiles] = React.useState<string>('Chưa chọn tệp');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    
+    if (!files || files.length === 0) {
+      setSelectedFiles('Chưa chọn tệp');
+      onChange(null);
+      return;
+    }
+    
+    if (multiple) {
+      setSelectedFiles(`Đã chọn ${files.length} tệp`);
+      onChange(Array.from(files));
+    } else {
+      setSelectedFiles(files[0].name);
+      onChange(files[0]);
+    }
+  };
+
+  return (
+    <Box>
+      <Typography variant="subtitle2" gutterBottom>
+        {label}
+      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Button 
+          variant="outlined" 
+          onClick={handleClick}
+          size="small"
+        >
+          Chọn tệp
+        </Button>
+        <Typography 
+          variant="body2" 
+          color={error ? 'error' : 'text.secondary'}
+        >
+          {selectedFiles}
+        </Typography>
+        <input
+          ref={fileInputRef}
+          type="file"
+          onChange={handleChange}
+          style={{ display: 'none' }}
+          multiple={multiple}
+          accept="image/*"
+        />
+      </Box>
+      {error && helperText && (
+        <FormHelperText error>{helperText}</FormHelperText>
+      )}
+    </Box>
+  );
+};
+
 export default function ProductModal({ open, onClose, onSubmit, product, mode }: ProductModalProps): React.JSX.Element {
   const [categories, setCategories] = React.useState<Category[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -285,7 +359,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
             {mode === 'update' && product?.mainImage && !mainImageRemoved && (
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
-                  Hình ảnh chính hiện tại:
+                  Ảnh chính hiện tại:
                 </Typography>
                 <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
                   <Box
@@ -325,22 +399,16 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
               </Box>
             )}
 
+            {/* Replace standard file input with custom component for mainImage */}
             <Controller
               name="mainImage"
               control={control}
               render={({ field: { onChange, value, ...field } }) => (
-                <TextField
-                  {...field}
-                  type="file"
-                  label={mode === 'update' ? 'Hình ảnh chính mới (tùy chọn)' : 'Hình ảnh chính'}
-                  fullWidth
+                <CustomFileInput
+                  label={mode === 'update' ? 'Những ảnh bổ sung hiện tại (tùy chọn)' : 'Hình ảnh chính'}
                   error={!!errors.mainImage}
                   helperText={errors.mainImage?.message as string}
-                  onChange={(e) => {
-                    const file = (e.target as HTMLInputElement).files?.[0];
-                    onChange(file || null);
-                  }}
-                  InputLabelProps={{ shrink: true }}
+                  onChange={(file) => onChange(file)}
                 />
               )}
             />
@@ -453,23 +521,17 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
               </Box>
             )}
 
+            {/* Replace standard file input with custom component for images */}
             <Controller
               name="images"
               control={control}
               render={({ field: { onChange, value, ...field } }) => (
-                <TextField
-                  {...field}
-                  type="file"
+                <CustomFileInput
                   label={mode === 'update' ? 'Hình ảnh bổ sung mới (tùy chọn)' : 'Hình ảnh bổ sung'}
-                  fullWidth
                   error={!!errors.images}
-                  helperText={errors.images?.message}
-                  onChange={(e) => {
-                    const files = (e.target as HTMLInputElement).files;
-                    onChange(files ? Array.from(files) : []);
-                  }}
-                  inputProps={{ multiple: true }}
-                  InputLabelProps={{ shrink: true }}
+                  helperText={errors.images?.message as string}
+                  onChange={(files) => onChange(files)}
+                  multiple={true}
                 />
               )}
             />
@@ -484,7 +546,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                 : 'Đang cập nhật...'
               : mode === 'create'
                 ? 'Thêm sản phẩm'
-                : 'Cập nhật sản phẩm'}
+                : 'Thay đổi sản phẩm'}
           </Button>
         </DialogActions>
       </form>

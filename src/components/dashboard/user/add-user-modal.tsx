@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { CreateUserRequest, userService } from '@/services/userService';
 import {
   Box,
   Button,
@@ -19,8 +20,6 @@ import {
   Typography,
 } from '@mui/material';
 import { X } from '@phosphor-icons/react';
-
-import { userService, CreateUserRequest } from '@/services/userService';
 
 interface AddUserModalProps {
   open: boolean;
@@ -108,16 +107,15 @@ export function AddUserModal({ open, onClose, onSuccess }: AddUserModalProps): R
       };
 
       console.log('Submitting user data:', userData);
-      
+
       const response = await userService.createUser(userData);
       console.log('Create user response:', response);
 
       // Đóng modal sau khi tạo thành công
       handleClose();
-      
+
       // Gọi callback để refresh danh sách người dùng
       onSuccess();
-      
     } catch (error: any) {
       console.error('Error creating user:', error);
 
@@ -197,10 +195,8 @@ export function AddUserModal({ open, onClose, onSuccess }: AddUserModalProps): R
               onChange={(e) => setRole(e.target.value)}
               disabled={loading}
             >
-              <MenuItem value="Admin">Admin</MenuItem>
               <MenuItem value="Consultant">Consultant</MenuItem>
               <MenuItem value="Technician">Technician</MenuItem>
-              <MenuItem value="Customer">Customer</MenuItem>
             </Select>
             {errors.role && <FormHelperText>{errors.role}</FormHelperText>}
           </FormControl>
@@ -221,4 +217,4 @@ export function AddUserModal({ open, onClose, onSuccess }: AddUserModalProps): R
       </DialogActions>
     </Dialog>
   );
-} 
+}

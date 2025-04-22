@@ -85,7 +85,7 @@ function TargetValueTable({
   const fetchTargetValues = React.useCallback(async () => {
     setLoading(true);
     
-    console.log('Fetching target values with:', {
+    console.log('Đang tải dữ liệu giá trị mục tiêu với:', {
       type, minValue, maxValue, currentPage, rowsPerPage
     });
     
@@ -99,18 +99,18 @@ function TargetValueTable({
       );
       
       if (response.response && Array.isArray(response.response.data)) {
-        console.log('Received target values:', response.response.data);
+        console.log('Đã tải giá trị mục tiêu thành công:', response.response.data);
         setTargetValues(response.response.data);
         setTotalCount(response.response.totalItems);
         setCurrentPage(response.response.currentPage);
         setTotalPages(response.response.totalPages);
       } else {
-        console.error('Invalid response format:', response);
+        console.error('Không đúng định dạng phản hồi:', response);
         setTargetValues([]);
         setTotalCount(0);
       }
     } catch (error) {
-      console.error('Failed to fetch target values:', error);
+      console.error('Không thể tải giá trị mục tiêu:', error);
       setTargetValues([]);
       setTotalCount(0);
     } finally {
@@ -177,6 +177,7 @@ function TargetValueTable({
     setDeleteLoading(true);
     try {
       await targetValueService.deleteTargetValue(targetValueToDelete.id);
+      console.log('Đã xóa giá trị mục tiêu thành công');
 
       // Close dialog
       setDeleteDialogOpen(false);
@@ -197,7 +198,7 @@ function TargetValueTable({
       }
       
     } catch (error: any) {
-      console.error('Error deleting target value:', error);
+      console.error('Lỗi khi xóa giá trị mục tiêu:', error);
 
       // Extract error message from response if available
       let errorMessage = 'Không thể xóa giá trị mục tiêu';

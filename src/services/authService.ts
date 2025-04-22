@@ -15,16 +15,20 @@ export const authService = {
         if (userData.auth && userData.auth.token) {
           localStorage.setItem('token', userData.auth.token);
           localStorage.setItem('user', JSON.stringify(userData));
+          
+          // Log success message in Vietnamese
+          console.log(`Đăng nhập thành công. Xin chào ${userData.fullName || 'admin'}`);
         }
 
         return { data: userData };
       } else {
         // Handle unsuccessful login or unexpected response format
-        console.error('Unexpected login response format:', response.data);
-        return { error: 'Invalid response from server' };
+        console.error('Không thể đăng nhập: Phản hồi không hợp lệ từ máy chủ', response.data);
+        return { error: 'Phản hồi không hợp lệ từ máy chủ' };
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to sign in. Please try again.';
+      const errorMessage = error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.';
+      console.error('Lỗi đăng nhập:', errorMessage);
       return { error: errorMessage };
     }
   },

@@ -23,8 +23,12 @@ import { TargetValue, ValueType } from '@/types/targetValue';
 import TargetValueDetails from '@/components/dashboard/target-value/target-value-details';
 import TargetValueModal from '@/components/dashboard/target-value/target-value-modal';
 import TargetValueTable from '@/components/dashboard/target-value/target-value-table';
+import usePageTitle from '@/lib/hooks/usePageTitle';
 
 export default function TargetValuePage(): React.JSX.Element {
+  // Set page title
+  usePageTitle('Giá trị mục tiêu');
+  
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
   const [type, setType] = React.useState<ValueType | null>(null);
   const [minValue, setMinValue] = React.useState<string>('');
@@ -53,20 +57,21 @@ export default function TargetValuePage(): React.JSX.Element {
 
   // Handle refresh
   const handleRefresh = () => {
-    console.log('Refreshing target values with trigger increment');
+    console.log('Đang làm mới danh sách giá trị mục tiêu');
     setRefreshTrigger((prev) => prev + 1);
   };
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Performing search with:', { type, minValue, maxValue });
+    console.log('Tìm kiếm với điều kiện:', { type, minValue, maxValue });
     setPage(0); // Quay về trang đầu khi tìm kiếm
     handleRefresh();
   };
 
   // Reset all filters
   const resetFilters = () => {
+    console.log('Đặt lại tất cả bộ lọc');
     setType(null);
     setMinValue('');
     setMaxValue('');
@@ -77,6 +82,7 @@ export default function TargetValuePage(): React.JSX.Element {
   // Handle type filter change
   const handleTypeFilterChange = (event: SelectChangeEvent<string>) => {
     const newType = event.target.value === '' ? null : (event.target.value as ValueType);
+    console.log('Đã thay đổi bộ lọc loại thành:', newType);
     setType(newType);
     setPage(0);
     // Không gọi handleRefresh() ở đây để tránh tìm kiếm tự động khi thay đổi dropdown
@@ -94,27 +100,32 @@ export default function TargetValuePage(): React.JSX.Element {
 
   // Handle page change
   const handlePageChange = (newPage: number) => {
+    console.log('Đã chuyển đến trang:', newPage);
     setPage(newPage);
   };
 
   // Handle rows per page change
   const handleRowsPerPageChange = (newRowsPerPage: number) => {
+    console.log('Đã thay đổi số hàng mỗi trang thành:', newRowsPerPage);
     setRowsPerPage(newRowsPerPage);
     setPage(0);
   };
 
   // Handle create modal open
   const handleCreateModalOpen = () => {
+    console.log('Mở modal tạo giá trị mục tiêu mới');
     setCreateModalOpen(true);
   };
 
   // Handle create modal close
   const handleCreateModalClose = () => {
+    console.log('Đóng modal tạo giá trị mục tiêu');
     setCreateModalOpen(false);
   };
 
   // Handle successful creation
   const handleCreateSuccess = () => {
+    console.log('Tạo giá trị mục tiêu thành công');
     // Hiển thị thông báo thành công
     setSnackbar({
       open: true,
@@ -129,18 +140,20 @@ export default function TargetValuePage(): React.JSX.Element {
     resetFilters();
     
     // Làm mới dữ liệu
-    console.log('Forcing refresh after target value creation');
+    console.log('Yêu cầu làm mới dữ liệu sau khi tạo giá trị mục tiêu');
     handleRefresh();
   };
 
   // Handle row click to open details
   const handleRowClick = (targetValueId: string) => {
+    console.log('Mở chi tiết giá trị mục tiêu:', targetValueId);
     setSelectedTargetValueId(targetValueId);
     setDetailsModalOpen(true);
   };
 
   // Handle details modal close
   const handleDetailsModalClose = () => {
+    console.log('Đóng modal chi tiết giá trị mục tiêu');
     setDetailsModalOpen(false);
     setSelectedTargetValueId(null);
   };

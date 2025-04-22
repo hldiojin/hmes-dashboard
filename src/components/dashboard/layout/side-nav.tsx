@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import RouterLink from 'next/link';
-import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
@@ -15,6 +15,7 @@ import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
 import { Logo } from '@/components/core/logo';
+import { useHistoryReplace } from '@/lib/hooks/useHistoryReplace';
 
 import { navItems } from './config';
 import { navIcons } from './nav-icons';
@@ -51,7 +52,7 @@ export function SideNav(): React.JSX.Element {
       }}
     >
       <Stack spacing={2} sx={{ p: 3 }}>
-        Hydroponic System
+        Hmes-Dashboard
         <Box
           sx={{
             alignItems: 'center',
@@ -68,7 +69,7 @@ export function SideNav(): React.JSX.Element {
               Workspace
             </Typography>
             <Typography color="inherit" variant="subtitle1">
-              Hydroponic System
+              Hmes-Dashboard
             </Typography>
           </Box>
           <CaretUpDownIcon />
@@ -105,16 +106,27 @@ interface NavItemProps extends Omit<NavItemConfig, 'items'> {
 function NavItem({ disabled, external, href, icon, matcher, pathname, title }: NavItemProps): React.JSX.Element {
   const active = isNavItemActive({ disabled, external, href, matcher, pathname });
   const Icon = icon ? navIcons[icon] : null;
+  const navigateSilently = useHistoryReplace();
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (disabled) return;
+    if (external) return;
+    if (!href) return;
+    
+    e.preventDefault();
+    navigateSilently(href);
+  };
 
   return (
     <li>
       <Box
         {...(href
           ? {
-              component: external ? 'a' : RouterLink,
-              href,
+              component: external ? 'a' : 'div',
+              href: external ? href : undefined,
               target: external ? '_blank' : undefined,
               rel: external ? 'noreferrer' : undefined,
+              onClick: handleClick
             }
           : { role: 'button' })}
         sx={{

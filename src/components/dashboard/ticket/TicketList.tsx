@@ -73,7 +73,7 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error',
+    severity: 'success' as 'success' | 'error' | 'info' | 'warning',
   });
 
   // Check if we're showing transfer requests to hide filters
@@ -114,7 +114,7 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
   const fetchTickets = async (pageIndex: number = pagination.current, pageSize: number = pagination.pageSize) => {
     setLoading(true);
     try {
-      console.log('Fetching tickets with params:', {
+      console.log('Đang tải danh sách ticket với thông số:', {
         endpoint,
         keyword,
         type: typeFilter,
@@ -124,7 +124,7 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
       });
 
       const response = await getTickets(endpoint, keyword, typeFilter, statusFilter, pageIndex, pageSize);
-      console.log('Tickets API response:', response);
+      console.log('Đã tải danh sách ticket thành công:', response);
 
       // Access the correct response structure
       if (response?.statusCodes === 200 && response?.response?.data) {
@@ -134,22 +134,46 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
           pageSize: response.response.pageSize || 10,
           total: response.response.total || response.response.data.length || 0,
         });
+        
+        // Show success message for transfer ticket if applicable
+        if (endpoint === 'ticket/transfer' && response.response.data.length > 0) {
+          setSnackbar({
+            open: true,
+            message: 'Đã tải yêu cầu chuyển ticket thành công',
+            severity: 'success',
+          });
+        }
       } else {
-        console.error('Unexpected response structure:', response);
+        console.error('Cấu trúc phản hồi không đúng định dạng:', response);
         setTickets([]);
         setPagination({
           current: 1,
           pageSize: 10,
           total: 0,
         });
+        
+        if (endpoint === 'ticket/transfer') {
+          setSnackbar({
+            open: true,
+            message: 'Không tìm thấy yêu cầu chuyển ticket nào',
+            severity: 'info',
+          });
+        }
       }
     } catch (error) {
-      console.error('Error fetching tickets:', error);
+      console.error('Lỗi khi tải danh sách ticket:', error);
       setTickets([]);
       setPagination({
         current: 1,
         pageSize: 10,
         total: 0,
+      });
+      
+      // Show error message
+      setSnackbar({
+        open: true,
+        message: 'Đã xảy ra lỗi khi tải danh sách ticket',
+        severity: 'error',
       });
     } finally {
       setLoading(false);
@@ -174,6 +198,7 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
   }, [endpoint]);
 
   const handleSearch = () => {
+    console.log('Tìm kiếm ticket với từ khóa:', keyword);
     fetchTickets(1, pagination.pageSize);
   };
 
@@ -182,14 +207,17 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
   };
 
   const handleTypeChange = (e: SelectChangeEvent) => {
+    console.log('Đã chọn loại ticket:', e.target.value);
     setTypeFilter(e.target.value);
   };
 
   const handleStatusChange = (e: SelectChangeEvent) => {
+    console.log('Đã chọn trạng thái ticket:', e.target.value);
     setStatusFilter(e.target.value);
   };
 
   const handlePaginationChange = (_event: React.MouseEvent<HTMLButtonElement> | null, page: number) => {
+    console.log('Chuyển đến trang:', page);
     fetchTickets(page, pagination.pageSize);
   };
 

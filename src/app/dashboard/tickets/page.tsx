@@ -10,8 +10,12 @@ import { ClipboardText as AssignedIcon } from '@phosphor-icons/react/dist/ssr';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 
 import TicketList from '@/components/dashboard/ticket/TicketList';
+import usePageTitle from '@/lib/hooks/usePageTitle';
 
 function Tickets(): React.JSX.Element {
+  // Set page title
+  usePageTitle('Ticket');
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
@@ -21,7 +25,7 @@ function Tickets(): React.JSX.Element {
   const [snackbar, setSnackbar] = React.useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error',
+    severity: 'success' as 'success' | 'error' | 'info' | 'warning',
   });
 
   // Update activeTab from URL query parameter
@@ -29,6 +33,7 @@ function Tickets(): React.JSX.Element {
     if (tabParam) {
       const tabIndex = parseInt(tabParam, 10);
       if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 2) {
+        console.log('Đã chuyển đến tab:', tabIndex);
         setActiveTab(tabIndex);
       }
     }
@@ -38,6 +43,7 @@ function Tickets(): React.JSX.Element {
   React.useEffect(() => {
     if (shouldRefresh) {
       // Trigger a refresh by incrementing the trigger
+      console.log('Yêu cầu làm mới danh sách ticket');
       setRefreshTrigger((prev) => prev + 1);
 
       // Remove the refresh parameter from the URL without navigation
@@ -47,6 +53,7 @@ function Tickets(): React.JSX.Element {
   }, [shouldRefresh, tabParam]);
 
   const handleRefresh = () => {
+    console.log('Làm mới danh sách ticket');
     setRefreshTrigger((prev) => prev + 1);
   };
 
@@ -59,6 +66,7 @@ function Tickets(): React.JSX.Element {
     const newUrl = `/dashboard/tickets?tab=${newValue}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
+    console.log('Đã chuyển đến tab:', newValue);
     // Update active tab state
     setActiveTab(newValue);
 

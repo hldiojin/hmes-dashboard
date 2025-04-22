@@ -473,7 +473,7 @@ export default function OrderTable({
                         onClick={() => handleViewOrderDetails(order.id)}
                         startIcon={<EyeIcon />}
                       >
-                        Xem
+                        Xem thêm
                       </Button>
                     </TableCell>
                   </TableRow>

@@ -8,8 +8,12 @@ import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 
 import { UserTable } from '@/components/dashboard/user/user-table';
 import { AddUserModal } from '@/components/dashboard/user/add-user-modal';
+import usePageTitle from '@/lib/hooks/usePageTitle';
 
 export default function Page(): React.JSX.Element {
+  // Đặt tiêu đề trang là Hmes-dashboard
+  usePageTitle('Người dùng');
+  
   const [isAddUserModalOpen, setIsAddUserModalOpen] = React.useState(false);
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
 

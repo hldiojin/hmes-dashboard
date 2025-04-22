@@ -82,8 +82,9 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
     try {
       const response = await targetValueService.getTargetValueDetails(targetValueId);
       setTargetDetails(response.response.data);
+      console.log('Đã tải thành công chi tiết giá trị mục tiêu:', response.response.data);
     } catch (error) {
-      console.error('Failed to fetch target value details:', error);
+      console.error('Không thể tải chi tiết giá trị mục tiêu:', error);
       setError('Không thể tải chi tiết giá trị mục tiêu. Vui lòng thử lại.');
     } finally {
       setLoading(false);
@@ -124,6 +125,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
     setAssigningPlant(true);
     try {
       await targetValueService.setValueForPlant(selectedPlantId, targetValueId);
+      console.log('Đã gán cây trồng vào giá trị mục tiêu thành công');
 
       // Close the dialog and refresh the details
       handleCloseAddPlantDialog();
@@ -136,7 +138,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
         severity: 'success',
       });
     } catch (error: any) {
-      console.error('Failed to assign plant to target value:', error);
+      console.error('Không thể gán cây trồng vào giá trị mục tiêu:', error);
 
       // Extract error message from response if available
       let errorMessage = 'Không thể gán cây trồng vào giá trị mục tiêu';
@@ -211,6 +213,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
     setRemovingPlant(true);
     try {
       await targetValueService.removeValueFromPlant(plantToRemove.id, targetValueId);
+      console.log('Đã xóa giá trị mục tiêu khỏi cây trồng thành công');
 
       // Close dialog and refresh details
       setRemoveDialogOpen(false);
@@ -224,7 +227,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
         severity: 'success',
       });
     } catch (error: any) {
-      console.error('Failed to remove target value from plant:', error);
+      console.error('Không thể xóa giá trị mục tiêu khỏi cây trồng:', error);
 
       // Extract error message if available
       let errorMessage = 'Không thể xóa giá trị mục tiêu khỏi cây trồng';

@@ -14,8 +14,12 @@ import {
   PaginatedOrders,
 } from '../../../services/orderService';
 import { Order } from '../../../types/order';
+import usePageTitle from '@/lib/hooks/usePageTitle';
 
 export default function OrdersPage() {
+  // Đặt tiêu đề trang là Hmes-dashboard
+  usePageTitle('Đơn hàng');
+  
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);

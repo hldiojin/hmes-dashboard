@@ -39,6 +39,7 @@ export function SignInForm(): React.JSX.Element {
   const [showPassword, setShowPassword] = React.useState<boolean>();
 
   const [isPending, setIsPending] = React.useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = React.useState<string>('');
 
   const {
     control,
@@ -50,58 +51,62 @@ export function SignInForm(): React.JSX.Element {
   const onSubmit = React.useCallback(
     async (values: Values): Promise<void> => {
       setIsPending(true);
+      setSuccessMessage('');
 
       try {
-        console.log('Attempting login with:', values.email);
+        console.log('Đang đăng nhập với tài khoản:', values.email);
         const { data, error } = await authService.login(values);
 
         if (error) {
-          console.error('Login error:', error);
+          console.error('Lỗi đăng nhập:', error);
           setError('root', { type: 'server', message: error });
           setIsPending(false);
           return;
         }
 
-        console.log('Login successful, user data:', data);
+        console.log('Đăng nhập thành công, dữ liệu người dùng:', data);
+        
+        // Show success message
+        setSuccessMessage(`Đăng nhập thành công. Xin chào ${data?.fullName || 'admin'}`);
 
         // Make sure to wait for the session check to complete BEFORE navigation
         if (checkSession) {
-          console.log('Checking session before navigation');
+          console.log('Đang kiểm tra phiên làm việc trước khi chuyển hướng');
           await checkSession();
-          console.log('Session check completed');
+          console.log('Kiểm tra phiên làm việc hoàn tất');
         } else {
-          console.warn('checkSession function is not available');
+          console.warn('Hàm kiểm tra phiên làm việc không khả dụng');
         }
 
         // Wait a moment to ensure user context is updated
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         console.log(
-          'User status after login:',
+          'Trạng thái người dùng sau khi đăng nhập:',
           authService.getCurrentUser(),
-          'Is authenticated:',
+          'Đã xác thực:',
           authService.isAuthenticated()
         );
 
         // Only navigate if we're properly authenticated
         if (authService.isAuthenticated()) {
-          console.log('Authentication confirmed, redirecting to dashboard');
+          console.log('Xác thực thành công, đang chuyển hướng đến trang chủ');
 
           // Use replace instead of push to avoid history issues
           router.replace(paths.dashboard.overview);
         } else {
-          console.error('Authentication failed despite successful login response');
+          console.error('Xác thực thất bại mặc dù phản hồi đăng nhập thành công');
           setError('root', {
             type: 'server',
-            message: 'Authentication failed. Please try again.',
+            message: 'Xác thực thất bại. Vui lòng thử lại.',
           });
           setIsPending(false);
         }
       } catch (err) {
-        console.error('Unexpected error during login:', err);
+        console.error('Lỗi không mong đợi trong quá trình đăng nhập:', err);
         setError('root', {
           type: 'server',
-          message: 'An unexpected error occurred. Please try again.',
+          message: 'Đã xảy ra lỗi không mong đợi. Vui lòng thử lại.',
         });
         setIsPending(false);
       }
@@ -112,7 +117,7 @@ export function SignInForm(): React.JSX.Element {
   return (
     <Stack spacing={4}>
       <Stack spacing={1}>
-        <Typography variant="h4">Sign in</Typography>
+        <Typography variant="h4">Hmes-Dashboard</Typography>
       </Stack>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={2}>
@@ -121,7 +126,7 @@ export function SignInForm(): React.JSX.Element {
             name="email"
             render={({ field }) => (
               <FormControl error={Boolean(errors.email)}>
-                <InputLabel>Email address</InputLabel>
+                <InputLabel>Tài khoản đăng nhập</InputLabel>
                 <OutlinedInput {...field} label="Email address" type="email" />
                 {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
               </FormControl>
@@ -132,7 +137,7 @@ export function SignInForm(): React.JSX.Element {
             name="password"
             render={({ field }) => (
               <FormControl error={Boolean(errors.password)}>
-                <InputLabel>Password</InputLabel>
+                <InputLabel>Mật khẩu</InputLabel>
                 <OutlinedInput
                   {...field}
                   endAdornment={
@@ -163,12 +168,13 @@ export function SignInForm(): React.JSX.Element {
           />
           <div>
             <Link component={RouterLink} href={paths.auth.resetPassword} variant="subtitle2">
-              Forgot password?
+              Quên mật khẩu
             </Link>
           </div>
           {errors.root ? <Alert color="error">{errors.root.message}</Alert> : null}
+          {successMessage ? <Alert color="success">{successMessage}</Alert> : null}
           <Button disabled={isPending} type="submit" variant="contained">
-            Sign in
+            Đăng nhập
           </Button>
         </Stack>
       </form>

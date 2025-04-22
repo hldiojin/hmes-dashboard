@@ -1,5 +1,4 @@
 import axiosInstance from '@/api/axiosInstance';
-
 export interface User {
   id: string;
   name: string;
@@ -54,25 +53,14 @@ export const userService = {
   async createUser(userData: CreateUserRequest): Promise<ApiResponse<any>> {
     try {
       console.log('Creating user with data:', userData);
-      
-      // Tạo payload với cấu trúc khác, bọc trong object data
-      const payload = {
-        data: {
-          name: userData.name,
-          email: userData.email,
-          phone: userData.phone,
-          role: userData.role
-        }
-      };
-      
-      console.log('Modified payload:', payload);
-      
-      const response = await axiosInstance.post('/admin/mod', payload, {
+
+      // Send the userData directly without wrapping in a data object
+      const response = await axiosInstance.post('/admin/mod', userData, {
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
-      
+
       console.log('Create user response:', response);
       return response.data;
     } catch (error: any) {
