@@ -413,30 +413,38 @@ function TicketDetail(): React.JSX.Element {
 
     setAssigningTicket(true);
     try {
+      console.log('Attempting to assign ticket with ID:', ticketId);
       const response = await assignTicket(ticketId);
       console.log('Ticket assignment response:', response);
 
       if (response && response.statusCodes === 200) {
+        // Store the current user's ID as handledBy in localStorage
+        // This helps ensure consistency when the page refreshes
+        if (typeof window !== 'undefined' && response.response?.data?.handledBy) {
+          localStorage.setItem(`ticket_${ticketId}_handledBy`, response.response.data.handledBy);
+        }
+
         setSnackbar({
           open: true,
           message: 'Ticket assigned successfully',
           severity: 'success',
         });
 
-        // Navigate back to the appropriate tab with refresh parameter
-        setTimeout(() => {
-          router.push(`/dashboard/tickets?tab=${tabParam || '0'}&refresh=true`);
-        }, 1000);
+        // Update ticket data locally to reflect the change
+        if (response.response?.data) {
+          setTicket(response.response.data);
+        }
       } else {
         throw new Error('Failed to assign ticket');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error assigning ticket:', err);
       setSnackbar({
         open: true,
         message: 'Failed to assign ticket. Please try again.',
         severity: 'error',
       });
+    } finally {
       setAssigningTicket(false);
     }
   };

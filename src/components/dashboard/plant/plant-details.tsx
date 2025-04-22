@@ -227,11 +227,11 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
   const getTargetTypeDisplayName = (type: string): string => {
     switch (type) {
       case 'Temperature':
-        return 'Temperature';
+        return 'Nhiệt độ';
       case 'SoluteConcentration':
-        return 'Concentration of Solutes';
+        return 'Nồng độ dung dịch';
       case 'WaterLevel':
-        return 'Water Level';
+        return 'Mực nước';
       case 'Ph':
         return 'pH';
       default:
@@ -271,7 +271,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">Plant Details</Typography>
+          <Typography variant="h6">Chi tiết cây trồng</Typography>
           <IconButton onClick={onClose} size="small">
             <X size={20} />
           </IconButton>
@@ -286,7 +286,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
           <Box p={3}>
             <Typography color="error">{error}</Typography>
             <Button variant="contained" onClick={handleRetry} sx={{ mt: 2 }}>
-              Retry
+              Thử lại
             </Button>
           </Box>
         ) : plantDetails ? (
@@ -296,7 +296,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
                 <Stack direction="row" spacing={2} alignItems="center">
                   <Typography variant="h5">{plantDetails.name}</Typography>
                   <Chip
-                    label={plantDetails.status}
+                    label={plantDetails.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
                     color={plantDetails.status === 'Active' ? 'success' : 'error'}
                     size="small"
                   />
@@ -307,16 +307,16 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="subtitle1" gutterBottom>
-                  Target Values
+                  Giá trị mục tiêu
                 </Typography>
                 <TableContainer>
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Type</TableCell>
-                        <TableCell>Min Value</TableCell>
-                        <TableCell>Max Value</TableCell>
-                        <TableCell align="right">Actions</TableCell>
+                        <TableCell>Loại</TableCell>
+                        <TableCell>Giá trị tối thiểu</TableCell>
+                        <TableCell>Giá trị tối đa</TableCell>
+                        <TableCell align="right">Thao tác</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -331,7 +331,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
                           </TableCell>
                           <TableCell align="right">
                             <Button variant="outlined" size="small" onClick={() => handleChangeMode(target)}>
-                              Change Target
+                              Thay đổi mục tiêu
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -344,7 +344,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
                           <TableRow key={type} sx={{ backgroundColor: 'rgba(255, 235, 235, 0.3)' }}>
                             <TableCell>
                               <Stack direction="row" spacing={1} alignItems="center">
-                                <Tooltip title="Target value not set">
+                                <Tooltip title="Chưa thiết lập giá trị mục tiêu">
                                   <Warning size={20} color="#f44336" />
                                 </Tooltip>
                                 {getTargetTypeDisplayName(type)}
@@ -360,7 +360,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
                                 startIcon={<Plus size={18} />}
                                 onClick={() => handleAddTargetValue(type)}
                               >
-                                Add
+                                Thêm
                               </Button>
                             </TableCell>
                           </TableRow>
@@ -388,10 +388,10 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
             >
               <DialogTitle>
                 {editMode === 'values'
-                  ? 'Edit Target Values'
+                  ? 'Chỉnh sửa giá trị mục tiêu'
                   : editingTarget?.id
-                    ? 'Change Target Value'
-                    : 'Add Target Value'}
+                    ? 'Thay đổi giá trị mục tiêu'
+                    : 'Thêm giá trị mục tiêu'}
               </DialogTitle>
               <DialogContent>
                 {editingTarget && editMode === 'values' && (
@@ -402,7 +402,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
                     <Grid container spacing={2}>
                       <Grid item xs={6}>
                         <TextField
-                          label="Min Value"
+                          label="Giá trị tối thiểu"
                           type="number"
                           value={minValue}
                           onChange={(e) => setMinValue(Number(e.target.value))}
@@ -414,7 +414,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
                       </Grid>
                       <Grid item xs={6}>
                         <TextField
-                          label="Max Value"
+                          label="Giá trị tối đa"
                           type="number"
                           value={maxValue}
                           onChange={(e) => setMaxValue(Number(e.target.value))}
@@ -439,11 +439,11 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
                       </Box>
                     ) : (
                       <FormControl fullWidth sx={{ mt: 2 }}>
-                        <InputLabel>Select Target Value</InputLabel>
+                        <InputLabel>Chọn giá trị mục tiêu</InputLabel>
                         <Select
                           value={selectedTargetId}
                           onChange={(e) => setSelectedTargetId(e.target.value)}
-                          label="Select Target Value"
+                          label="Chọn giá trị mục tiêu"
                         >
                           {availableTargetValues.map((targetValue) => (
                             <MenuItem key={targetValue.id} value={targetValue.id}>
@@ -459,11 +459,11 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
               </DialogContent>
               <DialogActions>
                 <Button onClick={handleCancelEdit} disabled={updateLoading}>
-                  Cancel
+                  Hủy
                 </Button>
                 {editMode === 'values' ? (
                   <Button onClick={handleUpdateTarget} variant="contained" disabled={updateLoading}>
-                    {updateLoading ? 'Updating...' : 'Update'}
+                    {updateLoading ? 'Đang cập nhật...' : 'Cập nhật'}
                   </Button>
                 ) : (
                   <Button
@@ -471,7 +471,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
                     variant="contained"
                     disabled={updateLoading || !selectedTargetId}
                   >
-                    {updateLoading ? 'Processing...' : editingTarget?.id ? 'Change' : 'Add'}
+                    {updateLoading ? 'Đang xử lý...' : editingTarget?.id ? 'Thay đổi' : 'Thêm'}
                   </Button>
                 )}
               </DialogActions>
@@ -480,7 +480,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
         ) : null}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>Đóng</Button>
       </DialogActions>
     </Dialog>
   );

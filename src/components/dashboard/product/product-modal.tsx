@@ -25,12 +25,12 @@ import { Category } from '@/types/category';
 import { Product } from '@/types/product';
 
 const productSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  categoryId: z.string().min(1, 'Category is required'),
-  description: z.string().min(1, 'Description is required'),
+  name: z.string().min(1, 'Tên sản phẩm không được để trống'),
+  categoryId: z.string().min(1, 'Loại sản phẩm không được để trống'),
+  description: z.string().min(1, 'Mô tả không được để trống'),
   mainImage: z.any().optional(),
-  amount: z.string().min(1, 'Amount is required'),
-  price: z.string().min(1, 'Price is required'),
+  amount: z.string().min(1, 'Số lượng không được để trống'),
+  price: z.string().min(1, 'Giá không được để trống'),
   status: z.enum(['Active', 'Inactive']),
   images: z.array(z.any()).optional(),
 });
@@ -220,7 +220,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>{mode === 'create' ? 'Add New Product' : 'Update Product'}</DialogTitle>
+      <DialogTitle>{mode === 'create' ? 'Thêm sản phẩm mới' : 'Cập nhật sản phẩm'}</DialogTitle>
       <form ref={formRef} onSubmit={handleSubmit(handleFormSubmit)}>
         <DialogContent>
           <Stack spacing={3}>
@@ -232,7 +232,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                 return (
                   <TextField
                     {...field}
-                    label="Name"
+                    label="Tên"
                     fullWidth
                     error={!!errors.name}
                     helperText={errors.name?.message}
@@ -248,8 +248,8 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                 console.log('Rendering categoryId field with value:', field.value);
                 return (
                   <FormControl fullWidth error={!!errors.categoryId}>
-                    <InputLabel>Category</InputLabel>
-                    <Select {...field} label="Category">
+                    <InputLabel>Loại sản phẩm</InputLabel>
+                    <Select {...field} label="Loại sản phẩm">
                       {categories.map((category) => (
                         <MenuItem key={category.id} value={category.id}>
                           {category.name}
@@ -270,7 +270,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                 return (
                   <TextField
                     {...field}
-                    label="Description"
+                    label="Mô tả"
                     multiline
                     rows={4}
                     fullWidth
@@ -285,13 +285,13 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
             {mode === 'update' && product?.mainImage && !mainImageRemoved && (
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
-                  Current Main Image:
+                  Hình ảnh chính hiện tại:
                 </Typography>
                 <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
                   <Box
                     component="img"
                     src={product.mainImage}
-                    alt="Current main image"
+                    alt="Hình ảnh chính hiện tại"
                     sx={{
                       width: 100,
                       height: 100,
@@ -332,7 +332,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                 <TextField
                   {...field}
                   type="file"
-                  label={mode === 'update' ? 'New Main Image (optional)' : 'Main Image'}
+                  label={mode === 'update' ? 'Hình ảnh chính mới (tùy chọn)' : 'Hình ảnh chính'}
                   fullWidth
                   error={!!errors.mainImage}
                   helperText={errors.mainImage?.message as string}
@@ -353,7 +353,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                 return (
                   <TextField
                     {...field}
-                    label="Amount"
+                    label="Số lượng"
                     type="number"
                     fullWidth
                     error={!!errors.amount}
@@ -371,7 +371,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                 return (
                   <TextField
                     {...field}
-                    label="Price"
+                    label="Giá"
                     type="number"
                     fullWidth
                     error={!!errors.price}
@@ -388,10 +388,10 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                 console.log('Rendering status field with value:', field.value);
                 return (
                   <FormControl fullWidth error={!!errors.status}>
-                    <InputLabel>Status</InputLabel>
-                    <Select {...field} label="Status">
-                      <MenuItem value="Active">Active</MenuItem>
-                      <MenuItem value="Inactive">Inactive</MenuItem>
+                    <InputLabel>Trạng thái</InputLabel>
+                    <Select {...field} label="Trạng thái">
+                      <MenuItem value="Active">Hoạt động</MenuItem>
+                      <MenuItem value="Inactive">Không hoạt động</MenuItem>
                     </Select>
                     <FormHelperText>{errors.status?.message}</FormHelperText>
                   </FormControl>
@@ -403,7 +403,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
             {mode === 'update' && oldImages.length > 0 && (
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
-                  Current Additional Images:
+                  Hình ảnh bổ sung hiện tại:
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
                   {oldImages.map((image, index) => (
@@ -417,7 +417,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                       <Box
                         component="img"
                         src={image}
-                        alt={`Product image ${index}`}
+                        alt={`Hình ảnh sản phẩm ${index}`}
                         sx={{
                           width: 80,
                           height: 80,
@@ -460,7 +460,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                 <TextField
                   {...field}
                   type="file"
-                  label={mode === 'update' ? 'New Additional Images (optional)' : 'Additional Images'}
+                  label={mode === 'update' ? 'Hình ảnh bổ sung mới (tùy chọn)' : 'Hình ảnh bổ sung'}
                   fullWidth
                   error={!!errors.images}
                   helperText={errors.images?.message}
@@ -476,15 +476,15 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>Hủy</Button>
           <Button type="submit" variant="contained" disabled={loading}>
             {loading
               ? mode === 'create'
-                ? 'Adding...'
-                : 'Updating...'
+                ? 'Đang thêm...'
+                : 'Đang cập nhật...'
               : mode === 'create'
-                ? 'Add Product'
-                : 'Update Product'}
+                ? 'Thêm sản phẩm'
+                : 'Cập nhật sản phẩm'}
           </Button>
         </DialogActions>
       </form>

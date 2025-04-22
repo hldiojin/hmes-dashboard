@@ -39,28 +39,28 @@ export function UserFilters({
               </InputAdornment>
             ),
           }}
-          placeholder="Search users..."
+          placeholder="Tìm kiếm người dùng..."
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
           sx={{ width: 300 }}
         />
         <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel>Status</InputLabel>
+          <InputLabel>Trạng thái</InputLabel>
           <Select
             value={statusValue}
-            label="Status"
+            label="Trạng thái"
             onChange={(e) => onStatusChange(e.target.value)}
             sx={{ height: 40 }}
           >
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="Active">Active</MenuItem>
-            <MenuItem value="Inactive">Inactive</MenuItem>
+            <MenuItem value="">Tất cả</MenuItem>
+            <MenuItem value="Active">Hoạt động</MenuItem>
+            <MenuItem value="Inactive">Không hoạt động</MenuItem>
           </Select>
         </FormControl>
         <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel>Role</InputLabel>
-          <Select value={roleValue} label="Role" onChange={(e) => onRoleChange(e.target.value)} sx={{ height: 40 }}>
-            <MenuItem value="">All</MenuItem>
+          <InputLabel>Vai trò</InputLabel>
+          <Select value={roleValue} label="Vai trò" onChange={(e) => onRoleChange(e.target.value)} sx={{ height: 40 }}>
+            <MenuItem value="">Tất cả</MenuItem>
             <MenuItem value="Admin">Admin</MenuItem>
             <MenuItem value="Consultant">Consultant</MenuItem>
             <MenuItem value="Technician">Technician</MenuItem>

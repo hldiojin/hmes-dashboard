@@ -77,19 +77,19 @@ export function UserPopover({ anchorEl, onClose, open }: UserPopoverProps): Reac
           <ListItemIcon>
             <GearSixIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Settings
+          Cài đặt
         </MenuItem>
         <MenuItem component={RouterLink} href={paths.dashboard.account} onClick={onClose}>
           <ListItemIcon>
             <UserIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Profile
+          Tài khoản
         </MenuItem>
         <MenuItem onClick={handleSignOut}>
           <ListItemIcon>
             <SignOutIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
-          Sign out
+          Đăng xuất
         </MenuItem>
       </MenuList>
     </Popover>

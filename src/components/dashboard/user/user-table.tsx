@@ -6,9 +6,6 @@ import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CircularProgress from '@mui/material/CircularProgress';
-import IconButton from '@mui/material/IconButton';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -17,18 +14,19 @@ import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
-import { DotsThree as DotsThreeIcon } from '@phosphor-icons/react/dist/ssr/DotsThree';
 
 import { UserFilters } from './user-filters';
 
-export function UserTable(): React.JSX.Element {
+interface UserTableProps {
+  refreshTrigger?: number;
+}
+
+export function UserTable({ refreshTrigger = 0 }: UserTableProps): React.JSX.Element {
   const [users, setUsers] = React.useState<User[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [totalItems, setTotalItems] = React.useState(0);
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
   const [searchValue, setSearchValue] = React.useState('');
   const [statusValue, setStatusValue] = React.useState('');
   const [roleValue, setRoleValue] = React.useState('');
@@ -58,7 +56,7 @@ export function UserTable(): React.JSX.Element {
     }, 500);
 
     return () => clearTimeout(debounceTimer);
-  }, [page, rowsPerPage, searchValue, statusValue, roleValue]);
+  }, [page, rowsPerPage, searchValue, statusValue, roleValue, refreshTrigger]);
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -67,26 +65,6 @@ export function UserTable(): React.JSX.Element {
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
-  };
-
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, userId: string) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedUserId(userId);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedUserId(null);
-  };
-
-  const handleEdit = () => {
-    // Handle edit action
-    handleMenuClose();
-  };
-
-  const handleDelete = () => {
-    // Handle delete action
-    handleMenuClose();
   };
 
   if (loading) {
@@ -113,12 +91,11 @@ export function UserTable(): React.JSX.Element {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>User</TableCell>
+              <TableCell>Người dùng</TableCell>
               <TableCell>Email</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell>Điện thoại</TableCell>
+              <TableCell>Vai trò</TableCell>
+              <TableCell>Trạng thái</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -135,13 +112,8 @@ export function UserTable(): React.JSX.Element {
                 <TableCell>{user.role}</TableCell>
                 <TableCell>
                   <Typography color={user.status === 'Active' ? 'success.main' : 'error.main'} variant="body2">
-                    {user.status}
+                    {user.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
                   </Typography>
-                </TableCell>
-                <TableCell align="right">
-                  <IconButton onClick={(e) => handleMenuClick(e, user.id)}>
-                    <DotsThreeIcon weight="bold" />
-                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
@@ -155,24 +127,9 @@ export function UserTable(): React.JSX.Element {
           page={page}
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={[5, 10, 25]}
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} / ${count !== -1 ? count : 'hơn ' + to}`}
         />
       </Card>
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-      >
-        <MenuItem onClick={handleEdit}>Edit</MenuItem>
-        <MenuItem onClick={handleDelete}>Delete</MenuItem>
-      </Menu>
     </Stack>
   );
 }

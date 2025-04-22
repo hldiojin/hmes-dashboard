@@ -84,7 +84,7 @@ function Tickets(): React.JSX.Element {
     <Stack spacing={3}>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Tickets</Typography>
+          <Typography variant="h4">Danh sách ticket</Typography>
         </Stack>
       </Stack>
 
@@ -96,9 +96,9 @@ function Tickets(): React.JSX.Element {
           indicatorColor="primary"
           textColor="primary"
         >
-          <Tab label="All Tickets" />
-          <Tab label="Assigned Tickets" />
-          <Tab label="Transfer Requests" />
+          <Tab label="Tất cả ticket" />
+          <Tab label="Ticket được giao" />
+          <Tab label="Yêu cầu chuyển" />
         </Tabs>
       </Box>
 

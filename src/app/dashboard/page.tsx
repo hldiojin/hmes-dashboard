@@ -26,16 +26,21 @@ export default function DashboardPage() {
           {/* Budget widget showing total revenue */}
           <Grid item xs={12} sm={6} lg={3}>
             <Budget
-              difference={12} // You might calculate this as percentage change
-              positive
+              diff={12}
+              trend="up" 
               sx={{ height: '100%' }}
-              value={data?.totalRevenue || 0}
+              value={data?.totalRevenue ? data.totalRevenue.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }) : '0đ'}
             />
           </Grid>
 
           {/* Total customers widget */}
           <Grid item xs={12} sm={6} lg={3}>
-            <TotalCustomers trend="up" sx={{ height: '100%' }} value={(data?.totalOrders || 0).toString()} />
+            <TotalCustomers 
+              trend="up" 
+              diff={5}
+              sx={{ height: '100%' }} 
+              value={(data?.totalOrders || 0).toString()} 
+            />
           </Grid>
 
           {/* Add other metric widgets as needed */}
@@ -46,7 +51,7 @@ export default function DashboardPage() {
               <Sales
                 chartSeries={[
                   {
-                    name: 'Revenue',
+                    name: 'Doanh thu',
                     data: data.revenueByDay.map((item) => item.revenue / 1000000), // Convert to millions for display
                   },
                 ]}

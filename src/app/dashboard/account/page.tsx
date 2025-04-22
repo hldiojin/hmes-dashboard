@@ -23,7 +23,7 @@ export default function Page(): React.JSX.Element {
         <Typography variant="h4">{user ? `${user.name}'s Account` : 'Account'}</Typography>
         {user && (
           <Typography variant="subtitle1" color="text.secondary">
-            Manage your account settings and profile
+            Kiểm soát tài khoản và thông tin cá nhân
           </Typography>
         )}
       </div>

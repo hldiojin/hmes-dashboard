@@ -1,4 +1,5 @@
 export interface Plant {
+  description: string;
   id: string;
   name: string;
   status: 'Active' | 'Inactive';

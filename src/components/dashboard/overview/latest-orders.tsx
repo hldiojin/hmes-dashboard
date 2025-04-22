@@ -64,7 +64,7 @@ export function LatestOrders({ orders = [], sx, onViewAll }: LatestOrdersProps):
 
   return (
     <Card sx={sx}>
-      <CardHeader title="Latest orders" titleTypographyProps={{ variant: 'h6' }} />
+      <CardHeader title="Đơn hàng gần đây" titleTypographyProps={{ variant: 'h6' }} />
       <Divider />
       <TableContainer>
         <Table>
@@ -79,11 +79,11 @@ export function LatestOrders({ orders = [], sx, onViewAll }: LatestOrdersProps):
                 },
               }}
             >
-              <TableCell>Order ID</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Customer</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Total</TableCell>
+              <TableCell>Mã đơn hàng</TableCell>
+              <TableCell>Ngày</TableCell>
+              <TableCell>Khách hàng</TableCell>
+              <TableCell>Trạng thái</TableCell>
+              <TableCell>Tổng tiền</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -91,7 +91,7 @@ export function LatestOrders({ orders = [], sx, onViewAll }: LatestOrdersProps):
               <TableRow>
                 <TableCell colSpan={5} align="center">
                   <Typography variant="body1" sx={{ py: 2 }}>
-                    No orders found
+                    Không tìm thấy đơn hàng
                   </Typography>
                 </TableCell>
               </TableRow>

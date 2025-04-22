@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { deleteTicket, getTickets } from '@/services/ticketService';
+import { getTickets } from '@/services/ticketService';
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
@@ -42,7 +42,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { PencilSimple, Trash } from '@phosphor-icons/react';
+import { PencilSimple } from '@phosphor-icons/react';
 
 import { Ticket, TicketResponse, TicketStatus, TicketType } from '@/types/ticket';
 
@@ -69,11 +69,6 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
   const [statusFilter, setStatusFilter] = useState<string>('');
   const router = useRouter();
 
-  // State for delete confirmation dialog
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
   // State for snackbar
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -83,6 +78,38 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
 
   // Check if we're showing transfer requests to hide filters
   const isTransferRequest = endpoint === 'ticket/transfer';
+
+  // Function to translate ticket type to Vietnamese
+  const translateType = (type: string): string => {
+    switch (type) {
+      case TicketType.Shopping:
+        return 'Mua sắm';
+      case TicketType.Technical:
+        return 'Kỹ thuật';
+      default:
+        return type;
+    }
+  };
+
+  // Function to translate ticket status to Vietnamese
+  const translateStatus = (status: string): string => {
+    switch (status) {
+      case TicketStatus.Pending:
+        return 'Đang chờ';
+      case TicketStatus.InProgress:
+        return 'Đang xử lý';
+      case TicketStatus.Done:
+        return 'Hoàn thành';
+      case TicketStatus.Closed:
+        return 'Đã đóng';
+      case TicketStatus.IsTransferring:
+        return 'Đang chuyển';
+      case TicketStatus.TransferRejected:
+        return 'Từ chối chuyển';
+      default:
+        return status;
+    }
+  };
 
   const fetchTickets = async (pageIndex: number = pagination.current, pageSize: number = pagination.pageSize) => {
     setLoading(true);
@@ -166,57 +193,6 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
     fetchTickets(page, pagination.pageSize);
   };
 
-  // Handle delete button click
-  const handleDeleteClick = (ticket: Ticket) => {
-    setTicketToDelete(ticket);
-    setDeleteDialogOpen(true);
-  };
-
-  // Handle confirmation dialog close
-  const handleCloseDeleteDialog = () => {
-    setDeleteDialogOpen(false);
-    setTicketToDelete(null);
-  };
-
-  // Handle delete confirmation
-  const handleConfirmDelete = async () => {
-    if (!ticketToDelete) return;
-
-    setDeleteLoading(true);
-    try {
-      await deleteTicket(ticketToDelete.id);
-
-      // Close dialog
-      setDeleteDialogOpen(false);
-      setTicketToDelete(null);
-
-      // Show success message
-      setSnackbar({
-        open: true,
-        message: `Ticket deleted successfully`,
-        severity: 'success',
-      });
-
-      // Trigger refresh either through callback or internal refresh
-      if (onRefreshNeeded) {
-        onRefreshNeeded();
-      } else {
-        // Refresh the list internally
-        fetchTickets(pagination.current, pagination.pageSize);
-      }
-    } catch (error) {
-      console.error('Error deleting ticket:', error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to delete ticket',
-        severity: 'error',
-      });
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-  // Handle snackbar close
   const handleCloseSnackbar = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
@@ -256,7 +232,7 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
           <TextField
             size="small"
-            placeholder="Search tickets"
+            placeholder="Tìm kiếm ticket"
             value={keyword}
             onChange={handleKeywordChange}
             InputProps={{
@@ -272,24 +248,24 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
           {!isTransferRequest && (
             <>
               <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel id="type-filter-label">Type</InputLabel>
-                <Select labelId="type-filter-label" value={typeFilter} label="Type" onChange={handleTypeChange}>
-                  <MenuItem value="">All</MenuItem>
+                <InputLabel id="type-filter-label">Loại</InputLabel>
+                <Select labelId="type-filter-label" value={typeFilter} label="Loại" onChange={handleTypeChange}>
+                  <MenuItem value="">Tất cả</MenuItem>
                   <MenuItem value={TicketType.Shopping}>{TicketType.Shopping}</MenuItem>
                   <MenuItem value={TicketType.Technical}>{TicketType.Technical}</MenuItem>
                 </Select>
               </FormControl>
 
               <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel id="status-filter-label">Status</InputLabel>
-                <Select labelId="status-filter-label" value={statusFilter} label="Status" onChange={handleStatusChange}>
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value={TicketStatus.Pending}>Pending</MenuItem>
-                  <MenuItem value={TicketStatus.InProgress}>In Progress</MenuItem>
-                  <MenuItem value={TicketStatus.Done}>Done</MenuItem>
-                  <MenuItem value={TicketStatus.Closed}>Closed</MenuItem>
-                  <MenuItem value={TicketStatus.IsTransferring}>Is Transferring</MenuItem>
-                  <MenuItem value={TicketStatus.TransferRejected}>Transfer Rejected</MenuItem>
+                <InputLabel id="status-filter-label">Trạng thái</InputLabel>
+                <Select labelId="status-filter-label" value={statusFilter} label="Trạng thái" onChange={handleStatusChange}>
+                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value={TicketStatus.Pending}>Đang chờ</MenuItem>
+                  <MenuItem value={TicketStatus.InProgress}>Đang xử lý</MenuItem>
+                  <MenuItem value={TicketStatus.Done}>Hoàn thành</MenuItem>
+                  <MenuItem value={TicketStatus.Closed}>Đã đóng</MenuItem>
+                  <MenuItem value={TicketStatus.IsTransferring}>Đang chuyển</MenuItem>
+                  <MenuItem value={TicketStatus.TransferRejected}>Từ chối chuyển</MenuItem>
                 </Select>
               </FormControl>
             </>
@@ -301,7 +277,7 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
               startIcon={<RefreshIcon />}
               onClick={() => fetchTickets(pagination.current, pagination.pageSize)}
             >
-              Refresh
+              Làm mới
             </Button>
           </Stack>
         </Stack>
@@ -313,13 +289,13 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
-                <TableCell>User</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Handled By</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>Người dùng</TableCell>
+                <TableCell>Mô tả</TableCell>
+                <TableCell>Loại</TableCell>
+                <TableCell>Trạng thái</TableCell>
+                <TableCell>Người xử lý</TableCell>
+                <TableCell>Ngày tạo</TableCell>
+                <TableCell align="right">Hành động</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -327,7 +303,7 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
                 <TableRow>
                   <TableCell colSpan={8} align="center">
                     <Typography variant="body1" py={2}>
-                      No tickets found
+                      Không tìm thấy ticket nào
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -367,15 +343,15 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
                       >
                         {ticket.briefDescription}
                       </TableCell>
-                      <TableCell>{ticket.type}</TableCell>
+                      <TableCell>{translateType(ticket.type)}</TableCell>
                       <TableCell>
-                        <Chip label={ticket.status} color={getStatusColor(ticket.status)} size="small" />
+                        <Chip label={translateStatus(ticket.status)} color={getStatusColor(ticket.status)} size="small" />
                       </TableCell>
                       <TableCell>{ticket.handledBy || '-'}</TableCell>
                       <TableCell>{new Date(ticket.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={1} justifyContent="flex-end" className="row-actions">
-                          <Tooltip title="View details">
+                          <Tooltip title="Xem chi tiết">
                             <IconButton
                               color="primary"
                               size="small"
@@ -400,18 +376,6 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
                               <PencilSimple size={20} />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete ticket">
-                            <IconButton
-                              color="error"
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteClick(ticket);
-                              }}
-                            >
-                              <Trash size={20} />
-                            </IconButton>
-                          </Tooltip>
                         </Stack>
                       </TableCell>
                     </TableRow>
@@ -430,37 +394,9 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
           page={pagination.current > 0 ? pagination.current - 1 : 0}
           rowsPerPage={pagination.pageSize || 10}
           rowsPerPageOptions={[5, 10, 25]}
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count !== -1 ? count : 'more than ' + to}`}
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} / ${count !== -1 ? count : 'hơn ' + to}`}
         />
       </Card>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleCloseDeleteDialog}
-        aria-labelledby="delete-dialog-title"
-        aria-describedby="delete-dialog-description"
-      >
-        <DialogTitle id="delete-dialog-title">Delete Ticket</DialogTitle>
-        <DialogContent>
-          <DialogContentText id="delete-dialog-description">
-            Are you sure you want to delete this ticket? This action cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDeleteDialog} disabled={deleteLoading}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirmDelete}
-            color="error"
-            disabled={deleteLoading}
-            startIcon={deleteLoading ? <CircularProgress size={20} /> : null}
-          >
-            {deleteLoading ? 'Deleting...' : 'Delete'}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Snackbar for notifications */}
       <Snackbar

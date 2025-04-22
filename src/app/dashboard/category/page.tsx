@@ -45,7 +45,7 @@ function Category(): React.JSX.Element {
       // Show success message with the new category name
       setSnackbar({
         open: true,
-        message: `Category "${response.response.data.name}" created successfully`,
+        message: `Loại sản phẩm "${response.response.data.name}" đã được tạo thành công`,
         severity: 'success',
       });
 
@@ -58,7 +58,7 @@ function Category(): React.JSX.Element {
       console.error('Error creating category:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to create category',
+        message: 'Không thể tạo loại sản phẩm',
         severity: 'error',
       });
     }
@@ -76,7 +76,7 @@ function Category(): React.JSX.Element {
     <Stack spacing={3}>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Categories</Typography>
+          <Typography variant="h4">Loại sản phẩm</Typography>
         </Stack>
         <div>
           <Button
@@ -84,7 +84,7 @@ function Category(): React.JSX.Element {
             variant="contained"
             onClick={handleOpenModal}
           >
-            Add
+            Thêm
           </Button>
         </div>
       </Stack>

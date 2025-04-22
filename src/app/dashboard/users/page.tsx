@@ -7,22 +7,48 @@ import Typography from '@mui/material/Typography';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 
 import { UserTable } from '@/components/dashboard/user/user-table';
+import { AddUserModal } from '@/components/dashboard/user/add-user-modal';
 
 export default function Page(): React.JSX.Element {
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = React.useState(false);
+  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
+
+  const handleOpenAddUserModal = () => {
+    setIsAddUserModalOpen(true);
+  };
+
+  const handleCloseAddUserModal = () => {
+    setIsAddUserModalOpen(false);
+  };
+
+  const handleUserAdded = () => {
+    // Trigger a refresh of the user table
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
   return (
     <Stack spacing={3}>
       <Stack direction="row" spacing={3} alignItems="center" justifyContent="space-between">
         <Stack spacing={1}>
-          <Typography variant="h4">Users</Typography>
+          <Typography variant="h4">Người dùng</Typography>
           <Typography variant="body2" color="text.secondary">
-            Manage your users and their roles
+            Quản lý người dùng và vai trò của họ
           </Typography>
         </Stack>
-        <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} variant="contained">
-          Add User
+        <Button 
+          startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} 
+          variant="contained"
+          onClick={handleOpenAddUserModal}
+        >
+          Thêm người dùng
         </Button>
       </Stack>
-      <UserTable />
+      <UserTable refreshTrigger={refreshTrigger} />
+      <AddUserModal 
+        open={isAddUserModalOpen} 
+        onClose={handleCloseAddUserModal} 
+        onSuccess={handleUserAdded} 
+      />
     </Stack>
   );
 }

@@ -45,6 +45,8 @@ interface PlantTableProps {
   keyword?: string;
   status?: 'Active' | 'Inactive' | null;
   onRowClick?: (plantId: string) => void;
+  onPageChange?: (newPage: number) => void;
+  onRowsPerPageChange?: (newRowsPerPage: number) => void;
 }
 
 function PlantTable({
@@ -56,6 +58,8 @@ function PlantTable({
   keyword = '',
   status = null,
   onRowClick,
+  onPageChange,
+  onRowsPerPageChange,
 }: PlantTableProps): React.JSX.Element {
   const [plants, setPlants] = React.useState<Plant[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
@@ -84,22 +88,19 @@ function PlantTable({
     const fetchPlants = async () => {
       setLoading(true);
       try {
-        const params = new URLSearchParams();
-        
-        if (keyword) {
-          params.append('keyword', keyword);
-        }
-        
-        if (status) {
-          params.append('status', status);
-        }
-        
-        params.append('page', (page + 1).toString());
-        params.append('pageSize', rowsPerPage.toString());
-        
-        const response = await plantService.getAllPlants(keyword, status, page + 1, rowsPerPage);
+        // Luôn sắp xếp với các sản phẩm mới tạo ở đầu bảng (sắp xếp theo createdAt giảm dần)
+        const response = await plantService.getAllPlants(
+          keyword, 
+          status, 
+          page + 1, 
+          rowsPerPage, 
+          'createdAt', 
+          'desc'
+        );
         setPlants(response.response.data);
         setTotalCount(response.response.totalItems);
+        setCurrentPage(response.response.currentPage);
+        setTotalPages(response.response.totalPages);
         
       } catch (error) {
         console.error('Error fetching plants:', error);
@@ -168,7 +169,7 @@ function PlantTable({
       // Show success message
       setSnackbar({
         open: true,
-        message: `Plant "${plantToDelete.name}" deleted successfully`,
+        message: `Cây trồng "${plantToDelete.name}" đã xóa thành công`,
         severity: 'success',
       });
 
@@ -187,7 +188,7 @@ function PlantTable({
       console.error('Error deleting plant:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to delete plant',
+        message: 'Không thể xóa cây trồng',
         severity: 'error',
       });
     } finally {
@@ -210,7 +211,7 @@ function PlantTable({
       // Show success message
       setSnackbar({
         open: true,
-        message: `Plant "${plantToEdit.name}" updated successfully`,
+        message: `Cây trồng "${plantToEdit.name}" đã được cập nhật thành công`,
         severity: 'success',
       });
 
@@ -229,7 +230,7 @@ function PlantTable({
       console.error('Error updating plant:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to update plant',
+        message: 'Không thể cập nhật cây trồng',
         severity: 'error',
       });
     } finally {
@@ -245,15 +246,22 @@ function PlantTable({
   // Handle page change
   const handlePageChange = (event: unknown, newPage: number) => {
     setCurrentPage(newPage + 1);
+    if (onPageChange) {
+      onPageChange(newPage);
+    }
   };
 
   // Handle rows per page change
   const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newRowsPerPage = parseInt(event.target.value, 10);
-    setCurrentPage(1);
-    // Note: rowsPerPage is a prop, so we need to handle this through a callback
-    if (onRefreshNeeded) {
-      onRefreshNeeded();
+    if (onRowsPerPageChange) {
+      onRowsPerPageChange(newRowsPerPage);
+    } else {
+      setCurrentPage(1);
+      // Note: rowsPerPage is a prop, so we need a callback
+      if (onRefreshNeeded) {
+        onRefreshNeeded();
+      }
     }
   };
 
@@ -273,9 +281,9 @@ function PlantTable({
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>Tên</TableCell>
+                <TableCell>Trạng thái</TableCell>
+                <TableCell align="right">Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -283,7 +291,7 @@ function PlantTable({
                 <TableRow>
                   <TableCell colSpan={4} align="center">
                     <Typography variant="body1" py={2}>
-                      No plants found
+                      Không tìm thấy cây trồng nào
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -304,14 +312,14 @@ function PlantTable({
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={plant.status}
+                          label={plant.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
                           color={plant.status === 'Active' ? 'success' : 'error'}
                           size="small"
                         />
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Tooltip title="Edit plant">
+                          <Tooltip title="Chỉnh sửa cây trồng">
                             <IconButton
                               color="primary"
                               size="small"
@@ -323,7 +331,7 @@ function PlantTable({
                               <PencilSimple size={20} />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete plant">
+                          <Tooltip title="Xóa cây trồng">
                             <IconButton
                               color="error"
                               size="small"
@@ -353,6 +361,8 @@ function PlantTable({
           page={currentPage - 1}
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Số hàng mỗi trang:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
         />
       </Card>
 
@@ -363,15 +373,15 @@ function PlantTable({
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
       >
-        <DialogTitle id="delete-dialog-title">Delete Plant</DialogTitle>
+        <DialogTitle id="delete-dialog-title">Xóa cây trồng</DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            Are you sure you want to delete the plant "{plantToDelete?.name}"? This action cannot be undone.
+            Bạn có chắc chắn muốn xóa cây trồng "{plantToDelete?.name}"? Hành động này không thể hoàn tác.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDeleteDialog} disabled={deleteLoading}>
-            Cancel
+            Hủy
           </Button>
           <Button
             onClick={handleConfirmDelete}
@@ -379,7 +389,7 @@ function PlantTable({
             disabled={deleteLoading}
             startIcon={deleteLoading ? <CircularProgress size={20} /> : null}
           >
-            {deleteLoading ? 'Deleting...' : 'Delete'}
+            {deleteLoading ? 'Đang xóa...' : 'Xóa'}
           </Button>
         </DialogActions>
       </Dialog>

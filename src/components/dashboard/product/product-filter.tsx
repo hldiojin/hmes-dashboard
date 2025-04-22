@@ -16,7 +16,7 @@ export function ProductFilters({ searchQuery, onSearchChange }: ProductFiltersPr
         value={searchQuery}
         onChange={onSearchChange}
         fullWidth
-        placeholder="Search product"
+        placeholder="Tìm kiếm sản phẩm"
         startAdornment={
           <InputAdornment position="start">
             <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />

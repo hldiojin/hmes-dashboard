@@ -7,13 +7,17 @@ const plantService = {
     keyword?: string,
     status?: 'Active' | 'Inactive' | null,
     pageIndex: number = 1,
-    pageSize: number = 10
+    pageSize: number = 10,
+    sortBy: string = 'createdAt',
+    sortDirection: string = 'desc'
   ): Promise<PlantResponse> => {
     const params = new URLSearchParams();
     if (keyword) params.append('keyword', keyword);
     if (status) params.append('status', status);
     params.append('pageIndex', pageIndex.toString());
     params.append('pageSize', pageSize.toString());
+    params.append('sortBy', sortBy);
+    params.append('sortDirection', sortDirection);
 
     const response = await axiosInstance.get(`/plant?${params.toString()}`);
     return response.data;
@@ -28,10 +32,11 @@ const plantService = {
     return plantData;
   },
 
-  createPlant: async (name: string, status: 'Active' | 'Inactive'): Promise<Plant> => {
+  createPlant: async (name: string, status: 'Active' | 'Inactive', description?: string): Promise<Plant> => {
     const formData = new FormData();
     formData.append('name', name);
     formData.append('status', status);
+    if (description) formData.append('description', description);
 
     const response = await axiosInstance.post(`/plant`, formData, {
       headers: {
@@ -41,10 +46,11 @@ const plantService = {
     return response.data.response;
   },
 
-  updatePlant: async (id: string, name: string, status: 'Active' | 'Inactive'): Promise<Plant> => {
+  updatePlant: async (id: string, name: string, status: 'Active' | 'Inactive', description?: string): Promise<Plant> => {
     const formData = new FormData();
     formData.append('name', name);
     formData.append('status', status);
+    if (description) formData.append('description', description);
 
     const response = await axiosInstance.put(`/plant/${id}`, formData, {
       headers: {

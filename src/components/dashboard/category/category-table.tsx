@@ -159,7 +159,7 @@ function CategoryTable({
       // Show success message
       setSnackbar({
         open: true,
-        message: `Category "${categoryToDelete.name}" deleted successfully`,
+        message: `Loại sản phẩm "${categoryToDelete.name}" đã được xóa thành công`,
         severity: 'success',
       });
 
@@ -176,7 +176,7 @@ function CategoryTable({
       console.error('Error deleting category:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to delete category. It may have children categories.',
+        message: 'Không thể xóa loại sản phẩm. Có thể có loại sản phẩm con.',
         severity: 'error',
       });
     } finally {
@@ -211,7 +211,7 @@ function CategoryTable({
       // Show success message
       setSnackbar({
         open: true,
-        message: `Category "${categoryToEdit.name}" updated successfully`,
+        message: `Loại sản phẩm "${categoryToEdit.name}" đã được cập nhật thành công`,
         severity: 'success',
       });
 
@@ -228,7 +228,7 @@ function CategoryTable({
       console.error('Error updating category:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to update category',
+        message: 'Không thể cập nhật loại sản phẩm',
         severity: 'error',
       });
     }
@@ -295,7 +295,7 @@ function CategoryTable({
               </Typography>
               {level > 0 && (
                 <Chip
-                  label="Child"
+                  label="Con"
                   size="small"
                   color="primary"
                   variant="outlined"
@@ -309,7 +309,7 @@ function CategoryTable({
           </TableCell>
           <TableCell sx={{ whiteSpace: 'nowrap' }}>
             <Chip
-              label={category.status}
+              label={category.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
               color={category.status === 'Active' ? 'success' : 'error'}
               size="small"
               sx={{
@@ -322,7 +322,7 @@ function CategoryTable({
           </TableCell>
           <TableCell align="right">
             <Stack direction="row" spacing={1} justifyContent="flex-end">
-              <Tooltip title="Edit category">
+              <Tooltip title="Sửa loại sản phẩm">
                 <IconButton
                   color="primary"
                   size="small"
@@ -337,7 +337,7 @@ function CategoryTable({
                   <PencilSimple size={18} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title={hasChildren ? 'Cannot delete category with children' : 'Delete category'}>
+              <Tooltip title={hasChildren ? 'Không thể xóa loại sản phẩm có con' : 'Xóa loại sản phẩm'}>
                 <span>
                   <IconButton
                     color="error"
@@ -422,11 +422,11 @@ function CategoryTable({
                 }}
               >
                 <TableCell width="12%">ID</TableCell>
-                <TableCell width="30%">Name</TableCell>
-                <TableCell width="40%">Description</TableCell>
-                <TableCell width="8%">Status</TableCell>
+                <TableCell width="30%">Tên</TableCell>
+                <TableCell width="40%">Mô tả</TableCell>
+                <TableCell width="8%">Trạng thái</TableCell>
                 <TableCell width="10%" align="right">
-                  Actions
+                  Thao tác
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -435,7 +435,7 @@ function CategoryTable({
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="text.secondary">
-                      {categories.length === 0 ? "No categories found" : "No matching categories found"}
+                      {categories.length === 0 ? "Không tìm thấy loại sản phẩm" : "Không tìm thấy loại sản phẩm phù hợp"}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -454,6 +454,8 @@ function CategoryTable({
           page={page}
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Số hàng mỗi trang:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
         />
       </Card>
 
@@ -464,15 +466,15 @@ function CategoryTable({
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
       >
-        <DialogTitle id="delete-dialog-title">Delete Category</DialogTitle>
+        <DialogTitle id="delete-dialog-title">Xóa loại sản phẩm</DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            Are you sure you want to delete the category "{categoryToDelete?.name}"? This action cannot be undone.
+            Bạn có chắc chắn muốn xóa loại sản phẩm "{categoryToDelete?.name}"? Hành động này không thể hoàn tác.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDeleteDialog} disabled={deleteLoading}>
-            Cancel
+            Hủy
           </Button>
           <Button
             onClick={handleConfirmDelete}
@@ -480,7 +482,7 @@ function CategoryTable({
             disabled={deleteLoading}
             startIcon={deleteLoading ? <CircularProgress size={20} /> : null}
           >
-            {deleteLoading ? 'Deleting...' : 'Delete'}
+            {deleteLoading ? 'Đang xóa...' : 'Xóa'}
           </Button>
         </DialogActions>
       </Dialog>

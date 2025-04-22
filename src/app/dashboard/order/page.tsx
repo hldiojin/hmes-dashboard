@@ -69,6 +69,7 @@ export default function OrdersPage() {
 
   // Handle filter changes
   const handleFilterChange = (newFilters: OrdersFilter) => {
+    console.log('Updating filters:', newFilters);
     setFilters((prev) => ({
       ...prev,
       ...newFilters,
@@ -126,7 +127,7 @@ export default function OrdersPage() {
   return (
     <Box sx={{ p: 3 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={4} sx={{ mb: 3 }}>
-        <Typography variant="h4">Orders</Typography>
+        <Typography variant="h4">Đơn hàng</Typography>
         {/* New Order button removed */}
       </Stack>
 

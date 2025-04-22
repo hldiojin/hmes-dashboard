@@ -51,7 +51,7 @@ function Products(): React.JSX.Element {
 
       setSnackbar({
         open: true,
-        message: 'Product created successfully',
+        message: 'Sản phẩm đã được tạo thành công',
         severity: 'success',
       });
 
@@ -61,7 +61,7 @@ function Products(): React.JSX.Element {
       console.error('Error creating product:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to create product',
+        message: 'Không thể tạo sản phẩm',
         severity: 'error',
       });
     }
@@ -71,7 +71,7 @@ function Products(): React.JSX.Element {
     <Stack spacing={3}>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Products</Typography>
+          <Typography variant="h4">Sản phẩm</Typography>
           {/* Import and Export buttons removed */}
         </Stack>
         <div>
@@ -80,7 +80,7 @@ function Products(): React.JSX.Element {
             variant="contained"
             onClick={handleOpenModal}
           >
-            Add
+            Thêm
           </Button>
         </div>
       </Stack>

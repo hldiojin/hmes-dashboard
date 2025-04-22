@@ -82,11 +82,16 @@ export default function PlantPage(): React.JSX.Element {
   };
 
   // Handle create submit
-  const handleCreateSubmit = async (name: string, status: 'Active' | 'Inactive') => {
+  const handleCreateSubmit = async (name: string, status: 'Active' | 'Inactive', description?: string) => {
     setCreateLoading(true);
     try {
-      await plantService.createPlant(name, status);
+      await plantService.createPlant(name, status, description);
       handleCreateModalClose();
+      
+      // Reset to first page and clear filters to ensure new plant is visible
+      setPage(0);
+      setKeyword('');
+      setStatus(null);
       
       // Force a refresh of the table
       handleRefresh();
@@ -113,36 +118,36 @@ export default function PlantPage(): React.JSX.Element {
     <Container maxWidth="xl">
       <Stack spacing={3}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={4}>
-          <Typography variant="h4">Plants</Typography>
+          <Typography variant="h4">Cây trồng</Typography>
           <Button startIcon={<Plus />} variant="contained" onClick={handleCreateModalOpen}>
-            Add Plant
+            Thêm cây trồng
           </Button>
         </Stack>
 
         <Box component="form" onSubmit={handleSearch} sx={{ mb: 2 }}>
           <Stack direction="row" spacing={2} alignItems="center">
             <TextField
-              label="Search plants"
+              label="Tìm kiếm cây trồng"
               value={keyword}
               onChange={handleSearchChange}
               sx={{ width: 300 }}
-              placeholder="Search by plant name"
+              placeholder="Tìm kiếm theo tên cây trồng"
             />
             <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel id="status-filter-label">Status</InputLabel>
+              <InputLabel id="status-filter-label">Trạng thái</InputLabel>
               <Select
                 labelId="status-filter-label"
                 value={status === null ? '' : status}
-                label="Status"
+                label="Trạng thái"
                 onChange={handleStatusFilterChange}
               >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value="Active">Hoạt động</MenuItem>
+                <MenuItem value="Inactive">Không hoạt động</MenuItem>
               </Select>
             </FormControl>
             <Button type="submit" variant="contained">
-              Search
+              Tìm kiếm
             </Button>
           </Stack>
         </Box>
@@ -155,6 +160,8 @@ export default function PlantPage(): React.JSX.Element {
           keyword={keyword}
           status={status}
           onRowClick={handleDetailsModalOpen}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
         />
       </Stack>
 

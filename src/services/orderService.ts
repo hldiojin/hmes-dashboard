@@ -98,40 +98,45 @@ export const getOrders = async (filters: OrdersFilter = {}): Promise<PaginatedOr
     // Build query parameters
     const params = new URLSearchParams();
 
+    // Xử lý keyword tìm kiếm
     if (filters.keyword) params.append('keyword', filters.keyword);
-    if (filters.minPrice) params.append('minPrice', filters.minPrice.toString());
-    if (filters.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
+    
+    // Xử lý giá
+    if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
+    if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());
 
+    // Xử lý ngày tháng, đảm bảo gửi đúng định dạng ISO
     if (filters.startDate) {
-      // Convert datetime-local format to ISO string for API
-      params.append('startDate', filters.startDate);
+      const startDate = new Date(filters.startDate);
+      params.append('startDate', startDate.toISOString());
     }
 
     if (filters.endDate) {
-      // Convert datetime-local format to ISO string for API
-      params.append('endDate', filters.endDate);
+      const endDate = new Date(filters.endDate);
+      params.append('endDate', endDate.toISOString());
     }
 
-    if (filters.status) {
-      if (filters.status !== '') {
-        params.append('status', filters.status);
-      }
+    // Xử lý trạng thái
+    if (filters.status && filters.status !== '') {
+      params.append('status', filters.status);
     }
 
-    // Always include pagination parameters with defaults
+    // Luôn kèm theo tham số phân trang
     params.append('pageIndex', String(filters.pageIndex || 1));
     params.append('pageSize', String(filters.pageSize || 10));
 
-    // Call API with query parameters
+    console.log('API request URL params:', params.toString());
+
+    // Gọi API với tham số query
     const response = await axiosInstance.get<OrdersResponse>(`order?${params.toString()}`);
     console.log('API response:', response.data);
 
-    // Validate response structure
+    // Validate cấu trúc response
     if (!response.data || !response.data.response || !Array.isArray(response.data.response.data)) {
       throw new Error('Invalid response format from API');
     }
 
-    // Map API response to our internal Order type
+    // Map API response tới kiểu Order nội bộ
     const orders = response.data.response.data.map((apiOrder) => ({
       id: apiOrder.id,
       userId: apiOrder.userId,

@@ -94,38 +94,38 @@ export function AccountDetailsForm(): React.JSX.Element {
   return (
     <form onSubmit={handleSubmit}>
       <Card>
-        <CardHeader subheader="The information can be edited" title="Profile" />
+        <CardHeader subheader="Thông tin có thể chỉnh sửa" title="Tài khoản" />
         <Divider />
         <CardContent>
           <Grid container spacing={3}>
             <Grid md={6} xs={12}>
               <FormControl fullWidth required>
-                <InputLabel>First name</InputLabel>
-                <OutlinedInput defaultValue={firstName} label="First name" name="firstName" />
+                <InputLabel>Tên</InputLabel>
+                <OutlinedInput defaultValue={firstName} label="Tên" name="firstName" />
               </FormControl>
             </Grid>
             <Grid md={6} xs={12}>
               <FormControl fullWidth required>
-                <InputLabel>Last name</InputLabel>
-                <OutlinedInput defaultValue={lastName} label="Last name" name="lastName" />
+                <InputLabel>Họ</InputLabel>
+                <OutlinedInput defaultValue={lastName} label="Họ" name="lastName" />
               </FormControl>
             </Grid>
             <Grid md={6} xs={12}>
               <FormControl fullWidth required>
-                <InputLabel>Email address</InputLabel>
-                <OutlinedInput defaultValue={user.email} label="Email address" name="email" />
+                <InputLabel>Email</InputLabel>
+                <OutlinedInput defaultValue={user.email} label="Email" name="email" />
               </FormControl>
             </Grid>
             <Grid md={6} xs={12}>
               <FormControl fullWidth>
-                <InputLabel>Phone number</InputLabel>
-                <OutlinedInput defaultValue={user.phone} label="Phone number" name="phone" type="tel" />
+                <InputLabel>Số điện thoại</InputLabel>
+                <OutlinedInput defaultValue={user.phone} label="Số điện thoại" name="phone" type="tel" />
               </FormControl>
             </Grid>
             <Grid md={6} xs={12}>
               <FormControl fullWidth>
-                <InputLabel>Role</InputLabel>
-                <Select defaultValue={user.role} label="Role" name="role" variant="outlined" disabled>
+                <InputLabel>Vai trò</InputLabel>
+                <Select defaultValue={user.role} label="Vai trò" name="role" variant="outlined" disabled>
                   {roles.map((option) => (
                     <MenuItem key={option.value} value={option.value}>
                       {option.label}
@@ -136,8 +136,8 @@ export function AccountDetailsForm(): React.JSX.Element {
             </Grid>
             <Grid md={6} xs={12}>
               <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select defaultValue={user.status} label="Status" name="status" variant="outlined" disabled>
+                <InputLabel>Trạng thái</InputLabel>
+                <Select defaultValue={user.status} label="Trạng thái" name="status" variant="outlined" disabled>
                   {statuses.map((option) => (
                     <MenuItem key={option.value} value={option.value}>
                       {option.label}
@@ -151,7 +151,7 @@ export function AccountDetailsForm(): React.JSX.Element {
         <Divider />
         <CardActions sx={{ justifyContent: 'flex-end' }}>
           <Button variant="contained" type="submit" disabled={saving}>
-            {saving ? <CircularProgress size={24} /> : 'Save details'}
+            {saving ? <CircularProgress size={24} /> : 'Lưu thông tin'}
           </Button>
         </CardActions>
       </Card>

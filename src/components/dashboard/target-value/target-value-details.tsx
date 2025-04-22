@@ -84,7 +84,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
       setTargetDetails(response.response.data);
     } catch (error) {
       console.error('Failed to fetch target value details:', error);
-      setError('Failed to load target value details. Please try again.');
+      setError('Không thể tải chi tiết giá trị mục tiêu. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -132,14 +132,14 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
       // Show success message
       setSnackbar({
         open: true,
-        message: 'Plant assigned to target value successfully',
+        message: 'Đã gán cây trồng vào giá trị mục tiêu thành công',
         severity: 'success',
       });
     } catch (error: any) {
       console.error('Failed to assign plant to target value:', error);
 
       // Extract error message from response if available
-      let errorMessage = 'Failed to assign plant to target value';
+      let errorMessage = 'Không thể gán cây trồng vào giá trị mục tiêu';
       if (error.response?.data?.response?.message) {
         errorMessage = error.response.data.response.message;
       }
@@ -158,13 +158,13 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
   const getTargetTypeDisplayName = (type: string): string => {
     switch (type) {
       case 'SoluteConcentration':
-        return 'Concentration of Solutes';
+        return 'Nồng độ dung dịch';
       case 'Ph':
         return 'pH';
       case 'WaterLevel':
-        return 'Water Level';
+        return 'Mực nước';
       case 'Temperature':
-        return 'Temperature';
+        return 'Nhiệt độ';
       default:
         return type;
     }
@@ -220,14 +220,14 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
       // Show success message
       setSnackbar({
         open: true,
-        message: `Target value removed from plant "${plantToRemove.name}" successfully`,
+        message: `Đã xóa giá trị mục tiêu khỏi cây trồng "${plantToRemove.name}" thành công`,
         severity: 'success',
       });
     } catch (error: any) {
       console.error('Failed to remove target value from plant:', error);
 
       // Extract error message if available
-      let errorMessage = 'Failed to remove target value from plant';
+      let errorMessage = 'Không thể xóa giá trị mục tiêu khỏi cây trồng';
       if (error.response?.data?.response?.message) {
         errorMessage = error.response.data.response.message;
       }
@@ -247,7 +247,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <DialogTitle>
           <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6">Target Value Details</Typography>
+            <Typography variant="h6">Chi tiết giá trị mục tiêu</Typography>
             <IconButton onClick={onClose} size="small">
               <X size={20} />
             </IconButton>
@@ -262,7 +262,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
             <Box p={3}>
               <Typography color="error">{error}</Typography>
               <Button variant="contained" onClick={fetchTargetDetails} sx={{ mt: 2 }}>
-                Retry
+                Thử lại
               </Button>
             </Box>
           ) : targetDetails ? (
@@ -274,7 +274,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
                     <Stack direction="row" spacing={4}>
                       <Box>
                         <Typography variant="subtitle2" color="text.secondary">
-                          Min Value
+                          Giá trị tối thiểu
                         </Typography>
                         <Typography variant="h6">
                           {targetDetails.minValue} {getTargetTypeUnit(targetDetails.type)}
@@ -282,7 +282,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
                       </Box>
                       <Box>
                         <Typography variant="subtitle2" color="text.secondary">
-                          Max Value
+                          Giá trị tối đa
                         </Typography>
                         <Typography variant="h6">
                           {targetDetails.maxValue} {getTargetTypeUnit(targetDetails.type)}
@@ -297,7 +297,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
                 <Grid item xs={12}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
                     <Typography variant="subtitle1">
-                      Plants Using This Target Value ({targetDetails.plants.length})
+                      Cây trồng sử dụng giá trị mục tiêu này ({targetDetails.plants.length})
                     </Typography>
                     <Button
                       variant="contained"
@@ -307,19 +307,19 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
                       onClick={handleOpenAddPlantDialog}
                       disabled={loadingAvailablePlants}
                     >
-                      {loadingAvailablePlants ? 'Loading...' : 'Add Plant'}
+                      {loadingAvailablePlants ? 'Đang tải...' : 'Thêm cây trồng'}
                     </Button>
                   </Stack>
                   {targetDetails.plants.length === 0 ? (
-                    <Typography color="text.secondary">No plants are currently using this target value.</Typography>
+                    <Typography color="text.secondary">Chưa có cây trồng nào sử dụng giá trị mục tiêu này.</Typography>
                   ) : (
                     <TableContainer>
                       <Table>
                         <TableHead>
                           <TableRow>
-                            <TableCell>Name</TableCell>
-                            <TableCell>Status</TableCell>
-                            <TableCell align="right">Actions</TableCell>
+                            <TableCell>Tên</TableCell>
+                            <TableCell>Trạng thái</TableCell>
+                            <TableCell align="right">Thao tác</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -330,13 +330,13 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
                               </TableCell>
                               <TableCell>
                                 <Chip
-                                  label={plant.status}
+                                  label={plant.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
                                   color={plant.status === 'Active' ? 'success' : 'error'}
                                   size="small"
                                 />
                               </TableCell>
                               <TableCell align="right">
-                                <Tooltip title="Remove from this target value" arrow>
+                                <Tooltip title="Xóa khỏi giá trị mục tiêu này" arrow>
                                   <IconButton
                                     color="error"
                                     size="small"
@@ -358,26 +358,26 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
           ) : null}
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose}>Đóng</Button>
         </DialogActions>
       </Dialog>
 
       {/* Add Plant Dialog */}
       <Dialog open={addPlantDialogOpen} onClose={handleCloseAddPlantDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Add Plant to This Target Value</DialogTitle>
+        <DialogTitle>Thêm cây trồng vào giá trị mục tiêu này</DialogTitle>
         <DialogContent>
           {availablePlants.length === 0 ? (
             <Typography color="text.secondary" sx={{ py: 2 }}>
-              No available plants found. All plants already have a {targetDetails?.type} target value set.
+              Không tìm thấy cây trồng khả dụng. Tất cả cây trồng đã có giá trị mục tiêu {targetDetails?.type} được thiết lập.
             </Typography>
           ) : (
             <Box sx={{ mt: 2 }}>
               <FormControl fullWidth>
-                <InputLabel>Select Plant</InputLabel>
-                <Select value={selectedPlantId} onChange={handlePlantChange} label="Select Plant">
+                <InputLabel>Chọn cây trồng</InputLabel>
+                <Select value={selectedPlantId} onChange={handlePlantChange} label="Chọn cây trồng">
                   {availablePlants.map((plant) => (
                     <MenuItem key={plant.id} value={plant.id}>
-                      {plant.name} - {plant.status}
+                      {plant.name} - {plant.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
                     </MenuItem>
                   ))}
                 </Select>
@@ -386,9 +386,9 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddPlantDialog}>Cancel</Button>
+          <Button onClick={handleCloseAddPlantDialog}>Hủy</Button>
           <Button onClick={handleAssignPlant} variant="contained" disabled={!selectedPlantId || assigningPlant}>
-            {assigningPlant ? 'Assigning...' : 'Assign'}
+            {assigningPlant ? 'Đang gán...' : 'Gán'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -400,16 +400,15 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
         aria-labelledby="remove-dialog-title"
         aria-describedby="remove-dialog-description"
       >
-        <DialogTitle id="remove-dialog-title">Remove Target Value from Plant</DialogTitle>
+        <DialogTitle id="remove-dialog-title">Xóa giá trị mục tiêu khỏi cây trồng</DialogTitle>
         <DialogContent>
           <DialogContentText id="remove-dialog-description">
-            Are you sure you want to remove this target value from plant "{plantToRemove?.name}"? This action cannot be
-            undone.
+            Bạn có chắc chắn muốn xóa giá trị mục tiêu này khỏi cây trồng "{plantToRemove?.name}"? Hành động này không thể hoàn tác.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseRemoveDialog} disabled={removingPlant}>
-            Cancel
+            Hủy
           </Button>
           <Button
             onClick={handleConfirmRemove}
@@ -417,7 +416,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
             disabled={removingPlant}
             startIcon={removingPlant ? <CircularProgress size={20} /> : null}
           >
-            {removingPlant ? 'Removing...' : 'Remove'}
+            {removingPlant ? 'Đang xóa...' : 'Xóa'}
           </Button>
         </DialogActions>
       </Dialog>

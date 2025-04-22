@@ -51,18 +51,26 @@ export default function TargetValuePage(): React.JSX.Element {
     severity: 'success',
   });
 
-  // New state for just created
-  const [justCreated, setJustCreated] = React.useState<boolean>(false);
-
   // Handle refresh
   const handleRefresh = () => {
-    console.log('Refreshing target values...');
+    console.log('Refreshing target values with trigger increment');
     setRefreshTrigger((prev) => prev + 1);
   };
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Performing search with:', { type, minValue, maxValue });
+    setPage(0); // Quay về trang đầu khi tìm kiếm
+    handleRefresh();
+  };
+
+  // Reset all filters
+  const resetFilters = () => {
+    setType(null);
+    setMinValue('');
+    setMaxValue('');
+    setPage(0);
     handleRefresh();
   };
 
@@ -71,7 +79,17 @@ export default function TargetValuePage(): React.JSX.Element {
     const newType = event.target.value === '' ? null : (event.target.value as ValueType);
     setType(newType);
     setPage(0);
-    handleRefresh();
+    // Không gọi handleRefresh() ở đây để tránh tìm kiếm tự động khi thay đổi dropdown
+  };
+
+  // Handle min value change
+  const handleMinValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMinValue(e.target.value);
+  };
+
+  // Handle max value change
+  const handleMaxValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMaxValue(e.target.value);
   };
 
   // Handle page change
@@ -95,67 +113,25 @@ export default function TargetValuePage(): React.JSX.Element {
     setCreateModalOpen(false);
   };
 
-  // Handle create submit
-  const handleCreateSubmit = async (data: Partial<TargetValue>) => {
-    setCreateLoading(true);
-    try {
-      if (data.type && typeof data.minValue === 'number' && typeof data.maxValue === 'number') {
-        // Create the target value
-        await targetValueService.createTargetValue({
-          type: data.type,
-          minValue: data.minValue,
-          maxValue: data.maxValue
-        });
-        
-        handleCreateModalClose();
-        
-        setType(data.type);
-        
-        setMinValue('');
-        setMaxValue('');
-        
-        setSnackbar({
-          open: true,
-          message: 'Target value created successfully',
-          severity: 'success',
-        });
-        
-        // Add a slightly longer delay before refreshing
-        setTimeout(() => {
-          console.log('Forcing refresh after target value creation');
-          setRefreshTrigger(prev => prev + 1);
-        }, 800);
-      }
-    } catch (error: any) {
-      console.error('Error creating target value:', error);
-
-      // Extract error message from response if available
-      let errorMessage = 'Failed to create target value';
-      if (error.response?.data?.response?.message) {
-        errorMessage = error.response.data.response.message;
-      }
-
-      setSnackbar({
-        open: true,
-        message: errorMessage,
-        severity: 'error',
-      });
-    } finally {
-      setCreateLoading(false);
-    }
+  // Handle successful creation
+  const handleCreateSuccess = () => {
+    // Hiển thị thông báo thành công
+    setSnackbar({
+      open: true,
+      message: 'Giá trị mục tiêu đã được tạo thành công',
+      severity: 'success',
+    });
+    
+    // Đặt lại trang về trang đầu tiên để hiển thị dữ liệu mới
+    setPage(0);
+    
+    // Đặt lại bộ lọc để hiển thị tất cả các giá trị mục tiêu
+    resetFilters();
+    
+    // Làm mới dữ liệu
+    console.log('Forcing refresh after target value creation');
+    handleRefresh();
   };
-
-  // Add useEffect to watch for justCreated state
-  React.useEffect(() => {
-    if (justCreated) {
-      // Reset after a short delay
-      const timer = setTimeout(() => {
-        setJustCreated(false);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [justCreated]);
 
   // Handle row click to open details
   const handleRowClick = (targetValueId: string) => {
@@ -178,45 +154,48 @@ export default function TargetValuePage(): React.JSX.Element {
     <Container maxWidth="xl">
       <Stack spacing={3}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={4}>
-          <Typography variant="h4">Target Values</Typography>
+          <Typography variant="h4">Giá trị mục tiêu</Typography>
           <Button startIcon={<Plus />} variant="contained" onClick={handleCreateModalOpen}>
-            Add Target Value
+            Thêm giá trị mục tiêu
           </Button>
         </Stack>
 
         <Box component="form" onSubmit={handleSearch} sx={{ mb: 2 }}>
           <Stack direction="row" spacing={2} alignItems="center">
             <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel id="type-filter-label">Type</InputLabel>
+              <InputLabel id="type-filter-label">Loại</InputLabel>
               <Select
                 labelId="type-filter-label"
                 value={type === null ? '' : type}
-                label="Type"
+                label="Loại"
                 onChange={handleTypeFilterChange}
               >
-                <MenuItem value="">All</MenuItem>
+                <MenuItem value="">Tất cả</MenuItem>
                 <MenuItem value="Ph">pH</MenuItem>
-                <MenuItem value="SoluteConcentration">Concentration of Solutes</MenuItem>
-                <MenuItem value="Temperature">Water Temperature</MenuItem>
-                <MenuItem value="WaterLevel">Water Level</MenuItem>
+                <MenuItem value="SoluteConcentration">Nồng độ dung dịch</MenuItem>
+                <MenuItem value="Temperature">Nhiệt độ nước</MenuItem>
+                <MenuItem value="WaterLevel">Mực nước</MenuItem>
               </Select>
             </FormControl>
             <TextField
-              label="Min Value"
+              label="Giá trị tối thiểu"
               type="number"
               value={minValue}
-              onChange={(e) => setMinValue(e.target.value)}
+              onChange={handleMinValueChange}
               sx={{ width: 150 }}
             />
             <TextField
-              label="Max Value"
+              label="Giá trị tối đa"
               type="number"
               value={maxValue}
-              onChange={(e) => setMaxValue(e.target.value)}
+              onChange={handleMaxValueChange}
               sx={{ width: 150 }}
             />
             <Button type="submit" variant="contained">
-              Search
+              Tìm kiếm
+            </Button>
+            <Button type="button" variant="outlined" onClick={resetFilters}>
+              Đặt lại
             </Button>
           </Stack>
         </Box>
@@ -237,8 +216,7 @@ export default function TargetValuePage(): React.JSX.Element {
       <TargetValueModal
         open={createModalOpen}
         onClose={handleCreateModalClose}
-        onSubmit={handleCreateSubmit}
-        mode="create"
+        onSuccess={handleCreateSuccess}
       />
 
       {/* Details Modal */}

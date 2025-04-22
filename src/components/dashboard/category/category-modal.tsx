@@ -133,9 +133,9 @@ export function CategoryModal({
 
   const validateForm = (): boolean => {
     const newErrors = {
-      name: name.trim() ? '' : 'Name is required',
-      description: description.trim() ? '' : 'Description is required',
-      file: mode === 'update' && filePreview ? '' : file ? '' : 'Attachment is required',
+      name: name.trim() ? '' : 'Tên loại sản phẩm không được để trống',
+      description: description.trim() ? '' : 'Mô tả không được để trống',
+      file: mode === 'update' && filePreview ? '' : file ? '' : 'Hình ảnh không được để trống',
     };
 
     setErrors(newErrors);
@@ -178,11 +178,11 @@ export function CategoryModal({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{mode === 'create' ? 'Add New Category' : 'Update Category'}</DialogTitle>
+      <DialogTitle>{mode === 'create' ? 'Thêm loại sản phẩm mới' : 'Cập nhật loại sản phẩm'}</DialogTitle>
       <DialogContent>
         <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <TextField
-            label="Name"
+            label="Tên"
             fullWidth
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -192,7 +192,7 @@ export function CategoryModal({
           />
 
           <TextField
-            label="Description"
+            label="Mô tả"
             fullWidth
             multiline
             rows={3}
@@ -204,16 +204,16 @@ export function CategoryModal({
           />
 
           <FormControl fullWidth>
-            <InputLabel id="parent-category-label">Parent Category</InputLabel>
+            <InputLabel id="parent-category-label">Loại sản phẩm chính</InputLabel>
             <Select
               labelId="parent-category-label"
               value={parentCategoryId}
-              label="Parent Category"
+              label="Loại sản phẩm cha"
               onChange={(e) => setParentCategoryId(e.target.value)}
               disabled={loading}
             >
               <MenuItem value="">
-                <em>None</em>
+                <em>Không có</em>
               </MenuItem>
               {parentCategories.map((category) => (
                 <MenuItem key={category.id} value={category.id}>
@@ -221,22 +221,22 @@ export function CategoryModal({
                 </MenuItem>
               ))}
             </Select>
-            <FormHelperText>Optional</FormHelperText>
+            <FormHelperText>Tùy chọn</FormHelperText>
           </FormControl>
 
           <Box>
             <Typography variant="subtitle2" gutterBottom>
-              Status
+              Trạng thái
             </Typography>
             <RadioGroup row value={status} onChange={(e) => setStatus(e.target.value)}>
-              <FormControlLabel value="Active" control={<Radio />} label="Active" />
-              <FormControlLabel value="Inactive" control={<Radio />} label="Inactive" />
+              <FormControlLabel value="Active" control={<Radio />} label="Hoạt động" />
+              <FormControlLabel value="Inactive" control={<Radio />} label="Không hoạt động" />
             </RadioGroup>
           </Box>
 
           <Box>
             <Typography variant="subtitle2" gutterBottom>
-              Attachment
+              Hình ảnh
             </Typography>
             <Box
               sx={{
@@ -277,13 +277,13 @@ export function CategoryModal({
                       mb: 1,
                     }}
                   />
-                  <Typography variant="caption">Click to change</Typography>
+                  <Typography variant="caption">Nhấn để thay đổi</Typography>
                 </Box>
               ) : (
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <UploadIcon size={40} />
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    Click to upload an image
+                    Nhấn để tải lên hình ảnh
                   </Typography>
                 </Box>
               )}
@@ -294,7 +294,7 @@ export function CategoryModal({
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={submitting}>
-          Cancel
+          Hủy
         </Button>
         <Button
           variant="contained"
@@ -302,7 +302,7 @@ export function CategoryModal({
           disabled={submitting}
           startIcon={submitting ? <CircularProgress size={20} /> : null}
         >
-          {submitting ? 'Submitting...' : 'Add Category'}
+          {submitting ? 'Đang xử lý...' : mode === 'create' ? 'Thêm loại sản phẩm' : 'Cập nhật'}
         </Button>
       </DialogActions>
     </Dialog>

@@ -88,14 +88,21 @@ const targetValueService = {
     if (maxValue !== undefined && maxValue !== null) params.append('maxValue', maxValue.toString());
     params.append('pageIndex', pageIndex.toString());
     params.append('pageSize', pageSize.toString());
-    // Add a cache-busting parameter to avoid browser caching
     params.append('_t', new Date().getTime().toString());
 
     const url = `/target-value?${params.toString()}`;
     console.log('Fetching target values from URL:', url);
     
     try {
-      const response = await axiosInstance.get(url);
+      const config = {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      };
+      
+      const response = await axiosInstance.get(url, config);
       console.log('API response:', response.data);
       return response.data;
     } catch (error) {
@@ -133,7 +140,6 @@ const targetValueService = {
         },
       });
 
-      // Check for error in response even if HTTP status is 200
       if (response.data.statusCodes >= 400) {
         const error = new Error(response.data.response.message || 'Target value update failed');
         (error as any).response = { data: response.data };
@@ -142,7 +148,6 @@ const targetValueService = {
 
       return response.data.response.data;
     } catch (error) {
-      // Re-throw the error to be handled by the component
       throw error;
     }
   },
@@ -151,14 +156,12 @@ const targetValueService = {
     try {
       const response = await axiosInstance.delete(`/target-value/${id}`);
 
-      // Check for error in response even if HTTP status is 200
       if (response.data?.statusCodes >= 400) {
         const error = new Error(response.data.response.message || 'Target value deletion failed');
         (error as any).response = { data: response.data };
         throw error;
       }
     } catch (error) {
-      // Re-throw the error to be handled by the component
       throw error;
     }
   },
@@ -175,14 +178,12 @@ const targetValueService = {
     try {
       const response = await axiosInstance.post(`/plant/${plantId}/target/${targetId}`);
 
-      // Check for error in response even if HTTP status is 200
       if (response.data?.statusCodes >= 400) {
         const error = new Error(response.data.response.message || 'Failed to set target value for plant');
         (error as any).response = { data: response.data };
         throw error;
       }
     } catch (error) {
-      // Re-throw the error to be handled by the component
       throw error;
     }
   },
@@ -201,14 +202,12 @@ const targetValueService = {
     try {
       const response = await axiosInstance.delete(`/plant/${plantId}/target/${targetId}`);
 
-      // Check for error in response even if HTTP status is 200
       if (response.data?.statusCodes >= 400) {
         const error = new Error(response.data.response.message || 'Failed to remove target value from plant');
         (error as any).response = { data: response.data };
         throw error;
       }
     } catch (error) {
-      // Re-throw the error to be handled by the component
       throw error;
     }
   },

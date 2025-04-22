@@ -10,6 +10,13 @@ export interface User {
   attachment: string | null;
 }
 
+export interface CreateUserRequest {
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   currentPage: number;
@@ -42,5 +49,37 @@ export const userService = {
 
     const response = await axiosInstance.get(`/admin/users?${params.toString()}`);
     return response.data;
+  },
+
+  async createUser(userData: CreateUserRequest): Promise<ApiResponse<any>> {
+    try {
+      console.log('Creating user with data:', userData);
+      
+      // Tạo payload với cấu trúc khác, bọc trong object data
+      const payload = {
+        data: {
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone,
+          role: userData.role
+        }
+      };
+      
+      console.log('Modified payload:', payload);
+      
+      const response = await axiosInstance.post('/admin/mod', payload, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Create user response:', response);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      console.error('Error details:', error.response?.data);
+      console.error('Error response:', error.response);
+      throw error;
+    }
   },
 };

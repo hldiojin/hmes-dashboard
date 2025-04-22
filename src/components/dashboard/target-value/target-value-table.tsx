@@ -81,48 +81,54 @@ function TargetValueTable({
     severity: 'success' as 'success' | 'error',
   });
 
-  React.useEffect(() => {
-    const fetchTargetValues = async () => {
-      setLoading(true);
-      try {
-        console.log('Fetching target values with:', {
-          type, minValue, maxValue, currentPage, rowsPerPage
-        });
-        
-        // Add a small delay to ensure the API has updated
-        if (refreshTrigger > 0) {
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-        
-        const response = await targetValueService.getAllTargetValues(
-          type,
-          minValue,
-          maxValue,
-          currentPage,
-          rowsPerPage
-        );
-        
-        console.log('API Response:', response);
-        
-        if (response.response && Array.isArray(response.response.data)) {
-          setTargetValues(response.response.data);
-          setTotalCount(response.response.totalItems);
-          setCurrentPage(response.response.currentPage);
-          setTotalPages(response.response.totalPages);
-        } else {
-          console.error('Invalid response format:', response);
-          setTargetValues([]);
-        }
-      } catch (error) {
-        console.error('Failed to fetch target values:', error);
+  // Fetch target values from API
+  const fetchTargetValues = React.useCallback(async () => {
+    setLoading(true);
+    
+    console.log('Fetching target values with:', {
+      type, minValue, maxValue, currentPage, rowsPerPage
+    });
+    
+    try {
+      const response = await targetValueService.getAllTargetValues(
+        type,
+        minValue,
+        maxValue,
+        currentPage,
+        rowsPerPage
+      );
+      
+      if (response.response && Array.isArray(response.response.data)) {
+        console.log('Received target values:', response.response.data);
+        setTargetValues(response.response.data);
+        setTotalCount(response.response.totalItems);
+        setCurrentPage(response.response.currentPage);
+        setTotalPages(response.response.totalPages);
+      } else {
+        console.error('Invalid response format:', response);
         setTargetValues([]);
-      } finally {
-        setLoading(false);
+        setTotalCount(0);
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch target values:', error);
+      setTargetValues([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, maxValue, minValue, rowsPerPage, type]);
 
+  // Effect to fetch data when dependencies change
+  React.useEffect(() => {
     fetchTargetValues();
-  }, [refreshTrigger, currentPage, rowsPerPage, type, minValue, maxValue]);
+  }, [fetchTargetValues, refreshTrigger]);
+
+  // Effect to reset to first page when refreshTrigger changes
+  React.useEffect(() => {
+    if (refreshTrigger > 0) {
+      setCurrentPage(1);
+    }
+  }, [refreshTrigger]);
 
   const rowIds = React.useMemo(() => {
     return targetValues.map((targetValue) => targetValue.id);
@@ -179,32 +185,22 @@ function TargetValueTable({
       // Show success message
       setSnackbar({
         open: true,
-        message: `Target value deleted successfully`,
+        message: `Đã xóa giá trị mục tiêu thành công`,
         severity: 'success',
       });
 
-      // Trigger refresh
+      // Refresh the data
       if (onRefreshNeeded) {
         onRefreshNeeded();
       } else {
-        // Refresh the list internally
-        const response = await targetValueService.getAllTargetValues(
-          type,
-          minValue,
-          maxValue,
-          currentPage,
-          rowsPerPage
-        );
-        setTargetValues(response.response.data);
-        setTotalCount(response.response.totalItems);
-        setCurrentPage(response.response.currentPage);
-        setTotalPages(response.response.totalPages);
+        fetchTargetValues();
       }
+      
     } catch (error: any) {
       console.error('Error deleting target value:', error);
 
       // Extract error message from response if available
-      let errorMessage = 'Failed to delete target value';
+      let errorMessage = 'Không thể xóa giá trị mục tiêu';
       if (error.response?.data?.response?.message) {
         errorMessage = error.response.data.response.message;
       }
@@ -219,63 +215,6 @@ function TargetValueTable({
     }
   };
 
-  // Handle edit submit
-  const handleEditSubmit = async (data: Partial<TargetValue>) => {
-    if (!targetValueToEdit) return;
-
-    setEditLoading(true);
-    try {
-      if (data.type && typeof data.minValue === 'number' && typeof data.maxValue === 'number') {
-        await targetValueService.updateTargetValueById(targetValueToEdit.id, data.type, data.minValue, data.maxValue);
-
-        // Close modal
-        setEditModalOpen(false);
-        setTargetValueToEdit(null);
-
-        // Show success message
-        setSnackbar({
-          open: true,
-          message: `Target value updated successfully`,
-          severity: 'success',
-        });
-
-        // Trigger refresh
-        if (onRefreshNeeded) {
-          onRefreshNeeded();
-        } else {
-          // Refresh the list internally
-          const response = await targetValueService.getAllTargetValues(
-            type,
-            minValue,
-            maxValue,
-            currentPage,
-            rowsPerPage
-          );
-          setTargetValues(response.response.data);
-          setTotalCount(response.response.totalItems);
-          setCurrentPage(response.response.currentPage);
-          setTotalPages(response.response.totalPages);
-        }
-      }
-    } catch (error: any) {
-      console.error('Error updating target value:', error);
-
-      // Extract error message from response if available
-      let errorMessage = 'Failed to update target value';
-      if (error.response?.data?.response?.message) {
-        errorMessage = error.response.data.response.message;
-      }
-
-      setSnackbar({
-        open: true,
-        message: errorMessage,
-        severity: 'error',
-      });
-    } finally {
-      setEditLoading(false);
-    }
-  };
-
   // Handle snackbar close
   const handleCloseSnackbar = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
@@ -284,12 +223,16 @@ function TargetValueTable({
   // Handle page change
   const handlePageChange = (event: unknown, newPage: number) => {
     setCurrentPage(newPage + 1);
+    if (onRefreshNeeded) {
+      onRefreshNeeded();
+    }
   };
 
   // Handle rows per page change
   const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newRowsPerPage = parseInt(event.target.value, 10);
     setCurrentPage(1);
+    
     // Note: rowsPerPage is a prop, so we need to handle this through a callback
     if (onRefreshNeeded) {
       onRefreshNeeded();
@@ -300,11 +243,11 @@ function TargetValueTable({
   const getTargetTypeDisplayName = (type: ValueType): string => {
     switch (type) {
       case 'Temperature':
-        return 'Temperature';
+        return 'Nhiệt độ nước';
       case 'SoluteConcentration':
-        return 'Concentration of Solutes';
+        return 'Nồng độ dung dịch';
       case 'WaterLevel':
-        return 'Water Level';
+        return 'Mực nước';
       case 'Ph':
         return 'pH';
       default:
@@ -344,10 +287,10 @@ function TargetValueTable({
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Min Value</TableCell>
-                <TableCell>Max Value</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>Loại</TableCell>
+                <TableCell>Giá trị tối thiểu</TableCell>
+                <TableCell>Giá trị tối đa</TableCell>
+                <TableCell align="right">Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -363,7 +306,7 @@ function TargetValueTable({
                 <TableRow>
                   <TableCell colSpan={5} align="center">
                     <Typography variant="body1" py={2}>
-                      No target values found
+                      Không tìm thấy giá trị mục tiêu nào
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -380,21 +323,21 @@ function TargetValueTable({
                     >
                       <TableCell>{targetValue.id.slice(0, 8)}...</TableCell>
                       <TableCell>
-                        <Typography variant="subtitle2">{getTargetTypeDisplayName(targetValue.type)}</Typography>
+                        <Typography variant="subtitle2">{getTargetTypeDisplayName(targetValue.type as ValueType)}</Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="subtitle2">
-                          {targetValue.minValue ?? '-'} {getTargetTypeUnit(targetValue.type)}
+                          {targetValue.minValue ?? '-'} {getTargetTypeUnit(targetValue.type as ValueType)}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="subtitle2">
-                          {targetValue.maxValue ?? '-'} {getTargetTypeUnit(targetValue.type)}
+                          {targetValue.maxValue ?? '-'} {getTargetTypeUnit(targetValue.type as ValueType)}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Tooltip title="Edit target value">
+                          <Tooltip title="Chỉnh sửa giá trị mục tiêu">
                             <IconButton
                               color="primary"
                               size="small"
@@ -406,7 +349,7 @@ function TargetValueTable({
                               <PencilSimple size={20} />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete target value">
+                          <Tooltip title="Xóa giá trị mục tiêu">
                             <IconButton
                               color="error"
                               size="small"
@@ -436,6 +379,8 @@ function TargetValueTable({
           page={currentPage - 1}
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Số hàng mỗi trang:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
         />
       </Card>
 
@@ -446,15 +391,15 @@ function TargetValueTable({
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
       >
-        <DialogTitle id="delete-dialog-title">Delete Target Value</DialogTitle>
+        <DialogTitle id="delete-dialog-title">Xóa giá trị mục tiêu</DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            Are you sure you want to delete this target value? This action cannot be undone.
+            Bạn có chắc chắn muốn xóa giá trị mục tiêu này? Hành động này không thể hoàn tác.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDeleteDialog} disabled={deleteLoading}>
-            Cancel
+            Hủy
           </Button>
           <Button
             onClick={handleConfirmDelete}
@@ -462,7 +407,7 @@ function TargetValueTable({
             disabled={deleteLoading}
             startIcon={deleteLoading ? <CircularProgress size={20} /> : null}
           >
-            {deleteLoading ? 'Deleting...' : 'Delete'}
+            {deleteLoading ? 'Đang xóa...' : 'Xóa'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -471,9 +416,14 @@ function TargetValueTable({
       <TargetValueModal
         open={editModalOpen}
         onClose={handleCloseEditModal}
-        onSubmit={handleEditSubmit}
-        targetValue={targetValueToEdit || undefined}
-        mode="update"
+        onSuccess={() => {
+          // Refresh the list after successful edit
+          if (onRefreshNeeded) {
+            onRefreshNeeded();
+          } else {
+            fetchTargetValues();
+          }
+        }}
       />
 
       {/* Snackbar for notifications */}

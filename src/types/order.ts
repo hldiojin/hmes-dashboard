@@ -63,10 +63,10 @@ export function formatCurrency(amount: number): string {
 export function formatDate(dateString: string): string {
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('vi-VN', {
       year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -78,16 +78,23 @@ export function formatDate(dateString: string): string {
 
 // Order status display helper
 export function getOrderStatusLabel(status: OrderStatus): string {
-  return status.charAt(0).toUpperCase() + status.slice(1);
+  const labels: Record<OrderStatus, string> = {
+    Pending: 'Chờ xử lý',
+    Delivering: 'Đang giao',
+    Success: 'Thành công',
+    Cancelled: 'Đã hủy'
+  };
+
+  return labels[status] || status;
 }
 
 // Transaction status display helper
 export function getTransactionStatusLabel(status: TransactionStatus): string {
   const labels: Record<TransactionStatus, string> = {
-    PAID: '✅ Payment Completed',
-    PENDING: '⏳ Payment Pending',
-    CANCELLED: '❌ Payment Cancelled',
-    PROCESSING: '🔄 Payment Processing',
+    PAID: '✅ Đã thanh toán',
+    PENDING: '⏳ Chờ thanh toán',
+    CANCELLED: '❌ Đã hủy thanh toán',
+    PROCESSING: '🔄 Đang xử lý',
   };
 
   return labels[status] || status;
@@ -96,8 +103,8 @@ export function getTransactionStatusLabel(status: TransactionStatus): string {
 // Payment method display helper
 export function getPaymentMethodLabel(method: PaymentMethod): string {
   const labels: Record<PaymentMethod, string> = {
-    BANK: '🏦 Bank Transfer',
-    COD: '💵 Cash on Delivery',
+    BANK: '🏦 Chuyển khoản',
+    COD: '💵 Thanh toán khi nhận hàng',
   };
 
   return labels[method] || method;

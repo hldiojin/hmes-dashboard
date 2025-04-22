@@ -157,16 +157,30 @@ export default function OrderTable({
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setPage(0);
+    setPage(0); // Reset về trang 1 khi tìm kiếm
 
+    // Convert input values to appropriate types for API
+    const minPriceValue = minPrice ? parseFloat(minPrice) : undefined;
+    const maxPriceValue = maxPrice ? parseFloat(maxPrice) : undefined;
+
+    console.log('Applying search filters:', {
+      keyword,
+      status: statusFilter,
+      minPrice: minPriceValue,
+      maxPrice: maxPriceValue,
+      startDate,
+      endDate
+    });
+
+    // Apply all filter values together
     handleFilterChange({
       keyword,
       status: statusFilter || undefined,
-      minPrice: minPrice ? parseFloat(minPrice) : undefined,
-      maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      minPrice: minPriceValue,
+      maxPrice: maxPriceValue,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
-      pageIndex: 1, // Reset to first page
+      pageIndex: 1, // Reset về trang 1
       pageSize: rowsPerPage,
     });
   };
@@ -212,12 +226,13 @@ export default function OrderTable({
     setEndDate('');
     setPage(0);
 
-    // Call API with reset filters
+    // Apply empty filters
     handleFilterChange({
       pageIndex: 1,
       pageSize: rowsPerPage,
     });
 
+    // Call refresh callback
     onRefresh();
   };
 
@@ -235,10 +250,10 @@ export default function OrderTable({
               <Grid item xs={12}>
                 <Stack direction="row" spacing={2} alignItems="center">
                   <TextField
-                    label="Search Order"
+                    label="Tìm kiếm đơn hàng"
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
-                    placeholder="Order ID, customer name, phone, or address"
+                    placeholder="Mã đơn hàng, tên khách hàng, điện thoại, hoặc địa chỉ"
                     sx={{ flexGrow: 1 }}
                     InputProps={{
                       endAdornment: (
@@ -250,20 +265,20 @@ export default function OrderTable({
                     }}
                   />
                   <FormControl sx={{ minWidth: 150 }}>
-                    <InputLabel id="status-filter-label">Status</InputLabel>
+                    <InputLabel id="status-filter-label">Trạng thái</InputLabel>
                     <Select
                       labelId="status-filter-label"
                       value={statusFilter}
-                      label="Status"
+                      label="Trạng thái"
                       onChange={(e) => {
                         setStatusFilter(e.target.value as OrderStatus | '');
                       }}
                     >
-                      <MenuItem value="">All</MenuItem>
-                      <MenuItem value="Pending">Pending</MenuItem>
-                      <MenuItem value="Delivering">Delivering</MenuItem>
-                      <MenuItem value="Success">Success</MenuItem>
-                      <MenuItem value="Cancelled">Cancelled</MenuItem>
+                      <MenuItem value="">Tất cả</MenuItem>
+                      <MenuItem value="Pending">Chờ xử lý</MenuItem>
+                      <MenuItem value="Delivering">Đang giao</MenuItem>
+                      <MenuItem value="Success">Thành công</MenuItem>
+                      <MenuItem value="Cancelled">Đã hủy</MenuItem>
                     </Select>
                   </FormControl>
                 </Stack>
@@ -275,7 +290,7 @@ export default function OrderTable({
                     <Grid item xs={12} sm={6} md={3}>
                       <TextField
                         fullWidth
-                        label="Min Price"
+                        label="Giá nhỏ nhất"
                         type="number"
                         value={minPrice}
                         onChange={(e) => setMinPrice(e.target.value)}
@@ -286,7 +301,7 @@ export default function OrderTable({
                     <Grid item xs={12} sm={6} md={3}>
                       <TextField
                         fullWidth
-                        label="Max Price"
+                        label="Giá lớn nhất"
                         type="number"
                         value={maxPrice}
                         onChange={(e) => setMaxPrice(e.target.value)}
@@ -297,7 +312,7 @@ export default function OrderTable({
                     <Grid item xs={12} sm={6} md={3}>
                       <TextField
                         fullWidth
-                        label="Start Date"
+                        label="Từ ngày"
                         type="datetime-local"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
@@ -307,7 +322,7 @@ export default function OrderTable({
                     <Grid item xs={12} sm={6} md={3}>
                       <TextField
                         fullWidth
-                        label="End Date"
+                        label="Đến ngày"
                         type="datetime-local"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
@@ -321,10 +336,10 @@ export default function OrderTable({
               <Grid item xs={12}>
                 <Stack direction="row" spacing={2} justifyContent="flex-end">
                   <Button variant="outlined" onClick={handleRefreshClick} startIcon={<SearchIcon />}>
-                    Reset Filters
+                    Xóa bộ lọc
                   </Button>
                   <Button type="submit" variant="contained" startIcon={<SearchIcon />}>
-                    Search
+                    Tìm kiếm
                   </Button>
                 </Stack>
               </Grid>
@@ -338,12 +353,12 @@ export default function OrderTable({
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Order ID</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Customer</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Total</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell>Mã đơn hàng</TableCell>
+                <TableCell>Ngày đặt</TableCell>
+                <TableCell>Khách hàng</TableCell>
+                <TableCell>Trạng thái</TableCell>
+                <TableCell>Tổng tiền</TableCell>
+                <TableCell>Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -357,7 +372,7 @@ export default function OrderTable({
                 <TableRow>
                   <TableCell colSpan={6} align="center">
                     <Typography variant="body1" sx={{ py: 2 }}>
-                      No orders found
+                      Không tìm thấy đơn hàng nào
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -446,7 +461,7 @@ export default function OrderTable({
                           label={getOrderStatusLabel(order.status as OrderStatus)}
                           color={getStatusColor(order.status as OrderStatus)}
                           size="small"
-                          title="Order Status: Refers to delivery progress"
+                          title="Trạng thái đơn hàng: Thể hiện tiến độ giao hàng"
                         />
                       </Box>
                     </TableCell>
@@ -458,7 +473,7 @@ export default function OrderTable({
                         onClick={() => handleViewOrderDetails(order.id)}
                         startIcon={<EyeIcon />}
                       >
-                        View
+                        Xem
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -475,7 +490,7 @@ export default function OrderTable({
           page={page}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count !== -1 ? count : `more than ${to}`}`}
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} / ${count !== -1 ? count : `hơn ${to}`}`}
         />
       </Card>
     </>

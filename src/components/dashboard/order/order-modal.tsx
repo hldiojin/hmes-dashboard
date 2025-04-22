@@ -72,7 +72,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose}>Đóng</Button>
         </DialogActions>
       </Dialog>
     );
@@ -82,10 +82,10 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
     return (
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <DialogContent>
-          <Typography>Order not found</Typography>
+          <Typography>Không tìm thấy đơn hàng</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose}>Đóng</Button>
         </DialogActions>
       </Dialog>
     );
@@ -102,7 +102,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Order {orderDetails.orderId.slice(0, 8).toUpperCase()}</Typography>
+          <Typography variant="h6">Đơn hàng {orderDetails.orderId.slice(0, 8).toUpperCase()}</Typography>
           <Chip
             label={getOrderStatusLabel(orderStatus)}
             color={getStatusColor(orderStatus)}
@@ -114,37 +114,37 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
       <DialogContent>
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle1" gutterBottom>
-            Order Information
+            Thông tin đơn hàng
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2" color="text.secondary">
-                Date
+                Ngày đặt
               </Typography>
               <Typography variant="body1">
-                {transaction ? formatDate(transaction.createdAt) : 'Not available'}
+                {transaction ? formatDate(transaction.createdAt) : 'Không có thông tin'}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2" color="text.secondary">
-                Total Amount
+                Tổng tiền
               </Typography>
               <Typography variant="body1">{formatCurrency(orderDetails.totalPrice)}</Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2" color="text.secondary">
-                Payment Method
+                Phương thức thanh toán
               </Typography>
               <Typography variant="body1">
-                {transaction ? getPaymentMethodLabel(transaction.paymentMethod) : 'Not available'}
+                {transaction ? getPaymentMethodLabel(transaction.paymentMethod) : 'Không có thông tin'}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2" color="text.secondary">
-                Transaction ID
+                Mã giao dịch
               </Typography>
               <Typography variant="body1">
-                {transaction ? transaction.transactionId.slice(0, 8).toUpperCase() : 'Not available'}
+                {transaction ? transaction.transactionId.slice(0, 8).toUpperCase() : 'Không có thông tin'}
               </Typography>
             </Grid>
           </Grid>
@@ -154,14 +154,14 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
 
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle1" gutterBottom>
-            Status Information
+            Thông tin trạng thái
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 {/* Order Status Process Visualization */}
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Order Status (Delivery)
+                  Trạng thái đơn hàng (Vận chuyển)
                 </Typography>
                 <Box sx={{ position: 'relative' }}>
                   {/* Status Progress Track */}
@@ -292,7 +292,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                               : 'text.secondary',
                       }}
                     >
-                      Pending
+                      Chờ xử lý
                     </Typography>
                     <Typography
                       variant="caption"
@@ -301,7 +301,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                         color: orderStatus === 'Delivering' ? 'primary.main' : 'text.secondary',
                       }}
                     >
-                      Delivering
+                      Đang giao
                     </Typography>
                     <Typography
                       variant="caption"
@@ -310,7 +310,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                         color: orderStatus === 'Success' ? 'success.main' : 'text.secondary',
                       }}
                     >
-                      Success
+                      Thành công
                     </Typography>
                   </Box>
 
@@ -318,7 +318,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                   {orderStatus === 'Cancelled' && (
                     <Box sx={{ mt: 2, pt: 0 }}>
                       <Chip
-                        label="Cancelled"
+                        label="Đã hủy"
                         color="error"
                         sx={{
                           fontWeight: 'medium',
@@ -328,7 +328,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                         }}
                       />
                       <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5 }}>
-                        This order has been cancelled
+                        Đơn hàng này đã bị hủy
                       </Typography>
                     </Box>
                   )}
@@ -339,7 +339,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
             <Grid item xs={12}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Payment Status
+                  Trạng thái thanh toán
                 </Typography>
                 {transaction ? (
                   <Chip
@@ -348,7 +348,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                     sx={{ fontWeight: 'medium' }}
                   />
                 ) : (
-                  <Chip label="No payment information" color="default" />
+                  <Chip label="Không có thông tin thanh toán" color="default" />
                 )}
               </Paper>
             </Grid>
@@ -377,20 +377,20 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
               color: '#333',
             }}
           >
-            Shipping Address
+            Địa chỉ giao hàng
           </Typography>
           {orderDetails.userAddress ? (
             <Box sx={{ mt: 1.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
                 <Typography variant="body1" sx={{ fontWeight: 500, color: '#555' }}>
-                  User:
+                  Người nhận:
                 </Typography>
                 <Typography variant="body1" sx={{ ml: 1, fontWeight: 'bold' }}>
                   {orderDetails.userAddress.name}
                 </Typography>
                 {orderDetails.userAddress.status === 'Default' && (
                   <Chip
-                    label="Default"
+                    label="Mặc định"
                     color="primary"
                     size="small"
                     variant="outlined"
@@ -400,7 +400,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
                 <Typography variant="body1" sx={{ fontWeight: 500, color: '#555' }}>
-                  Phone:
+                  Điện thoại:
                 </Typography>
                 <Typography variant="body1" sx={{ ml: 1 }}>
                   {orderDetails.userAddress.phone}
@@ -408,7 +408,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
                 <Typography variant="body1" sx={{ fontWeight: 500, color: '#555' }}>
-                  Address:
+                  Địa chỉ:
                 </Typography>
                 <Typography variant="body1" sx={{ ml: 1 }}>
                   {orderDetails.userAddress.address}
@@ -417,7 +417,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
             </Box>
           ) : (
             <Typography variant="body1" sx={{ color: '#888', fontStyle: 'italic', mt: 1 }}>
-              No address information available
+              Không có thông tin địa chỉ
             </Typography>
           )}
         </Box>
@@ -426,17 +426,17 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
 
         <Box>
           <Typography variant="subtitle1" gutterBottom>
-            Items
+            Sản phẩm
           </Typography>
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Product</TableCell>
-                  <TableCell align="center">Image</TableCell>
-                  <TableCell align="right">Quantity</TableCell>
-                  <TableCell align="right">Price</TableCell>
-                  <TableCell align="right">Subtotal</TableCell>
+                  <TableCell>Sản phẩm</TableCell>
+                  <TableCell align="center">Hình ảnh</TableCell>
+                  <TableCell align="right">Số lượng</TableCell>
+                  <TableCell align="right">Đơn giá</TableCell>
+                  <TableCell align="right">Thành tiền</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -467,7 +467,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                           }}
                         >
                           <Typography variant="caption" color="text.secondary">
-                            No image
+                            Không có ảnh
                           </Typography>
                         </Box>
                       )}
@@ -479,19 +479,19 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                 ))}
                 <TableRow>
                   <TableCell colSpan={4} align="right">
-                    Subtotal:
+                    Tạm tính:
                   </TableCell>
                   <TableCell align="right">{formatCurrency(orderDetails.price)}</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell colSpan={4} align="right">
-                    Shipping Fee:
+                    Phí vận chuyển:
                   </TableCell>
                   <TableCell align="right">{formatCurrency(orderDetails.shippingFee)}</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell colSpan={4} align="right" sx={{ fontWeight: 'bold' }}>
-                    Total:
+                    Tổng cộng:
                   </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 'bold' }}>
                     {formatCurrency(orderDetails.totalPrice)}
@@ -503,7 +503,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>Đóng</Button>
       </DialogActions>
     </Dialog>
   );

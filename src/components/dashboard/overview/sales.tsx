@@ -28,10 +28,10 @@ export function Sales({ chartSeries, sx }: SalesProps): React.JSX.Element {
       <CardHeader
         action={
           <Button color="inherit" size="small" startIcon={<ArrowClockwiseIcon fontSize="var(--icon-fontSize-md)" />}>
-            Sync
+            Cập nhật
           </Button>
         }
-        title="Sales"
+        title="Doanh số bán hàng"
       />
       <CardContent>
         <Chart height={350} options={chartOptions} series={chartSeries} type="bar" width="100%" />
@@ -65,7 +65,7 @@ function useChartOptions(): ApexOptions {
     xaxis: {
       axisBorder: { color: theme.palette.divider, show: true },
       axisTicks: { color: theme.palette.divider, show: true },
-      categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      categories: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
       labels: { offsetY: 5, style: { colors: theme.palette.text.secondary } },
     },
     yaxis: {

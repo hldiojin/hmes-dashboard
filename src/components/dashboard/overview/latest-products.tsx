@@ -1,25 +1,30 @@
-import React from 'react';
+import * as React from 'react';
+import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
 import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
-import IconButton from '@mui/material/IconButton';
+import Link from '@mui/material/Link';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import ListItemText from '@mui/material/ListItemText';
+import Stack from '@mui/material/Stack';
 import type { SxProps } from '@mui/material/styles';
+import Typography from '@mui/material/Typography';
 import { ArrowRight as ArrowRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowRight';
-import { DotsThreeVertical as DotsThreeVerticalIcon } from '@phosphor-icons/react/dist/ssr/DotsThreeVertical';
+import { Clock as ClockIcon } from '@phosphor-icons/react/dist/ssr/Clock';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 export interface Product {
   id: string;
-  image: string;
   name: string;
-  updatedAt: Date;
+  updatedAt: Date | number;
+  price: string;
+  image: string;
 }
 
 export interface LatestProductsProps {
@@ -30,48 +35,53 @@ export interface LatestProductsProps {
 export function LatestProducts({ products = [], sx }: LatestProductsProps): React.JSX.Element {
   return (
     <Card sx={sx}>
-      <CardHeader title="Latest products" />
-      <Divider />
-      <List>
-        {products.map((product, index) => (
-          <ListItem divider={index < products.length - 1} key={product.id}>
-            <ListItemAvatar>
-              {product.image ? (
-                <Box component="img" src={product.image} sx={{ borderRadius: 1, height: '48px', width: '48px' }} />
-              ) : (
-                <Box
-                  sx={{
-                    borderRadius: 1,
-                    backgroundColor: 'var(--mui-palette-neutral-200)',
-                    height: '48px',
-                    width: '48px',
-                  }}
+      <CardHeader title="Sản phẩm mới thêm" />
+      <List sx={{ p: 0 }}>
+        {products.map((product, index) => {
+          const updatedAt = dayjs(product.updatedAt).fromNow();
+          const showDivider = index < products.length - 1;
+
+          return (
+            <React.Fragment key={product.id}>
+              <ListItem sx={{ px: 3, py: 2 }}>
+                <ListItemAvatar sx={{ pr: 2 }}>
+                  <Avatar alt={product.name} src={product.image} variant="rounded" />
+                </ListItemAvatar>
+                <ListItemText
+                  disableTypography
+                  primary={
+                    <Link color="text.primary" noWrap underline="none" variant="subtitle2">
+                      {product.name}
+                    </Link>
+                  }
+                  secondary={
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 0.5 }}>
+                      <Typography color="text.secondary" variant="caption">
+                        {product.price}
+                      </Typography>
+                      <Box
+                        sx={{
+                          height: 4,
+                          width: 4,
+                          borderRadius: '50%',
+                          bgcolor: 'text.secondary',
+                        }}
+                      />
+                      <Stack sx={{ alignItems: 'center' }} direction="row" spacing={0.5}>
+                        <ClockIcon fontSize="var(--icon-fontSize-sm)" />
+                        <Typography color="text.secondary" variant="caption">
+                          {updatedAt}
+                        </Typography>
+                      </Stack>
+                    </Stack>
+                  }
                 />
-              )}
-            </ListItemAvatar>
-            <ListItemText
-              primary={product.name}
-              primaryTypographyProps={{ variant: 'subtitle1' }}
-              secondary={`Updated ${dayjs(product.updatedAt).format('MMM D, YYYY')}`}
-              secondaryTypographyProps={{ variant: 'body2' }}
-            />
-            <IconButton edge="end">
-              <DotsThreeVerticalIcon weight="bold" />
-            </IconButton>
-          </ListItem>
-        ))}
+              </ListItem>
+              {showDivider && <Divider />}
+            </React.Fragment>
+          );
+        })}
       </List>
-      <Divider />
-      <CardActions sx={{ justifyContent: 'flex-end' }}>
-        <Button
-          color="inherit"
-          endIcon={<ArrowRightIcon fontSize="var(--icon-fontSize-md)" />}
-          size="small"
-          variant="text"
-        >
-          View all
-        </Button>
-      </CardActions>
     </Card>
   );
 }

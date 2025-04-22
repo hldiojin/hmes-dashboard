@@ -27,7 +27,7 @@ export function TotalCustomers({ diff, trend, sx, value }: TotalCustomersProps):
           <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={3}>
             <Stack spacing={1}>
               <Typography color="text.secondary" variant="overline">
-                Total Customers
+                Tổng lượng khách hàng
               </Typography>
               <Typography variant="h4">{value}</Typography>
             </Stack>
@@ -44,7 +44,7 @@ export function TotalCustomers({ diff, trend, sx, value }: TotalCustomersProps):
                 </Typography>
               </Stack>
               <Typography color="text.secondary" variant="caption">
-                Since last month
+                Tính từ tháng trước
               </Typography>
             </Stack>
           ) : null}

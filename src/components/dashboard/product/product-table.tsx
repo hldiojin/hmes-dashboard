@@ -253,7 +253,7 @@ function ProductTable({
       // Show success message
       setSnackbar({
         open: true,
-        message: `Product "${productToDelete.name}" deleted successfully`,
+        message: `Sản phẩm "${productToDelete.name}" đã xóa thành công`,
         severity: 'success',
       });
 
@@ -270,7 +270,7 @@ function ProductTable({
       console.error('Error deleting product:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to delete product',
+        message: 'Không thể xóa sản phẩm',
         severity: 'error',
       });
     } finally {
@@ -293,7 +293,7 @@ function ProductTable({
       // Show success message
       setSnackbar({
         open: true,
-        message: `Product "${productToEdit.name}" updated successfully`,
+        message: `Sản phẩm "${productToEdit.name}" đã cập nhật thành công`,
         severity: 'success',
       });
 
@@ -310,7 +310,7 @@ function ProductTable({
       console.error('Error updating product:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to update product',
+        message: 'Không thể cập nhật sản phẩm',
         severity: 'error',
       });
     } finally {
@@ -339,12 +339,12 @@ function ProductTable({
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Amount</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>Tên</TableCell>
+                <TableCell>Loại sản phẩm</TableCell>
+                <TableCell>Số lượng</TableCell>
+                <TableCell>Giá</TableCell>
+                <TableCell>Trạng thái</TableCell>
+                <TableCell align="right">Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -352,7 +352,7 @@ function ProductTable({
                 <TableRow>
                   <TableCell colSpan={7} align="center">
                     <Typography variant="body1" py={2}>
-                      {products.length === 0 ? "No products found" : "No matching products found"}
+                      {products.length === 0 ? "Không tìm thấy sản phẩm nào" : "Không tìm thấy sản phẩm phù hợp"}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -379,14 +379,14 @@ function ProductTable({
                       <TableCell>{product.price.toLocaleString('vi-VN')}đ</TableCell>
                       <TableCell>
                         <Chip
-                          label={product.status}
+                          label={product.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
                           color={product.status === 'Active' ? 'success' : 'error'}
                           size="small"
                         />
                       </TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Tooltip title="Delete product">
+                          <Tooltip title="Xóa sản phẩm">
                             <IconButton
                               color="error"
                               size="small"
@@ -416,6 +416,8 @@ function ProductTable({
           page={page}
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Số hàng mỗi trang:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
         />
       </Card>
 
@@ -426,15 +428,15 @@ function ProductTable({
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
       >
-        <DialogTitle id="delete-dialog-title">Delete Product</DialogTitle>
+        <DialogTitle id="delete-dialog-title">Xóa sản phẩm</DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            Are you sure you want to delete the product "{productToDelete?.name}"? This action cannot be undone.
+            Bạn có chắc chắn muốn xóa sản phẩm "{productToDelete?.name}"? Hành động này không thể hoàn tác.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDeleteDialog} disabled={deleteLoading}>
-            Cancel
+            Hủy
           </Button>
           <Button
             onClick={handleConfirmDelete}
@@ -442,7 +444,7 @@ function ProductTable({
             disabled={deleteLoading}
             startIcon={deleteLoading ? <CircularProgress size={20} /> : null}
           >
-            {deleteLoading ? 'Deleting...' : 'Delete'}
+            {deleteLoading ? 'Đang xóa...' : 'Xóa'}
           </Button>
         </DialogActions>
       </Dialog>
