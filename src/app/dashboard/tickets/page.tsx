@@ -9,8 +9,8 @@ import Typography from '@mui/material/Typography';
 import { ClipboardText as AssignedIcon } from '@phosphor-icons/react/dist/ssr';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 
-import TicketList from '@/components/dashboard/ticket/TicketList';
 import usePageTitle from '@/lib/hooks/usePageTitle';
+import TicketList from '@/components/dashboard/ticket/TicketList';
 
 function Tickets(): React.JSX.Element {
   // Set page title
@@ -105,8 +105,8 @@ function Tickets(): React.JSX.Element {
           textColor="primary"
         >
           <Tab label="Tất cả ticket" />
-          <Tab label="Ticket được giao" />
-          <Tab label="Yêu cầu chuyển" />
+          <Tab label="Ticket đã nhận" />
+          <Tab label="Yêu cầu chuyển nhượng" />
         </Tabs>
       </Box>
 
