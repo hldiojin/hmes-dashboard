@@ -43,9 +43,7 @@ export default function Page(): React.JSX.Element {
   };
 
   const handleDeviceAdded = () => {
-    // Trigger a refresh of the device table
     setRefreshTrigger((prev) => prev + 1);
-    // Show success message
     setSnackbar({
       open: true, 
       message: 'Thiết bị đã được thêm thành công', 
@@ -111,7 +109,7 @@ export default function Page(): React.JSX.Element {
         <Stack spacing={1}>
           <Typography variant="h4">Quản lý thiết bị</Typography>
           <Typography variant="body2" color="text.secondary">
-            Quản lý danh sách thiết bị và theo dõi trạng thái
+            Quản lý danh sách thiết bị và theo dõi số lượng
           </Typography>
         </Stack>
         <Button 

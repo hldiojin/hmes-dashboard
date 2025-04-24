@@ -33,20 +33,17 @@ interface AddDeviceModalProps {
 
 export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps): React.JSX.Element {
   const [name, setName] = React.useState<string>('');
-  const [serialNumber, setSerialNumber] = React.useState<string>('');
-  const [model, setModel] = React.useState<string>('');
-  const [manufacturer, setManufacturer] = React.useState<string>('');
-  const [status, setStatus] = React.useState<string>('Active');
-  const [location, setLocation] = React.useState<string>('');
-  const [purchaseDate, setPurchaseDate] = React.useState<Dayjs | null>(null);
-  const [notes, setNotes] = React.useState<string>('');
+  const [description, setDescription] = React.useState<string>('');
+  const [attachment, setAttachment] = React.useState<File | null>(null);
+  const [price, setPrice] = React.useState<string>('');
+  const [quantity, setQuantity] = React.useState<string>('');
   const [loading, setLoading] = React.useState<boolean>(false);
   const [errors, setErrors] = React.useState<{
     name?: string;
-    serialNumber?: string;
-    model?: string;
-    manufacturer?: string;
-    status?: string;
+    description?: string;
+    attachment?: string;
+    price?: string;
+    quantity?: string;
     general?: string;
   }>({});
 
@@ -59,13 +56,10 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
 
   const resetForm = () => {
     setName('');
-    setSerialNumber('');
-    setModel('');
-    setManufacturer('');
-    setStatus('Active');
-    setLocation('');
-    setPurchaseDate(null);
-    setNotes('');
+    setDescription('');
+    setAttachment(null);
+    setPrice('');
+    setQuantity('');
     setErrors({});
   };
 
@@ -77,31 +71,30 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
   const validateForm = (): boolean => {
     const newErrors: {
       name?: string;
-      serialNumber?: string;
-      model?: string;
-      manufacturer?: string;
-      status?: string;
-      general?: string;
+      description?: string;
+      attachment?: string;
+      price?: string;
+      quantity?: string;
     } = {};
 
     if (!name.trim()) {
       newErrors.name = 'Tên thiết bị là bắt buộc';
     }
 
-    if (!serialNumber.trim()) {
-      newErrors.serialNumber = 'Số serial là bắt buộc';
+    if (!description.trim()) {
+      newErrors.description = 'Mô tả là bắt buộc';
     }
 
-    if (!model.trim()) {
-      newErrors.model = 'Model là bắt buộc';
+    if (!attachment) {
+      newErrors.attachment = 'Hình ảnh là bắt buộc';
     }
 
-    if (!manufacturer.trim()) {
-      newErrors.manufacturer = 'Nhà sản xuất là bắt buộc';
+    if (!price || isNaN(Number(price)) || Number(price) <= 0) {
+      newErrors.price = 'Giá phải là số dương';
     }
 
-    if (!status) {
-      newErrors.status = 'Trạng thái là bắt buộc';
+    if (!quantity || isNaN(Number(quantity)) || Number(quantity) <= 0 || !Number.isInteger(Number(quantity))) {
+      newErrors.quantity = 'Số lượng phải là số nguyên dương';
     }
 
     setErrors(newErrors);
@@ -109,46 +102,39 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    if (!validateForm() || !attachment) return;
 
     setLoading(true);
     try {
       const deviceData: CreateDeviceRequest = {
         name,
-        serialNumber,
-        model,
-        manufacturer,
-        status: status as 'Active' | 'Inactive' | 'Maintenance',
-        ...(location && { location }),
-        ...(purchaseDate && { purchaseDate: purchaseDate.format('YYYY-MM-DD') }),
-        ...(notes && { notes }),
+        description,
+        attachment,
+        price: Number(price),
+        quantity: Number(quantity),
       };
 
-      console.log('Submitting device data:', deviceData);
-
-      const response = await deviceService.createDevice(deviceData);
-      console.log('Create device response:', response);
-
-      // Đóng modal sau khi tạo thành công
+      await deviceService.createDevice(deviceData);
       handleClose();
-
-      // Gọi callback để refresh danh sách thiết bị
       onSuccess();
     } catch (error: any) {
       console.error('Error creating device:', error);
-
-      // Extract error message if available
       let errorMessage = 'Đã xảy ra lỗi khi tạo thiết bị';
       if (error.response?.data?.response?.message) {
         errorMessage = error.response.data.response.message;
       }
-
       setErrors({
         ...errors,
         general: errorMessage,
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setAttachment(event.target.files[0]);
     }
   };
 
@@ -171,7 +157,7 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
 
         <Box sx={{ mt: 2 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <TextField
                 label="Tên thiết bị"
                 fullWidth
@@ -179,101 +165,70 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
                 onChange={(e) => setName(e.target.value)}
                 error={!!errors.name}
                 helperText={errors.name}
-                sx={{ mb: 2 }}
                 disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Số serial"
-                fullWidth
-                value={serialNumber}
-                onChange={(e) => setSerialNumber(e.target.value)}
-                error={!!errors.serialNumber}
-                helperText={errors.serialNumber}
-                sx={{ mb: 2 }}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Model"
-                fullWidth
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                error={!!errors.model}
-                helperText={errors.model}
-                sx={{ mb: 2 }}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Nhà sản xuất"
-                fullWidth
-                value={manufacturer}
-                onChange={(e) => setManufacturer(e.target.value)}
-                error={!!errors.manufacturer}
-                helperText={errors.manufacturer}
-                sx={{ mb: 2 }}
-                disabled={loading}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={!!errors.status} sx={{ mb: 2 }}>
-                <InputLabel id="status-label">Trạng thái</InputLabel>
-                <Select
-                  labelId="status-label"
-                  value={status}
-                  label="Trạng thái"
-                  onChange={(e) => setStatus(e.target.value)}
-                  disabled={loading}
-                >
-                  <MenuItem value="Active">Hoạt động</MenuItem>
-                  <MenuItem value="Inactive">Không hoạt động</MenuItem>
-                  <MenuItem value="Maintenance">Bảo trì</MenuItem>
-                </Select>
-                {errors.status && <FormHelperText>{errors.status}</FormHelperText>}
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Vị trí"
-                fullWidth
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                sx={{ mb: 2 }}
-                disabled={loading}
-                placeholder="Phòng máy, khu vực, v.v..."
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <DatePicker
-                label="Ngày mua"
-                value={purchaseDate}
-                onChange={(newValue) => setPurchaseDate(newValue)}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    disabled: loading,
-                    sx: { mb: 2 },
-                  },
-                }}
-                slots={{
-                  openPickerIcon: CalendarBlank,
-                }}
               />
             </Grid>
             <Grid item xs={12}>
               <TextField
-                label="Ghi chú"
+                label="Mô tả"
                 fullWidth
                 multiline
                 rows={3}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                sx={{ mb: 2 }}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                error={!!errors.description}
+                helperText={errors.description}
                 disabled={loading}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Button
+                variant="outlined"
+                component="label"
+                fullWidth
+                disabled={loading}
+                sx={{ height: '56px' }}
+              >
+                {attachment ? attachment.name : 'Chọn hình ảnh'}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              </Button>
+              {errors.attachment && (
+                <FormHelperText error>{errors.attachment}</FormHelperText>
+              )}
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Giá"
+                fullWidth
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                error={!!errors.price}
+                helperText={errors.price}
+                disabled={loading}
+                InputProps={{
+                  inputProps: { min: 0 }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Số lượng"
+                fullWidth
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                error={!!errors.quantity}
+                helperText={errors.quantity}
+                disabled={loading}
+                InputProps={{
+                  inputProps: { min: 1, step: 1 }
+                }}
               />
             </Grid>
           </Grid>

@@ -1,50 +1,39 @@
 import axiosInstance from '@/api/axiosInstance';
-import { 
-  CreateDeviceRequest, 
-  Device, 
-  DeviceDetailsResponse, 
-  DeviceResponse, 
-  UpdateDeviceRequest 
+
+import {
+  CreateDeviceRequest,
+  Device,
+  DeviceDetailsResponse,
+  DeviceResponse,
+  UpdateDeviceRequest,
 } from '@/types/device';
 
 export const deviceService = {
-  async getDevices(
-    pageIndex: number = 1,
-    pageSize: number = 10,
-    keyword?: string,
-    status?: string,
-    sortBy: string = 'createdAt',
-    sortDirection: string = 'desc'
-  ): Promise<DeviceResponse> {
-    const params = new URLSearchParams({
-      pageIndex: pageIndex.toString(),
-      pageSize: pageSize.toString(),
-      sortBy,
-      sortDirection,
-      ...(keyword && { keyword }),
-      ...(status && { status }),
-    });
-
-    const response = await axiosInstance.get(`/devices?${params.toString()}`);
+  async getDevices(pageIndex: number = 1, pageSize: number = 10): Promise<DeviceResponse> {
+    const response = await axiosInstance.get('/device');
     return response.data;
   },
 
   async getDeviceById(id: string): Promise<DeviceDetailsResponse> {
-    const response = await axiosInstance.get(`/devices/${id}`);
+    const response = await axiosInstance.get(`/device/${id}`);
     return response.data;
   },
 
   async createDevice(deviceData: CreateDeviceRequest): Promise<DeviceDetailsResponse> {
     try {
-      console.log('Creating device with data:', deviceData);
-      
-      const response = await axiosInstance.post('/devices', deviceData, {
+      const formData = new FormData();
+      formData.append('name', deviceData.name);
+      formData.append('description', deviceData.description);
+      formData.append('attachment', deviceData.attachment);
+      formData.append('price', deviceData.price.toString());
+      formData.append('quantity', deviceData.quantity.toString());
+
+      const response = await axiosInstance.post('/device', formData, {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'multipart/form-data',
         },
       });
-      
-      console.log('Create device response:', response);
+
       return response.data;
     } catch (error: any) {
       console.error('Error creating device:', error);
@@ -60,7 +49,7 @@ export const deviceService = {
           'Content-Type': 'application/json',
         },
       });
-      
+
       return response.data;
     } catch (error: any) {
       console.error('Error updating device:', error);
@@ -78,4 +67,4 @@ export const deviceService = {
       throw error;
     }
   },
-}; 
+};

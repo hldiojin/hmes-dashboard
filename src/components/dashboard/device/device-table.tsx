@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { deviceService } from '@/services/deviceService';
-import { Device } from '@/types/device';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
@@ -19,6 +18,8 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { Info, NotePencil, TrashSimple } from '@phosphor-icons/react';
 
+import { Device } from '@/types/device';
+
 import { DeviceFilters } from './device-filters';
 
 interface DeviceTableProps {
@@ -28,11 +29,11 @@ interface DeviceTableProps {
   onDelete?: (device: Device) => void;
 }
 
-export function DeviceTable({ 
+export function DeviceTable({
   refreshTrigger = 0,
   onViewDetails,
   onEdit,
-  onDelete
+  onDelete,
 }: DeviceTableProps): React.JSX.Element {
   const [devices, setDevices] = React.useState<Device[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -45,12 +46,7 @@ export function DeviceTable({
   const fetchDevices = async () => {
     try {
       setLoading(true);
-      const response = await deviceService.getDevices(
-        page + 1,
-        rowsPerPage,
-        searchValue || undefined,
-        statusValue || undefined
-      );
+      const response = await deviceService.getDevices(page + 1, rowsPerPage);
       setDevices(response.response.data);
       setTotalItems(response.response.totalItems);
     } catch (error) {
@@ -77,32 +73,6 @@ export function DeviceTable({
     setPage(0);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'success';
-      case 'Inactive':
-        return 'error';
-      case 'Maintenance':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'Hoạt động';
-      case 'Inactive':
-        return 'Không hoạt động';
-      case 'Maintenance':
-        return 'Bảo trì';
-      default:
-        return status;
-    }
-  };
-
   if (loading && devices.length === 0) {
     return (
       <Card>
@@ -115,22 +85,16 @@ export function DeviceTable({
 
   return (
     <Stack spacing={3}>
-      <DeviceFilters
-        onSearchChange={setSearchValue}
-        onStatusChange={setStatusValue}
-        searchValue={searchValue}
-        statusValue={statusValue}
-      />
+      <DeviceFilters onSearchChange={setSearchValue} searchValue={searchValue} />
       <Card>
         <Table>
           <TableHead>
             <TableRow>
               <TableCell>Tên thiết bị</TableCell>
-              <TableCell>Số serial</TableCell>
-              <TableCell>Model</TableCell>
-              <TableCell>Nhà sản xuất</TableCell>
-              <TableCell>Vị trí</TableCell>
-              <TableCell>Trạng thái</TableCell>
+              <TableCell>Hình ảnh</TableCell>
+              <TableCell>Mô tả</TableCell>
+              <TableCell>Giá</TableCell>
+              <TableCell>Số lượng</TableCell>
               <TableCell align="right">Thao tác</TableCell>
             </TableRow>
           </TableHead>
@@ -138,52 +102,45 @@ export function DeviceTable({
             {devices.map((device) => (
               <TableRow hover key={device.id}>
                 <TableCell>
-                  <Typography variant="subtitle2">
-                    {device.name}
-                  </Typography>
+                  <Typography variant="subtitle2">{device.name}</Typography>
                 </TableCell>
-                <TableCell>{device.serialNumber}</TableCell>
-                <TableCell>{device.model}</TableCell>
-                <TableCell>{device.manufacturer}</TableCell>
-                <TableCell>{device.location || 'N/A'}</TableCell>
                 <TableCell>
-                  <Chip 
-                    label={getStatusLabel(device.status)} 
-                    color={getStatusColor(device.status) as "success" | "error" | "warning" | "default"}
-                    size="small"
-                  />
+                  {device.attachment && (
+                    <Box
+                      component="img"
+                      src={device.attachment}
+                      alt={device.name}
+                      sx={{
+                        width: 50,
+                        height: 50,
+                        objectFit: 'cover',
+                        borderRadius: 1,
+                      }}
+                    />
+                  )}
                 </TableCell>
+                <TableCell>{device.description}</TableCell>
+                <TableCell>{device.price.toLocaleString('vi-VN')} đ</TableCell>
+                <TableCell>{device.quantity}</TableCell>
                 <TableCell align="right">
                   <Stack direction="row" spacing={1} justifyContent="flex-end">
                     {onViewDetails && (
                       <Tooltip title="Xem chi tiết">
-                        <IconButton
-                          onClick={() => onViewDetails(device)}
-                          color="primary"
-                          size="small"
-                        >
+                        <IconButton onClick={() => onViewDetails(device)} color="primary" size="small">
                           <Info size={20} />
                         </IconButton>
                       </Tooltip>
                     )}
                     {onEdit && (
                       <Tooltip title="Chỉnh sửa">
-                        <IconButton
-                          onClick={() => onEdit(device)}
-                          color="primary"
-                          size="small"
-                        >
+                        <IconButton onClick={() => onEdit(device)} color="primary" size="small">
                           <NotePencil size={20} />
                         </IconButton>
                       </Tooltip>
                     )}
                     {onDelete && (
                       <Tooltip title="Xóa">
-                        <IconButton
-                          onClick={() => onDelete(device)}
-                          color="error"
-                          size="small"
-                        >
+                        <IconButton onClick={() => onDelete(device)} color="error" size="small">
                           <TrashSimple size={20} />
                         </IconButton>
                       </Tooltip>
@@ -207,4 +164,4 @@ export function DeviceTable({
       </Card>
     </Stack>
   );
-} 
+}
