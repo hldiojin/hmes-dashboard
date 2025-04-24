@@ -123,18 +123,7 @@ function PlantModal({ open, onClose, onSubmit, plant, mode }: PlantModalProps): 
             autoFocus
           />
 
-          <FormControl fullWidth>
-            <InputLabel id="status-label">Trạng thái</InputLabel>
-            <Select
-              labelId="status-label"
-              value={status}
-              label="Trạng thái"
-              onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive')}
-            >
-              <MenuItem value="Active">Hoạt động</MenuItem>
-              <MenuItem value="Inactive">Không hoạt động</MenuItem>
-            </Select>
-          </FormControl>
+          {/* Status field is hidden but still maintained in state */}
         </Box>
       </DialogContent>
       <DialogActions>

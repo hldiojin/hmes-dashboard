@@ -295,11 +295,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
               <Grid item xs={12}>
                 <Stack direction="row" spacing={2} alignItems="center">
                   <Typography variant="h5">{plantDetails.name}</Typography>
-                  <Chip
-                    label={plantDetails.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
-                    color={plantDetails.status === 'Active' ? 'success' : 'error'}
-                    size="small"
-                  />
+                  {/* Status chip hidden but status data still present in the plantDetails object */}
                 </Stack>
               </Grid>
               <Grid item xs={12}>

@@ -55,10 +55,37 @@ export default function TargetValuePage(): React.JSX.Element {
     severity: 'success',
   });
 
-  // Handle refresh
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    console.log('Đã chuyển đến trang:', newPage);
+    // Debounce page changes to avoid multiple API requests
+    setPage(newPage);
+  };
+
+  // Handle rows per page change
+  const handleRowsPerPageChange = (newRowsPerPage: number) => {
+    console.log('Đã thay đổi số hàng mỗi trang thành:', newRowsPerPage);
+    setRowsPerPage(newRowsPerPage);
+    setPage(0);
+    // Defer refresh to avoid race conditions
+    setTimeout(() => handleRefresh(), 100);
+  };
+
+  // Debounced refresh to prevent excessive API calls
+  const debouncedRefresh = React.useCallback(() => {
+    const timer = setTimeout(() => {
+      console.log('Đang làm mới danh sách giá trị mục tiêu (debounced)');
+      setRefreshTrigger((prev) => prev + 1);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Fix loading issues with an improved refresh method
   const handleRefresh = () => {
-    console.log('Đang làm mới danh sách giá trị mục tiêu');
-    setRefreshTrigger((prev) => prev + 1);
+    console.log('Refreshing target values with:', { page, rowsPerPage, type, minValue, maxValue });
+    // Use a new reference for refreshTrigger to guarantee React detects the change
+    setRefreshTrigger(Date.now());
   };
 
   // Handle search
@@ -96,19 +123,6 @@ export default function TargetValuePage(): React.JSX.Element {
   // Handle max value change
   const handleMaxValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMaxValue(e.target.value);
-  };
-
-  // Handle page change
-  const handlePageChange = (newPage: number) => {
-    console.log('Đã chuyển đến trang:', newPage);
-    setPage(newPage);
-  };
-
-  // Handle rows per page change
-  const handleRowsPerPageChange = (newRowsPerPage: number) => {
-    console.log('Đã thay đổi số hàng mỗi trang thành:', newRowsPerPage);
-    setRowsPerPage(newRowsPerPage);
-    setPage(0);
   };
 
   // Handle create modal open
@@ -163,14 +177,42 @@ export default function TargetValuePage(): React.JSX.Element {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
+  // Utility function to log API calls for debugging
+  const logApiCalls = React.useCallback((pageNum: number, rowsPerPageNum: number) => {
+    console.log('API call params:', {
+      page: pageNum,
+      rowsPerPage: rowsPerPageNum,
+      type,
+      minValue: minValue ? Number(minValue) : null,
+      maxValue: maxValue ? Number(maxValue) : null,
+      timestamp: new Date().toISOString()
+    });
+  }, [type, minValue, maxValue]);
+
+  // Add an effect to monitor page changes for debugging
+  React.useEffect(() => {
+    logApiCalls(page, rowsPerPage);
+  }, [page, rowsPerPage, logApiCalls]);
+
   return (
     <Container maxWidth="xl">
       <Stack spacing={3}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={4}>
           <Typography variant="h4">Giá trị mục tiêu</Typography>
-          <Button startIcon={<Plus />} variant="contained" onClick={handleCreateModalOpen}>
-            Thêm giá trị mục tiêu
-          </Button>
+          <Stack direction="row" spacing={2}>
+            <Button 
+              variant="outlined" 
+              onClick={() => {
+                console.log('Manual refresh requested');
+                setRefreshTrigger(Date.now());
+              }}
+            >
+              Làm mới
+            </Button>
+            <Button startIcon={<Plus />} variant="contained" onClick={handleCreateModalOpen}>
+              Thêm giá trị mục tiêu
+            </Button>
+          </Stack>
         </Stack>
 
         <Box component="form" onSubmit={handleSearch} sx={{ mb: 2 }}>

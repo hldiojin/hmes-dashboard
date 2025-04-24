@@ -91,79 +91,147 @@ export interface PaginatedOrders {
   lastPage: boolean;
 }
 
+// Cache for recent API requests
+interface CacheItem {
+  data: PaginatedOrders;
+  timestamp: number;
+}
+
+// In-memory cache with 30-second validity
+const requestCache = new Map<string, CacheItem>();
+const CACHE_TTL = 30 * 1000; // 30 seconds in milliseconds
+
+// In-flight request tracking to prevent duplicate requests
+const pendingRequests = new Map<string, Promise<PaginatedOrders>>();
+
 export const getOrders = async (filters: OrdersFilter = {}): Promise<PaginatedOrders> => {
   try {
-    console.log('Fetching orders with filters:', filters);
-
     // Build query parameters
     const params = new URLSearchParams();
-
-    // Xử lý keyword tìm kiếm
-    if (filters.keyword) params.append('keyword', filters.keyword);
     
-    // Xử lý giá
-    if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
-    if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());
+    // Only add defined and non-empty filters
+    if (filters.keyword && filters.keyword.trim()) {
+      params.append('keyword', filters.keyword.trim());
+    }
+    
+    if (filters.minPrice !== undefined && !isNaN(filters.minPrice)) {
+      params.append('minPrice', filters.minPrice.toString());
+    }
+    
+    if (filters.maxPrice !== undefined && !isNaN(filters.maxPrice)) {
+      params.append('maxPrice', filters.maxPrice.toString());
+    }
 
-    // Xử lý ngày tháng, đảm bảo gửi đúng định dạng ISO
+    // Proper date handling with error checking
     if (filters.startDate) {
-      const startDate = new Date(filters.startDate);
-      params.append('startDate', startDate.toISOString());
+      try {
+        const startDate = new Date(filters.startDate);
+        if (!isNaN(startDate.getTime())) {
+          params.append('startDate', startDate.toISOString());
+        }
+      } catch (error) {
+        console.warn('Invalid startDate format:', filters.startDate);
+      }
     }
 
     if (filters.endDate) {
-      const endDate = new Date(filters.endDate);
-      params.append('endDate', endDate.toISOString());
+      try {
+        const endDate = new Date(filters.endDate);
+        if (!isNaN(endDate.getTime())) {
+          params.append('endDate', endDate.toISOString());
+        }
+      } catch (error) {
+        console.warn('Invalid endDate format:', filters.endDate);
+      }
     }
 
-    // Xử lý trạng thái
-    if (filters.status && filters.status !== '') {
+    // Add status filter if valid
+    if (filters.status && filters.status.trim() !== '') {
       params.append('status', filters.status);
     }
 
-    // Luôn kèm theo tham số phân trang
+    // Always include pagination parameters
     params.append('pageIndex', String(filters.pageIndex || 1));
     params.append('pageSize', String(filters.pageSize || 10));
 
-    console.log('API request URL params:', params.toString());
-
-    // Gọi API với tham số query
-    const response = await axiosInstance.get<OrdersResponse>(`order?${params.toString()}`);
-    console.log('API response:', response.data);
-
-    // Validate cấu trúc response
-    if (!response.data || !response.data.response || !Array.isArray(response.data.response.data)) {
-      throw new Error('Invalid response format from API');
+    // Create cache key based on query parameters
+    const cacheKey = params.toString();
+    
+    // Check if a request with these exact parameters is already in flight
+    if (pendingRequests.has(cacheKey)) {
+      console.log('Using in-flight request for:', cacheKey);
+      return pendingRequests.get(cacheKey)!;
     }
-
-    // Map API response tới kiểu Order nội bộ
-    const orders = response.data.response.data.map((apiOrder) => ({
-      id: apiOrder.id,
-      userId: apiOrder.userId,
-      orderNumber: apiOrder.id.substring(0, 8).toUpperCase(), // Generate a shorter order number from ID
-      date: new Date(apiOrder.createdAt).toISOString(),
-      status: mapApiStatus(apiOrder.status),
-      totalAmount: apiOrder.totalPrice,
-      items: [], // We'll need another API call to get items for details view
-      shippingAddress: {
-        street: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        country: '',
-      },
-      paymentMethod: 'BANK' as PaymentMethod, // Default value
-      fullName: apiOrder.fullName,
-    }));
-
-    return {
-      orders,
-      currentPage: response.data.response.currentPage,
-      totalPages: response.data.response.totalPages,
-      totalItems: response.data.response.totalItems,
-      pageSize: response.data.response.pageSize,
-      lastPage: response.data.response.lastPage,
-    };
+    
+    // Check if we have a valid cached response
+    const cachedItem = requestCache.get(cacheKey);
+    const now = Date.now();
+    
+    if (cachedItem && (now - cachedItem.timestamp < CACHE_TTL)) {
+      console.log('Using cached response for:', cacheKey);
+      return cachedItem.data;
+    }
+    
+    // Create and store the promise for this request
+    const requestPromise = (async () => {
+      console.log('Making API request with params:', cacheKey);
+      
+      // Make the API request
+      const response = await axiosInstance.get<OrdersResponse>(`order?${params.toString()}`);
+      
+      // Validate response structure
+      if (!response.data || !response.data.response || !Array.isArray(response.data.response.data)) {
+        throw new Error('Invalid response format from API');
+      }
+      
+      // Map API response to Order objects
+      const orders = response.data.response.data.map((apiOrder) => ({
+        id: apiOrder.id,
+        userId: apiOrder.userId,
+        orderNumber: apiOrder.id.substring(0, 8).toUpperCase(),
+        date: new Date(apiOrder.createdAt).toISOString(),
+        status: mapApiStatus(apiOrder.status),
+        totalAmount: apiOrder.totalPrice,
+        items: [],
+        shippingAddress: {
+          street: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: '',
+        },
+        paymentMethod: 'BANK' as PaymentMethod,
+        fullName: apiOrder.fullName,
+      }));
+      
+      // Prepare result object
+      const result: PaginatedOrders = {
+        orders,
+        currentPage: response.data.response.currentPage,
+        totalPages: response.data.response.totalPages,
+        totalItems: response.data.response.totalItems,
+        pageSize: response.data.response.pageSize,
+        lastPage: response.data.response.lastPage,
+      };
+      
+      // Cache the result
+      requestCache.set(cacheKey, {
+        data: result,
+        timestamp: Date.now()
+      });
+      
+      return result;
+    })();
+    
+    // Store the promise and clean up when resolved
+    pendingRequests.set(cacheKey, requestPromise);
+    
+    try {
+      return await requestPromise;
+    } finally {
+      // Clean up the pending request reference
+      pendingRequests.delete(cacheKey);
+    }
   } catch (error) {
     console.error('Error fetching orders:', error);
     throw error;
@@ -192,13 +260,22 @@ function mapApiStatus(apiStatus: string): OrderStatus {
   }
 }
 
+// Cache for order details
+const orderDetailsCache = new Map<string, OrderDetailsData>();
+
 // READ - Get order details by ID
 export const getOrderDetails = async (orderId: string): Promise<OrderDetailsData | null> => {
   try {
+    // Check cache first
+    if (orderDetailsCache.has(orderId)) {
+      return orderDetailsCache.get(orderId)!;
+    }
+    
     const response = await axiosInstance.get<OrderDetailsResponse>(`order/${orderId}`);
-    console.log('Order details response:', response.data);
-
+    
     if (response.data && response.data.statusCodes === 200 && response.data.response.data) {
+      // Store in cache
+      orderDetailsCache.set(orderId, response.data.response.data);
       return response.data.response.data;
     }
 
@@ -261,6 +338,9 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus): P
     const response = await axiosInstance.put<OrderDetailsResponse>(`order/${orderId}/status`, { status });
 
     if (response.data && response.data.statusCodes === 200) {
+      // Clear cache for this order
+      orderDetailsCache.delete(orderId);
+      
       // Return the updated order by getting it again
       const updatedOrder = await getOrderById(orderId);
       if (updatedOrder) {
@@ -318,6 +398,9 @@ export const updateOrder = async (orderId: string, orderData: Partial<Order>): P
     // In a real implementation, you'd make an API call here
     // const response = await axiosInstance.put(`order/${orderId}`, orderData);
 
+    // Clear cache for this order
+    orderDetailsCache.delete(orderId);
+    
     // For now, just return the combined data
     const currentOrder = await getOrderById(orderId);
 

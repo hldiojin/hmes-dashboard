@@ -282,14 +282,13 @@ function PlantTable({
               <TableRow>
                 <TableCell>ID</TableCell>
                 <TableCell>Tên</TableCell>
-                <TableCell>Trạng thái</TableCell>
                 <TableCell align="right">Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {plants.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">
+                  <TableCell colSpan={3} align="center">
                     <Typography variant="body1" py={2}>
                       Không tìm thấy cây trồng nào
                     </Typography>
@@ -309,13 +308,6 @@ function PlantTable({
                       <TableCell>{plant.id.slice(0, 8)}...</TableCell>
                       <TableCell>
                         <Typography variant="subtitle2">{plant.name}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={plant.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
-                          color={plant.status === 'Active' ? 'success' : 'error'}
-                          size="small"
-                        />
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">

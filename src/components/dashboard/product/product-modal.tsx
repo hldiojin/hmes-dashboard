@@ -31,7 +31,7 @@ const productSchema = z.object({
   mainImage: z.any().optional(),
   amount: z.string().min(1, 'Số lượng không được để trống'),
   price: z.string().min(1, 'Giá không được để trống'),
-  status: z.enum(['Active', 'Inactive']),
+  status: z.enum(['Active', 'Inactive']).optional(),
   images: z.array(z.any()).optional(),
 });
 
@@ -258,7 +258,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
       formData.append('Description', data.description);
       formData.append('Amount', data.amount);
       formData.append('Price', data.price);
-      formData.append('Status', data.status);
+      formData.append('Status', 'Active');
 
       // Only append MainImage if it exists (a file was selected)
       if (data.mainImage) {
@@ -449,7 +449,8 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
               }}
             />
 
-            <Controller
+            {/* Remove or comment out the status field - hiding it from UI */}
+            {/* <Controller
               name="status"
               control={control}
               render={({ field }) => {
@@ -465,7 +466,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                   </FormControl>
                 );
               }}
-            />
+            /> */}
 
             {/* Show current additional images when in update mode */}
             {mode === 'update' && oldImages.length > 0 && (

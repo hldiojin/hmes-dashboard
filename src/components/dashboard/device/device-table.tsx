@@ -19,8 +19,8 @@ import Typography from '@mui/material/Typography';
 import { Info, NotePencil, TrashSimple } from '@phosphor-icons/react';
 
 import { Device } from '@/types/device';
-
 import { DeviceFilters } from './device-filters';
+import { EditDeviceModal } from './edit-device-modal';
 
 interface DeviceTableProps {
   refreshTrigger?: number;
@@ -41,7 +41,8 @@ export function DeviceTable({
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [totalItems, setTotalItems] = React.useState(0);
   const [searchValue, setSearchValue] = React.useState('');
-  const [statusValue, setStatusValue] = React.useState('');
+  const [selectedDevice, setSelectedDevice] = React.useState<Device | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
 
   const fetchDevices = async () => {
     try {
@@ -62,7 +63,7 @@ export function DeviceTable({
     }, 500);
 
     return () => clearTimeout(debounceTimer);
-  }, [page, rowsPerPage, searchValue, statusValue, refreshTrigger]);
+  }, [page, rowsPerPage, searchValue, refreshTrigger]);
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -71,6 +72,25 @@ export function DeviceTable({
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  const handleEditClick = (device: Device) => {
+    setSelectedDevice(device);
+    setIsEditModalOpen(true);
+    if (onEdit) {
+      onEdit(device);
+    }
+  };
+
+  const handleEditSuccess = () => {
+    setIsEditModalOpen(false);
+    setSelectedDevice(null);
+    fetchDevices();
+  };
+
+  const handleEditModalClose = () => {
+    setIsEditModalOpen(false);
+    setSelectedDevice(null);
   };
 
   if (loading && devices.length === 0) {
@@ -131,13 +151,11 @@ export function DeviceTable({
                         </IconButton>
                       </Tooltip>
                     )}
-                    {onEdit && (
-                      <Tooltip title="Chỉnh sửa">
-                        <IconButton onClick={() => onEdit(device)} color="primary" size="small">
-                          <NotePencil size={20} />
-                        </IconButton>
-                      </Tooltip>
-                    )}
+                    <Tooltip title="Chỉnh sửa">
+                      <IconButton onClick={() => handleEditClick(device)} color="primary" size="small">
+                        <NotePencil size={20} />
+                      </IconButton>
+                    </Tooltip>
                     {onDelete && (
                       <Tooltip title="Xóa">
                         <IconButton onClick={() => onDelete(device)} color="error" size="small">
@@ -162,6 +180,15 @@ export function DeviceTable({
           labelDisplayedRows={({ from, to, count }) => `${from}-${to} / ${count !== -1 ? count : 'hơn ' + to}`}
         />
       </Card>
+
+      {selectedDevice && (
+        <EditDeviceModal 
+          open={isEditModalOpen} 
+          onClose={handleEditModalClose} 
+          onSuccess={handleEditSuccess} 
+          device={selectedDevice} 
+        />
+      )}
     </Stack>
   );
 }

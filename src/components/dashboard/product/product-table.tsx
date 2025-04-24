@@ -343,14 +343,14 @@ function ProductTable({
                 <TableCell>Loại sản phẩm</TableCell>
                 <TableCell>Số lượng</TableCell>
                 <TableCell>Giá</TableCell>
-                <TableCell>Trạng thái</TableCell>
+                {/* <TableCell>Trạng thái</TableCell> */}
                 <TableCell align="right">Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
+                  <TableCell colSpan={6} align="center">
                     <Typography variant="body1" py={2}>
                       {products.length === 0 ? "Không tìm thấy sản phẩm nào" : "Không tìm thấy sản phẩm phù hợp"}
                     </Typography>
@@ -377,13 +377,13 @@ function ProductTable({
                       <TableCell>{product.categoryName}</TableCell>
                       <TableCell>{product.amount}</TableCell>
                       <TableCell>{product.price.toLocaleString('vi-VN')}đ</TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         <Chip
                           label={product.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
                           color={product.status === 'Active' ? 'success' : 'error'}
                           size="small"
                         />
-                      </TableCell>
+                      </TableCell> */}
                       <TableCell>
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           <Tooltip title="Xóa sản phẩm">

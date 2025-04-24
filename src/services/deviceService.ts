@@ -44,9 +44,32 @@ export const deviceService = {
 
   async updateDevice(id: string, deviceData: UpdateDeviceRequest): Promise<DeviceDetailsResponse> {
     try {
-      const response = await axiosInstance.put(`/devices/${id}`, deviceData, {
+      // Using FormData to handle file uploads
+      const formData = new FormData();
+      
+      if (deviceData.name !== undefined) {
+        formData.append('name', deviceData.name);
+      }
+      
+      if (deviceData.description !== undefined) {
+        formData.append('description', deviceData.description);
+      }
+      
+      if (deviceData.price !== undefined) {
+        formData.append('price', deviceData.price.toString());
+      }
+      
+      if (deviceData.quantity !== undefined) {
+        formData.append('quantity', deviceData.quantity.toString());
+      }
+      
+      if (deviceData.attachment) {
+        formData.append('attachment', deviceData.attachment);
+      }
+
+      const response = await axiosInstance.put(`/device/${id}`, formData, {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'multipart/form-data',
         },
       });
 
@@ -60,7 +83,7 @@ export const deviceService = {
 
   async deleteDevice(id: string): Promise<void> {
     try {
-      await axiosInstance.delete(`/devices/${id}`);
+      await axiosInstance.delete(`/device/${id}`);
     } catch (error: any) {
       console.error('Error deleting device:', error);
       console.error('Error details:', error.response?.data);

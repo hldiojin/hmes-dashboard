@@ -21,6 +21,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  SelectChangeEvent,
   Stack,
   Table,
   TableBody,
@@ -107,20 +108,10 @@ export default function OrderTable({
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Use refs to prevent unnecessary re-renders
-  const isInitialMount = useRef(true);
-  const filtersRef = useRef<OrdersFilter>({
-    keyword,
-    status: statusFilter,
-    minPrice: minPrice ? parseFloat(minPrice) : undefined,
-    maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
-    startDate: startDate || undefined,
-    endDate: endDate || undefined,
-    pageIndex: page + 1,
-    pageSize: rowsPerPage,
-  });
+  // Add a ref for debouncing search
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // Update component when pagination changes from parent
+  // Initialize pagination from props
   useEffect(() => {
     if (pagination && pagination.currentPage > 0) {
       setPage(pagination.currentPage - 1);
@@ -130,70 +121,132 @@ export default function OrderTable({
     }
   }, [pagination]);
 
-  // Memoize filter change to prevent infinite loops
-  const handleFilterChange = useCallback(
-    (newFilters: OrdersFilter) => {
-      // Make sure status is properly typed before assigning to handle all cases
-      let status = newFilters.status as OrderStatus | '' | undefined;
-
-      filtersRef.current = {
-        ...filtersRef.current,
-        ...newFilters,
-        status,
-      };
-      onFilterChange(filtersRef.current);
-    },
-    [onFilterChange]
-  );
-
-  // Only triggers on mount
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-  }, []);
-
-  // Handle search
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(0); // Reset về trang 1 khi tìm kiếm
-
-    // Convert input values to appropriate types for API
-    const minPriceValue = minPrice ? parseFloat(minPrice) : undefined;
-    const maxPriceValue = maxPrice ? parseFloat(maxPrice) : undefined;
-
-    console.log('Applying search filters:', {
-      keyword,
-      status: statusFilter,
-      minPrice: minPriceValue,
-      maxPrice: maxPriceValue,
-      startDate,
-      endDate
-    });
-
-    // Apply all filter values together
-    handleFilterChange({
-      keyword,
-      status: statusFilter || undefined,
-      minPrice: minPriceValue,
-      maxPrice: maxPriceValue,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-      pageIndex: 1, // Reset về trang 1
+  // Apply filters when any filter changes
+  const applyFilters = useCallback(() => {
+    const filters: OrdersFilter = {
+      pageIndex: page + 1,
       pageSize: rowsPerPage,
-    });
+    };
+
+    // Add all existing filters
+    if (keyword.trim()) {
+      filters.keyword = keyword.trim();
+    }
+
+    if (statusFilter) {
+      filters.status = statusFilter;
+    }
+
+    if (minPrice) {
+      filters.minPrice = parseFloat(minPrice);
+    }
+
+    if (maxPrice) {
+      filters.maxPrice = parseFloat(maxPrice);
+    }
+
+    if (startDate) {
+      filters.startDate = startDate;
+    }
+
+    if (endDate) {
+      filters.endDate = endDate;
+    }
+
+    console.log('Applying filters:', filters);
+    onFilterChange(filters);
+  }, [keyword, statusFilter, minPrice, maxPrice, startDate, endDate, page, rowsPerPage, onFilterChange]);
+
+  // Handle input change for keyword with debounce
+  const handleKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Only update state if value actually changed to prevent rerenders
+    if (value !== keyword) {
+      setKeyword(value);
+      
+      // Cancel previous timeout
+      if (searchTimeout.current) {
+        clearTimeout(searchTimeout.current);
+      }
+      
+      // Create new timeout with longer debounce
+      searchTimeout.current = setTimeout(() => {
+        console.log('Search keyword debounce triggered:', value);
+        applyFilters();
+      }, 800); // Increase debounce to 800ms
+    }
+  };
+
+  // Handle status filter change
+  const handleStatusChange = (e: SelectChangeEvent<string>) => {
+    const value = e.target.value as OrderStatus | '';
+    
+    // Only update if the value actually changed
+    if (value !== statusFilter) {
+      setStatusFilter(value);
+      
+      // Apply filters after a short delay
+      if (searchTimeout.current) {
+        clearTimeout(searchTimeout.current);
+      }
+      
+      searchTimeout.current = setTimeout(() => {
+        applyFilters();
+      }, 300); // Small delay for better UX
+    }
+  };
+
+  // Handle advanced filter changes
+  const handleAdvancedFilterChange = (type: 'minPrice' | 'maxPrice' | 'startDate' | 'endDate', value: string) => {
+    let shouldUpdate = false;
+    
+    switch (type) {
+      case 'minPrice':
+        if (value !== minPrice) {
+          setMinPrice(value);
+          shouldUpdate = true;
+        }
+        break;
+      case 'maxPrice':
+        if (value !== maxPrice) {
+          setMaxPrice(value);
+          shouldUpdate = true;
+        }
+        break;
+      case 'startDate':
+        if (value !== startDate) {
+          setStartDate(value);
+          shouldUpdate = true;
+        }
+        break;
+      case 'endDate':
+        if (value !== endDate) {
+          setEndDate(value);
+          shouldUpdate = true;
+        }
+        break;
+    }
+
+    // Only proceed if a value actually changed
+    if (shouldUpdate) {
+      // Apply filters with a longer debounce for numeric/date inputs
+      if (searchTimeout.current) {
+        clearTimeout(searchTimeout.current);
+      }
+      
+      searchTimeout.current = setTimeout(() => {
+        applyFilters();
+      }, 1000); // Longer debounce (1s) for advanced filters
+    }
   };
 
   // Handle page change
   const handlePageChange = (event: unknown, newPage: number) => {
     setPage(newPage);
-
-    // Update only the page number, preserving existing filters
-    handleFilterChange({
-      ...filtersRef.current,
-      pageIndex: newPage + 1,
-    });
+    setTimeout(() => {
+      applyFilters();
+    }, 0);
   };
 
   // Handle rows per page change
@@ -201,39 +254,14 @@ export default function OrderTable({
     const newPageSize = parseInt(event.target.value, 10);
     setRowsPerPage(newPageSize);
     setPage(0);
-
-    // Update page size and reset to first page, preserving existing filters
-    handleFilterChange({
-      ...filtersRef.current,
-      pageIndex: 1,
-      pageSize: newPageSize,
-    });
+    setTimeout(() => {
+      applyFilters();
+    }, 0);
   };
 
   // Handle view order details
   const handleViewOrderDetails = (orderId: string) => {
     onViewOrder(orderId);
-  };
-
-  // Handle refresh button click
-  const handleRefreshClick = () => {
-    // Reset all filters
-    setKeyword('');
-    setStatusFilter('');
-    setMinPrice('');
-    setMaxPrice('');
-    setStartDate('');
-    setEndDate('');
-    setPage(0);
-
-    // Apply empty filters
-    handleFilterChange({
-      pageIndex: 1,
-      pageSize: rowsPerPage,
-    });
-
-    // Call refresh callback
-    onRefresh();
   };
 
   // Toggle advanced filters visibility
@@ -245,106 +273,94 @@ export default function OrderTable({
     <>
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box component="form" onSubmit={handleSearch} sx={{ mb: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <TextField
-                    label="Tìm kiếm đơn hàng"
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    placeholder="Mã đơn hàng, tên khách hàng, điện thoại, hoặc địa chỉ"
-                    sx={{ flexGrow: 1 }}
-                    InputProps={{
-                      endAdornment: (
-                        <IconButton onClick={toggleAdvancedFilters} size="small" sx={{ mr: 1 }} color="primary">
-                          <FilterIcon />
-                          {advancedFiltersOpen ? <CaretUpIcon /> : <CaretDownIcon />}
-                        </IconButton>
-                      ),
-                    }}
-                  />
-                  <FormControl sx={{ minWidth: 150 }}>
-                    <InputLabel id="status-filter-label">Trạng thái</InputLabel>
-                    <Select
-                      labelId="status-filter-label"
-                      value={statusFilter}
-                      label="Trạng thái"
-                      onChange={(e) => {
-                        setStatusFilter(e.target.value as OrderStatus | '');
-                      }}
-                    >
-                      <MenuItem value="">Tất cả</MenuItem>
-                      <MenuItem value="Pending">Chờ xử lý</MenuItem>
-                      <MenuItem value="Delivering">Đang giao</MenuItem>
-                      <MenuItem value="Success">Thành công</MenuItem>
-                      <MenuItem value="Cancelled">Đã hủy</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Stack>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Collapse in={advancedFiltersOpen}>
-                  <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <TextField
-                        fullWidth
-                        label="Giá nhỏ nhất"
-                        type="number"
-                        value={minPrice}
-                        onChange={(e) => setMinPrice(e.target.value)}
-                        placeholder="0"
-                        InputProps={{ inputProps: { min: 0 } }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <TextField
-                        fullWidth
-                        label="Giá lớn nhất"
-                        type="number"
-                        value={maxPrice}
-                        onChange={(e) => setMaxPrice(e.target.value)}
-                        placeholder="1000"
-                        InputProps={{ inputProps: { min: 0 } }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <TextField
-                        fullWidth
-                        label="Từ ngày"
-                        type="datetime-local"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <TextField
-                        fullWidth
-                        label="Đến ngày"
-                        type="datetime-local"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                      />
-                    </Grid>
-                  </Grid>
-                </Collapse>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Stack direction="row" spacing={2} justifyContent="flex-end">
-                  <Button variant="outlined" onClick={handleRefreshClick} startIcon={<SearchIcon />}>
-                    Xóa bộ lọc
-                  </Button>
-                  <Button type="submit" variant="contained" startIcon={<SearchIcon />}>
-                    Tìm kiếm
-                  </Button>
-                </Stack>
-              </Grid>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <TextField
+                  label="Tìm kiếm đơn hàng"
+                  value={keyword}
+                  onChange={handleKeywordChange}
+                  placeholder="Mã đơn hàng, tên khách hàng, điện thoại, hoặc địa chỉ"
+                  sx={{ flexGrow: 1 }}
+                  InputProps={{
+                    startAdornment: (
+                      <SearchIcon style={{ marginRight: 8, color: 'rgba(0, 0, 0, 0.54)' }} size={20} />
+                    ),
+                    endAdornment: (
+                      <IconButton onClick={toggleAdvancedFilters} size="small" sx={{ mr: 1 }} color="primary">
+                        <FilterIcon />
+                        {advancedFiltersOpen ? <CaretUpIcon /> : <CaretDownIcon />}
+                      </IconButton>
+                    ),
+                  }}
+                />
+                <FormControl sx={{ minWidth: 150 }}>
+                  <InputLabel id="status-filter-label">Trạng thái</InputLabel>
+                  <Select<string>
+                    labelId="status-filter-label"
+                    value={statusFilter}
+                    label="Trạng thái"
+                    onChange={handleStatusChange}
+                  >
+                    <MenuItem value="">Tất cả</MenuItem>
+                    <MenuItem value="Pending">Chờ xử lý</MenuItem>
+                    <MenuItem value="Delivering">Đang giao</MenuItem>
+                    <MenuItem value="Success">Thành công</MenuItem>
+                    <MenuItem value="Cancelled">Đã hủy</MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
             </Grid>
-          </Box>
+
+            <Grid item xs={12}>
+              <Collapse in={advancedFiltersOpen}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <TextField
+                      fullWidth
+                      label="Giá nhỏ nhất"
+                      type="number"
+                      value={minPrice}
+                      onChange={(e) => handleAdvancedFilterChange('minPrice', e.target.value)}
+                      placeholder="0"
+                      InputProps={{ inputProps: { min: 0 } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <TextField
+                      fullWidth
+                      label="Giá lớn nhất"
+                      type="number"
+                      value={maxPrice}
+                      onChange={(e) => handleAdvancedFilterChange('maxPrice', e.target.value)}
+                      placeholder="1000"
+                      InputProps={{ inputProps: { min: 0 } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <TextField
+                      fullWidth
+                      label="Từ ngày"
+                      type="datetime-local"
+                      value={startDate}
+                      onChange={(e) => handleAdvancedFilterChange('startDate', e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <TextField
+                      fullWidth
+                      label="Đến ngày"
+                      type="datetime-local"
+                      value={endDate}
+                      onChange={(e) => handleAdvancedFilterChange('endDate', e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                </Grid>
+              </Collapse>
+            </Grid>
+          </Grid>
         </CardContent>
       </Card>
 
