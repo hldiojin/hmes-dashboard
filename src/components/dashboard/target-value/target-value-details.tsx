@@ -180,7 +180,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
       case 'SoluteConcentration':
         return 'ppm';
       case 'WaterLevel':
-        return 'cm';
+        return '';
       case 'Ph':
         return '';
       default:
@@ -371,7 +371,8 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
         <DialogContent>
           {availablePlants.length === 0 ? (
             <Typography color="text.secondary" sx={{ py: 2 }}>
-              Không tìm thấy cây trồng khả dụng. Tất cả cây trồng đã có giá trị mục tiêu {targetDetails?.type} được thiết lập.
+              Không tìm thấy cây trồng khả dụng. Tất cả cây trồng đã có giá trị mục tiêu {targetDetails?.type} được
+              thiết lập.
             </Typography>
           ) : (
             <Box sx={{ mt: 2 }}>
@@ -406,7 +407,8 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
         <DialogTitle id="remove-dialog-title">Xóa giá trị mục tiêu khỏi cây trồng</DialogTitle>
         <DialogContent>
           <DialogContentText id="remove-dialog-description">
-            Bạn có chắc chắn muốn xóa giá trị mục tiêu này khỏi cây trồng "{plantToRemove?.name}"? Hành động này không thể hoàn tác.
+            Bạn có chắc chắn muốn xóa giá trị mục tiêu này khỏi cây trồng "{plantToRemove?.name}"? Hành động này không
+            thể hoàn tác.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

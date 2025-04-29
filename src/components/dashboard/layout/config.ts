@@ -6,7 +6,7 @@ export const navItems = [
   //  { key: 'customers', title: 'Customers', href: paths.dashboard.customers, icon: 'users' },
   { key: 'category', title: 'Loại sản phẩm', href: paths.dashboard.category, icon: 'tag' },
   { key: 'products', title: 'Sản phẩm', href: paths.dashboard.products, icon: 'cube' },
-  { key: 'tickets', title: 'Báo cáo', href: paths.dashboard.tickets, icon: 'note-pencil' },
+  { key: 'tickets', title: 'Yêu cầu hỗ trợ', href: paths.dashboard.tickets, icon: 'note-pencil' },
   //  { key: 'integrations', title: 'Integrations', href: paths.dashboard.integrations, icon: 'plugs-connected' },
   { key: 'plants', title: 'Cây trồng', href: paths.dashboard.plants, icon: 'leaf' },
   { key: 'target-value', title: 'Giá trị mục tiêu', href: paths.dashboard.targetValue, icon: 'target' },

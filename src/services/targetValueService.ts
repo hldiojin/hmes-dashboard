@@ -92,16 +92,16 @@ const targetValueService = {
 
     const url = `/target-value?${params.toString()}`;
     console.log('Fetching target values from URL:', url);
-    
+
     try {
       const config = {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
       };
-      
+
       const response = await axiosInstance.get(url, config);
       console.log('API response:', response.data);
       return response.data;
@@ -111,14 +111,21 @@ const targetValueService = {
     }
   },
 
-  createTargetValue: async (data: {
-    type: ValueType;
-    minValue: number;
-    maxValue: number;
-  }) => {
+  createTargetValue: async (data: { type: ValueType; minValue: number; maxValue: number }) => {
     try {
       console.log('Creating target value with data:', data);
-      const response = await axiosInstance.post('/target-value', data);
+
+      const formData = new FormData();
+      formData.append('type', data.type);
+      formData.append('minValue', data.minValue.toString());
+      formData.append('maxValue', data.maxValue.toString());
+
+      const response = await axiosInstance.post('/target-value', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
       console.log('Create response:', response.data);
       return response.data;
     } catch (error: any) {
