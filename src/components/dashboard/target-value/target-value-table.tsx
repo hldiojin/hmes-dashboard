@@ -84,20 +84,18 @@ function TargetValueTable({
   // Fetch target values from API
   const fetchTargetValues = React.useCallback(async () => {
     setLoading(true);
-    
+
     console.log('Đang tải dữ liệu giá trị mục tiêu với:', {
-      type, minValue, maxValue, currentPage, rowsPerPage
+      type,
+      minValue,
+      maxValue,
+      currentPage,
+      rowsPerPage,
     });
-    
+
     try {
-      const response = await targetValueService.getAllTargetValues(
-        type,
-        minValue,
-        maxValue,
-        currentPage,
-        rowsPerPage
-      );
-      
+      const response = await targetValueService.getAllTargetValues(type, minValue, maxValue, currentPage, rowsPerPage);
+
       if (response.response && Array.isArray(response.response.data)) {
         console.log('Đã tải giá trị mục tiêu thành công:', response.response.data);
         setTargetValues(response.response.data);
@@ -196,7 +194,6 @@ function TargetValueTable({
       } else {
         fetchTargetValues();
       }
-      
     } catch (error: any) {
       console.error('Lỗi khi xóa giá trị mục tiêu:', error);
 
@@ -233,7 +230,7 @@ function TargetValueTable({
   const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newRowsPerPage = parseInt(event.target.value, 10);
     setCurrentPage(1);
-    
+
     // Note: rowsPerPage is a prop, so we need to handle this through a callback
     if (onRefreshNeeded) {
       onRefreshNeeded();
@@ -324,7 +321,9 @@ function TargetValueTable({
                     >
                       <TableCell>{targetValue.id.slice(0, 8)}...</TableCell>
                       <TableCell>
-                        <Typography variant="subtitle2">{getTargetTypeDisplayName(targetValue.type as ValueType)}</Typography>
+                        <Typography variant="subtitle2">
+                          {getTargetTypeDisplayName(targetValue.type as ValueType)}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="subtitle2">
@@ -425,6 +424,7 @@ function TargetValueTable({
             fetchTargetValues();
           }
         }}
+        targetValue={targetValueToEdit}
       />
 
       {/* Snackbar for notifications */}
