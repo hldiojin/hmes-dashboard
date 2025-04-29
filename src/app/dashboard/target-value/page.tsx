@@ -20,15 +20,15 @@ import {
 import { Plus } from '@phosphor-icons/react';
 
 import { TargetValue, ValueType } from '@/types/targetValue';
+import usePageTitle from '@/lib/hooks/usePageTitle';
 import TargetValueDetails from '@/components/dashboard/target-value/target-value-details';
 import TargetValueModal from '@/components/dashboard/target-value/target-value-modal';
 import TargetValueTable from '@/components/dashboard/target-value/target-value-table';
-import usePageTitle from '@/lib/hooks/usePageTitle';
 
 export default function TargetValuePage(): React.JSX.Element {
   // Set page title
   usePageTitle('Giá trị mục tiêu');
-  
+
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
   const [type, setType] = React.useState<ValueType | null>(null);
   const [minValue, setMinValue] = React.useState<string>('');
@@ -77,10 +77,10 @@ export default function TargetValuePage(): React.JSX.Element {
       console.log('Đang làm mới danh sách giá trị mục tiêu (debounced)');
       setRefreshTrigger((prev) => prev + 1);
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, []);
-  
+
   // Fix loading issues with an improved refresh method
   const handleRefresh = () => {
     console.log('Refreshing target values with:', { page, rowsPerPage, type, minValue, maxValue });
@@ -92,37 +92,72 @@ export default function TargetValuePage(): React.JSX.Element {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Tìm kiếm với điều kiện:', { type, minValue, maxValue });
-    setPage(0); // Quay về trang đầu khi tìm kiếm
-    handleRefresh();
+
+    // Use startTransition to batch state updates
+    React.startTransition(() => {
+      // Reset to first page when searching
+      setPage(0);
+
+      // Trigger refresh after search
+      setTimeout(() => {
+        console.log('Refreshing after search');
+        setRefreshTrigger(Date.now());
+      }, 0);
+    });
   };
 
   // Reset all filters
   const resetFilters = () => {
     console.log('Đặt lại tất cả bộ lọc');
-    setType(null);
-    setMinValue('');
-    setMaxValue('');
-    setPage(0);
-    handleRefresh();
+
+    // Batch all state changes
+    React.startTransition(() => {
+      setType(null);
+      setMinValue('');
+      setMaxValue('');
+      setPage(0);
+
+      // Trigger refresh once after the next render
+      setTimeout(() => {
+        console.log('Refreshing after filter reset');
+        setRefreshTrigger(Date.now());
+      }, 0);
+    });
   };
 
   // Handle type filter change
   const handleTypeFilterChange = (event: SelectChangeEvent<string>) => {
     const newType = event.target.value === '' ? null : (event.target.value as ValueType);
     console.log('Đã thay đổi bộ lọc loại thành:', newType);
-    setType(newType);
-    setPage(0);
-    // Không gọi handleRefresh() ở đây để tránh tìm kiếm tự động khi thay đổi dropdown
+
+    // Use startTransition to batch state updates
+    React.startTransition(() => {
+      // Set the type filter
+      setType(newType);
+
+      // Always reset to first page when changing filter
+      setPage(0);
+
+      // Trigger refresh after type change
+      setTimeout(() => {
+        console.log('Refreshing after type filter change');
+        setRefreshTrigger(Date.now());
+      }, 0);
+    });
   };
 
   // Handle min value change
   const handleMinValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMinValue(e.target.value);
+    // Reset to first page when changing filter value
+    setPage(0);
   };
 
   // Handle max value change
   const handleMaxValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMaxValue(e.target.value);
+    // Reset to first page when changing filter value
+    setPage(0);
   };
 
   // Handle create modal open
@@ -140,22 +175,30 @@ export default function TargetValuePage(): React.JSX.Element {
   // Handle successful creation
   const handleCreateSuccess = () => {
     console.log('Tạo giá trị mục tiêu thành công');
-    // Hiển thị thông báo thành công
-    setSnackbar({
-      open: true,
-      message: 'Giá trị mục tiêu đã được tạo thành công',
-      severity: 'success',
+
+    // Use startTransition to batch all state updates
+    React.startTransition(() => {
+      // Hiển thị thông báo thành công
+      setSnackbar({
+        open: true,
+        message: 'Giá trị mục tiêu đã được tạo thành công',
+        severity: 'success',
+      });
+
+      // Đặt lại trang về trang đầu tiên để hiển thị dữ liệu mới
+      setPage(0);
+
+      // Đặt lại các bộ lọc
+      setType(null);
+      setMinValue('');
+      setMaxValue('');
+
+      // Trigger a single refresh after all state updates
+      setTimeout(() => {
+        console.log('Refreshing after successful creation');
+        setRefreshTrigger(Date.now());
+      }, 0);
     });
-    
-    // Đặt lại trang về trang đầu tiên để hiển thị dữ liệu mới
-    setPage(0);
-    
-    // Đặt lại bộ lọc để hiển thị tất cả các giá trị mục tiêu
-    resetFilters();
-    
-    // Làm mới dữ liệu
-    console.log('Yêu cầu làm mới dữ liệu sau khi tạo giá trị mục tiêu');
-    handleRefresh();
   };
 
   // Handle row click to open details
@@ -178,16 +221,19 @@ export default function TargetValuePage(): React.JSX.Element {
   };
 
   // Utility function to log API calls for debugging
-  const logApiCalls = React.useCallback((pageNum: number, rowsPerPageNum: number) => {
-    console.log('API call params:', {
-      page: pageNum,
-      rowsPerPage: rowsPerPageNum,
-      type,
-      minValue: minValue ? Number(minValue) : null,
-      maxValue: maxValue ? Number(maxValue) : null,
-      timestamp: new Date().toISOString()
-    });
-  }, [type, minValue, maxValue]);
+  const logApiCalls = React.useCallback(
+    (pageNum: number, rowsPerPageNum: number) => {
+      console.log('API call params:', {
+        page: pageNum,
+        rowsPerPage: rowsPerPageNum,
+        type,
+        minValue: minValue ? Number(minValue) : null,
+        maxValue: maxValue ? Number(maxValue) : null,
+        timestamp: new Date().toISOString(),
+      });
+    },
+    [type, minValue, maxValue]
+  );
 
   // Add an effect to monitor page changes for debugging
   React.useEffect(() => {
@@ -200,8 +246,8 @@ export default function TargetValuePage(): React.JSX.Element {
         <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={4}>
           <Typography variant="h4">Giá trị mục tiêu</Typography>
           <Stack direction="row" spacing={2}>
-            <Button 
-              variant="outlined" 
+            <Button
+              variant="outlined"
               onClick={() => {
                 console.log('Manual refresh requested');
                 setRefreshTrigger(Date.now());
@@ -268,11 +314,7 @@ export default function TargetValuePage(): React.JSX.Element {
       </Stack>
 
       {/* Create Modal */}
-      <TargetValueModal
-        open={createModalOpen}
-        onClose={handleCreateModalClose}
-        onSuccess={handleCreateSuccess}
-      />
+      <TargetValueModal open={createModalOpen} onClose={handleCreateModalClose} onSuccess={handleCreateSuccess} />
 
       {/* Details Modal */}
       {selectedTargetValueId && (

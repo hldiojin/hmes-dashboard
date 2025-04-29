@@ -65,6 +65,8 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
   };
 
   const handleClose = () => {
+    // Reset form state and trigger the onClose callback
+    // Important: This should be called after onSuccess for proper cleanup
     resetForm();
     onClose();
   };
@@ -76,7 +78,7 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
       case 'Temperature':
         return '°C';
       case 'WaterLevel':
-        return 'cm';
+        return '';
       case 'Ph':
         return '';
       default:
@@ -111,6 +113,8 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
     if (minValue && maxValue && !isNaN(Number(minValue)) && !isNaN(Number(maxValue))) {
       if (Number(minValue) >= Number(maxValue)) {
         newErrors.general = 'Giá trị tối thiểu phải nhỏ hơn giá trị tối đa';
+        newErrors.minValue = 'Phải nhỏ hơn giá trị tối đa';
+        newErrors.maxValue = 'Phải lớn hơn giá trị tối thiểu';
       }
     }
 
@@ -162,11 +166,13 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
         console.log('Create response:', response);
       }
 
-      handleClose();
-
-      setTimeout(() => {
+      try {
         onSuccess();
-      }, 500);
+      } catch (callbackError) {
+        console.error('Error in onSuccess callback:', callbackError);
+      }
+
+      handleClose();
     } catch (error: any) {
       console.error(isEditMode ? 'Error updating target value:' : 'Error creating target value:', error);
 
@@ -174,7 +180,18 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
         ? 'Đã xảy ra lỗi khi cập nhật giá trị mục tiêu'
         : 'Đã xảy ra lỗi khi tạo giá trị mục tiêu';
 
-      if (error.response?.data?.response?.message) {
+      // Handle the new error response format
+      if (error.response?.data?.message) {
+        // Map common error messages to Vietnamese
+        const errorMessageMap: Record<string, string> = {
+          'Min value must be less than max value': 'Giá trị tối thiểu phải nhỏ hơn giá trị tối đa',
+          'Target value already exist': 'Giá trị mục tiêu đã tồn tại',
+          'pH must be between 0 and 14': 'pH phải nằm trong khoảng từ 0 đến 14',
+        };
+
+        const originalMessage = error.response.data.message;
+        errorMessage = errorMessageMap[originalMessage] || originalMessage;
+      } else if (error.response?.data?.response?.message) {
         errorMessage = error.response.data.response.message;
       }
 
