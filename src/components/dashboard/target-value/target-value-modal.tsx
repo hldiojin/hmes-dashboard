@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import targetValueService from '@/services/targetValueService';
 import {
   Box,
   Button,
@@ -22,18 +21,16 @@ import {
 } from '@mui/material';
 import { X } from '@phosphor-icons/react';
 
-import { TargetValue, ValueType, ValueTypeEnums } from '@/types/targetValue';
+import targetValueService from '@/services/targetValueService';
+import { ValueType, ValueTypeEnums } from '@/types/targetValue';
 
 interface TargetValueModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  targetValue?: TargetValue | null;
 }
 
-function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValueModalProps): React.JSX.Element {
-  const isEditMode = !!targetValue;
-
+function TargetValueModal({ open, onClose, onSuccess }: TargetValueModalProps): React.JSX.Element {
   const [type, setType] = React.useState<ValueType>(ValueTypeEnums.SoluteConcentration);
   const [minValue, setMinValue] = React.useState<string>('');
   const [maxValue, setMaxValue] = React.useState<string>('');
@@ -45,17 +42,12 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
     general?: string;
   }>({});
 
+  // Reset form when modal opens/closes
   React.useEffect(() => {
     if (open) {
-      if (targetValue) {
-        setType(targetValue.type as ValueType);
-        setMinValue(targetValue.minValue.toString());
-        setMaxValue(targetValue.maxValue.toString());
-      } else {
-        resetForm();
-      }
+      resetForm();
     }
-  }, [open, targetValue]);
+  }, [open]);
 
   const resetForm = () => {
     setType(ValueTypeEnums.SoluteConcentration);
@@ -65,8 +57,6 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
   };
 
   const handleClose = () => {
-    // Reset form state and trigger the onClose callback
-    // Important: This should be called after onSuccess for proper cleanup
     resetForm();
     onClose();
   };
@@ -78,7 +68,7 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
       case 'Temperature':
         return '°C';
       case 'WaterLevel':
-        return '';
+        return 'cm';
       case 'Ph':
         return '';
       default:
@@ -110,14 +100,14 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
       newErrors.maxValue = 'Giá trị tối đa phải là số';
     }
 
+    // Check if minValue is less than maxValue
     if (minValue && maxValue && !isNaN(Number(minValue)) && !isNaN(Number(maxValue))) {
       if (Number(minValue) >= Number(maxValue)) {
         newErrors.general = 'Giá trị tối thiểu phải nhỏ hơn giá trị tối đa';
-        newErrors.minValue = 'Phải nhỏ hơn giá trị tối đa';
-        newErrors.maxValue = 'Phải lớn hơn giá trị tối thiểu';
       }
     }
 
+    // Special validation for pH
     if (type === 'Ph') {
       if (minValue && !isNaN(Number(minValue)) && (Number(minValue) < 0 || Number(minValue) > 14)) {
         newErrors.minValue = 'Giá trị pH phải nằm trong khoảng từ 0 đến 14';
@@ -136,14 +126,16 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
 
     setLoading(true);
     try {
+      // Đảm bảo type không là chuỗi rỗng
       if (!type) {
         setErrors({
           ...errors,
-          type: 'Loại là bắt buộc',
+          type: 'Loại là bắt buộc'
         });
         return;
       }
 
+      // Tạo đối tượng dữ liệu để gửi lên server
       const data = {
         type: type,
         minValue: Number(minValue),
@@ -151,47 +143,26 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
       };
 
       console.log('Submitting data:', data);
+      
+      // Gọi API để tạo giá trị mục tiêu mới
+      const response = await targetValueService.createTargetValue(data);
+      console.log('Create response:', response);
 
-      let response;
-      if (isEditMode && targetValue) {
-        response = await targetValueService.updateTargetValueById(
-          targetValue.id,
-          type,
-          Number(minValue),
-          Number(maxValue)
-        );
-        console.log('Update response:', response);
-      } else {
-        response = await targetValueService.createTargetValue(data);
-        console.log('Create response:', response);
-      }
-
-      try {
-        onSuccess();
-      } catch (callbackError) {
-        console.error('Error in onSuccess callback:', callbackError);
-      }
-
+      // Đóng modal sau khi tạo thành công
       handleClose();
+      
+      // Đặt timeout để đảm bảo dữ liệu được cập nhật trên server
+      // trước khi làm mới danh sách
+      setTimeout(() => {
+        onSuccess();
+      }, 500);
+      
     } catch (error: any) {
-      console.error(isEditMode ? 'Error updating target value:' : 'Error creating target value:', error);
+      console.error('Error creating target value:', error);
 
-      let errorMessage = isEditMode
-        ? 'Đã xảy ra lỗi khi cập nhật giá trị mục tiêu'
-        : 'Đã xảy ra lỗi khi tạo giá trị mục tiêu';
-
-      // Handle the new error response format
-      if (error.response?.data?.message) {
-        // Map common error messages to Vietnamese
-        const errorMessageMap: Record<string, string> = {
-          'Min value must be less than max value': 'Giá trị tối thiểu phải nhỏ hơn giá trị tối đa',
-          'Target value already exist': 'Giá trị mục tiêu đã tồn tại',
-          'pH must be between 0 and 14': 'pH phải nằm trong khoảng từ 0 đến 14',
-        };
-
-        const originalMessage = error.response.data.message;
-        errorMessage = errorMessageMap[originalMessage] || originalMessage;
-      } else if (error.response?.data?.response?.message) {
+      // Extract error message if available
+      let errorMessage = 'Đã xảy ra lỗi khi tạo giá trị mục tiêu';
+      if (error.response?.data?.response?.message) {
         errorMessage = error.response.data.response.message;
       }
 
@@ -208,9 +179,7 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
     <Dialog open={open} onClose={loading ? undefined : handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">
-            {isEditMode ? 'Chỉnh sửa giá trị mục tiêu' : 'Thêm giá trị mục tiêu mới'}
-          </Typography>
+          <Typography variant="h6">Thêm giá trị mục tiêu mới</Typography>
           <IconButton onClick={loading ? undefined : handleClose} size="small" disabled={loading}>
             <X size={20} />
           </IconButton>
@@ -224,14 +193,14 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
         )}
 
         <Box sx={{ mt: 2 }}>
-          <FormControl fullWidth error={!!errors.type} sx={{ mb: 3 }} disabled={isEditMode}>
+          <FormControl fullWidth error={!!errors.type} sx={{ mb: 3 }}>
             <InputLabel id="type-label">Loại</InputLabel>
             <Select
               labelId="type-label"
               value={type}
               label="Loại"
               onChange={(e) => setType(e.target.value as ValueType)}
-              disabled={loading || isEditMode}
+              disabled={loading}
             >
               <MenuItem value="SoluteConcentration">Nồng độ dung dịch</MenuItem>
               <MenuItem value="Temperature">Nhiệt độ nước</MenuItem>
@@ -282,7 +251,7 @@ function TargetValueModal({ open, onClose, onSuccess, targetValue }: TargetValue
           disabled={loading}
           startIcon={loading ? <CircularProgress size={20} /> : null}
         >
-          {loading ? (isEditMode ? 'Đang cập nhật...' : 'Đang tạo...') : isEditMode ? 'Cập nhật' : 'Tạo'}
+          {loading ? 'Đang tạo...' : 'Tạo'}
         </Button>
       </DialogActions>
     </Dialog>

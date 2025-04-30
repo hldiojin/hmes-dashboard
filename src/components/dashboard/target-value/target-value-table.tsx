@@ -81,74 +81,54 @@ function TargetValueTable({
     severity: 'success' as 'success' | 'error',
   });
 
-  // Fetch target values from API with call tracking
-  const fetchTargetValues = React.useCallback(
-    async (pageToUse?: number) => {
-      const actualPage = pageToUse !== undefined ? pageToUse : currentPage;
-      const requestId = Date.now(); // Create a unique ID for this request
-
-      console.log(`API Request #${requestId} started:`, {
+  // Fetch target values from API
+  const fetchTargetValues = React.useCallback(async () => {
+    setLoading(true);
+    
+    console.log('Đang tải dữ liệu giá trị mục tiêu với:', {
+      type, minValue, maxValue, currentPage, rowsPerPage
+    });
+    
+    try {
+      const response = await targetValueService.getAllTargetValues(
         type,
         minValue,
         maxValue,
-        page: actualPage,
-        rowsPerPage,
-      });
-
-      setLoading(true);
-
-      try {
-        const response = await targetValueService.getAllTargetValues(type, minValue, maxValue, actualPage, rowsPerPage);
-
-        console.log(`API Request #${requestId} completed`);
-
-        if (response.response && Array.isArray(response.response.data)) {
-          setTargetValues(response.response.data);
-          setTotalCount(response.response.totalItems);
-          setCurrentPage(response.response.currentPage);
-          setTotalPages(response.response.totalPages);
-        } else {
-          console.error('Không đúng định dạng phản hồi:', response);
-          setTargetValues([]);
-          setTotalCount(0);
-        }
-      } catch (error) {
-        console.error(`API Request #${requestId} failed:`, error);
+        currentPage,
+        rowsPerPage
+      );
+      
+      if (response.response && Array.isArray(response.response.data)) {
+        console.log('Đã tải giá trị mục tiêu thành công:', response.response.data);
+        setTargetValues(response.response.data);
+        setTotalCount(response.response.totalItems);
+        setCurrentPage(response.response.currentPage);
+        setTotalPages(response.response.totalPages);
+      } else {
+        console.error('Không đúng định dạng phản hồi:', response);
         setTargetValues([]);
         setTotalCount(0);
-      } finally {
-        setLoading(false);
       }
-    },
-    [currentPage, maxValue, minValue, rowsPerPage, type]
-  );
+    } catch (error) {
+      console.error('Không thể tải giá trị mục tiêu:', error);
+      setTargetValues([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, maxValue, minValue, rowsPerPage, type]);
 
   // Effect to fetch data when dependencies change
-  // Combines the two previous effects to avoid redundant API calls
   React.useEffect(() => {
-    // Log the reason for this effect running
-    console.log('Target value table effect triggered by:', {
-      refreshTrigger: refreshTrigger,
-      currentPage: currentPage,
-      type: type,
-      minValue: minValue,
-      maxValue: maxValue,
-      rowsPerPage: rowsPerPage,
-    });
-
-    // If refreshTrigger changed and it's not the initial render
-    if (refreshTrigger > 0) {
-      // First reset page to 1 without triggering another fetch
-      setCurrentPage(1);
-
-      // Then fetch with page 1 directly
-      fetchTargetValues(1);
-      return;
-    }
-
-    // For normal dependency changes (currentPage, etc.), use regular fetch
     fetchTargetValues();
-  }, [fetchTargetValues, refreshTrigger, currentPage, maxValue, minValue, rowsPerPage, type]);
+  }, [fetchTargetValues, refreshTrigger]);
+
+  // Effect to reset to first page when refreshTrigger changes
+  React.useEffect(() => {
+    if (refreshTrigger > 0) {
+      setCurrentPage(1);
+    }
+  }, [refreshTrigger]);
 
   const rowIds = React.useMemo(() => {
     return targetValues.map((targetValue) => targetValue.id);
@@ -216,6 +196,7 @@ function TargetValueTable({
       } else {
         fetchTargetValues();
       }
+      
     } catch (error: any) {
       console.error('Lỗi khi xóa giá trị mục tiêu:', error);
 
@@ -242,27 +223,18 @@ function TargetValueTable({
 
   // Handle page change
   const handlePageChange = (event: unknown, newPage: number) => {
-    // Calculate the actual page for the API (1-based)
-    const apiPage = newPage + 1;
-    console.log(`Page change requested to: ${apiPage}`);
-
-    // Update local state
-    setCurrentPage(apiPage);
-
-    // We don't need to call onRefreshNeeded here since the currentPage change
-    // will trigger the useEffect that calls fetchTargetValues
+    setCurrentPage(newPage + 1);
+    if (onRefreshNeeded) {
+      onRefreshNeeded();
+    }
   };
 
   // Handle rows per page change
   const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newRowsPerPage = parseInt(event.target.value, 10);
-    console.log(`Rows per page change requested to: ${newRowsPerPage}`);
-
-    // Reset to page 1 when changing page size
     setCurrentPage(1);
-
-    // Notify parent about the change - do this only for rowsPerPage
-    // since it's a prop and we can't update it directly
+    
+    // Note: rowsPerPage is a prop, so we need to handle this through a callback
     if (onRefreshNeeded) {
       onRefreshNeeded();
     }
@@ -292,7 +264,7 @@ function TargetValueTable({
       case 'SoluteConcentration':
         return 'ppm';
       case 'WaterLevel':
-        return '';
+        return 'cm';
       case 'Ph':
         return '';
       default:
@@ -352,9 +324,7 @@ function TargetValueTable({
                     >
                       <TableCell>{targetValue.id.slice(0, 8)}...</TableCell>
                       <TableCell>
-                        <Typography variant="subtitle2">
-                          {getTargetTypeDisplayName(targetValue.type as ValueType)}
-                        </Typography>
+                        <Typography variant="subtitle2">{getTargetTypeDisplayName(targetValue.type as ValueType)}</Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="subtitle2">
@@ -448,19 +418,13 @@ function TargetValueTable({
         open={editModalOpen}
         onClose={handleCloseEditModal}
         onSuccess={() => {
-          console.log('Edit operation completed successfully');
-          // First close the modal to prevent UI flicker
-          setEditModalOpen(false);
-          setTargetValueToEdit(null);
-
-          // Then trigger a single refresh
+          // Refresh the list after successful edit
           if (onRefreshNeeded) {
             onRefreshNeeded();
           } else {
             fetchTargetValues();
           }
         }}
-        targetValue={targetValueToEdit}
       />
 
       {/* Snackbar for notifications */}
