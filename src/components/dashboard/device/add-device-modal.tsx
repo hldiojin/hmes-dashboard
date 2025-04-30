@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { CreateDeviceRequest } from '@/types/device';
 import { deviceService } from '@/services/deviceService';
 import {
   Box,
@@ -15,15 +14,14 @@ import {
   FormHelperText,
   Grid,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
   TextField,
   Typography,
 } from '@mui/material';
-import { CalendarBlank, X } from '@phosphor-icons/react';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import dayjs, { Dayjs } from 'dayjs';
+import { X } from '@phosphor-icons/react';
+import { ContentState, convertToRaw, EditorState } from 'draft-js';
+import MUIRichTextEditor from 'mui-rte';
+
+import { CreateDeviceRequest } from '@/types/device';
 
 interface AddDeviceModalProps {
   open: boolean;
@@ -33,7 +31,8 @@ interface AddDeviceModalProps {
 
 export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps): React.JSX.Element {
   const [name, setName] = React.useState<string>('');
-  const [description, setDescription] = React.useState<string>('');
+  const [editorState, setEditorState] = React.useState(() => EditorState.createEmpty());
+  const [editorContent, setEditorContent] = React.useState<string>('');
   const [attachment, setAttachment] = React.useState<File | null>(null);
   const [price, setPrice] = React.useState<string>('');
   const [quantity, setQuantity] = React.useState<string>('');
@@ -47,6 +46,9 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
     general?: string;
   }>({});
 
+  // Reference to the editor
+  const editorRef = React.useRef<any>(null);
+
   // Reset form when modal opens
   React.useEffect(() => {
     if (open) {
@@ -56,7 +58,8 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
 
   const resetForm = () => {
     setName('');
-    setDescription('');
+    setEditorState(EditorState.createEmpty());
+    setEditorContent('');
     setAttachment(null);
     setPrice('');
     setQuantity('');
@@ -66,6 +69,23 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
   const handleClose = () => {
     resetForm();
     onClose();
+  };
+
+  const handleEditorChange = (state: EditorState) => {
+    setEditorState(state);
+
+    // Check if the editor has text content
+    const contentState = state.getCurrentContent();
+    const rawContent = convertToRaw(contentState);
+    const hasText = rawContent.blocks.some((block) => block.text.trim().length > 0);
+
+    // Update the content value
+    setEditorContent(hasText ? JSON.stringify(rawContent) : '');
+
+    // Clear errors if any
+    if (errors.description && hasText) {
+      setErrors({ ...errors, description: undefined });
+    }
   };
 
   const validateForm = (): boolean => {
@@ -81,7 +101,12 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
       newErrors.name = 'Tên thiết bị là bắt buộc';
     }
 
-    if (!description.trim()) {
+    // Check if the editor has any content
+    const contentState = editorState.getCurrentContent();
+    const textLength = contentState.getPlainText().trim().length;
+    const hasText = textLength > 0;
+
+    if (!hasText) {
       newErrors.description = 'Mô tả là bắt buộc';
     }
 
@@ -102,13 +127,19 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
   };
 
   const handleSubmit = async () => {
+    // Force getting the latest editor content before validation
+    const contentState = editorState.getCurrentContent();
+    const rawContent = convertToRaw(contentState);
+    const hasText = rawContent.blocks.some((block) => block.text.trim().length > 0);
+    setEditorContent(hasText ? JSON.stringify(rawContent) : '');
+
     if (!validateForm() || !attachment) return;
 
     setLoading(true);
     try {
       const deviceData: CreateDeviceRequest = {
         name,
-        description,
+        description: editorContent,
         attachment,
         price: Number(price),
         quantity: Number(quantity),
@@ -169,37 +200,48 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                label="Mô tả"
-                fullWidth
-                multiline
-                rows={3}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                error={!!errors.description}
-                helperText={errors.description}
-                disabled={loading}
-              />
+              <FormControl fullWidth error={!!errors.description}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Mô tả
+                </Typography>
+                <Box
+                  sx={{
+                    border: (theme) =>
+                      `1px solid ${errors.description ? theme.palette.error.main : theme.palette.divider}`,
+                    borderRadius: 1,
+                    minHeight: '150px',
+                    bgcolor: 'background.paper',
+                  }}
+                >
+                  <MUIRichTextEditor
+                    ref={editorRef}
+                    label="Nhập mô tả chi tiết..."
+                    onChange={handleEditorChange}
+                    inlineToolbar={true}
+                    controls={[
+                      'title',
+                      'bold',
+                      'italic',
+                      'underline',
+                      'strikethrough',
+                      'link',
+                      'numberList',
+                      'bulletList',
+                      'quote',
+                      'clear',
+                    ]}
+                    readOnly={loading}
+                  />
+                </Box>
+                {errors.description && <FormHelperText error>{errors.description}</FormHelperText>}
+              </FormControl>
             </Grid>
             <Grid item xs={12}>
-              <Button
-                variant="outlined"
-                component="label"
-                fullWidth
-                disabled={loading}
-                sx={{ height: '56px' }}
-              >
+              <Button variant="outlined" component="label" fullWidth disabled={loading} sx={{ height: '56px' }}>
                 {attachment ? attachment.name : 'Chọn hình ảnh'}
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={handleFileChange}
-                />
+                <input type="file" hidden accept="image/*" onChange={handleFileChange} />
               </Button>
-              {errors.attachment && (
-                <FormHelperText error>{errors.attachment}</FormHelperText>
-              )}
+              {errors.attachment && <FormHelperText error>{errors.attachment}</FormHelperText>}
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
@@ -212,7 +254,7 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
                 helperText={errors.price}
                 disabled={loading}
                 InputProps={{
-                  inputProps: { min: 0 }
+                  inputProps: { min: 0 },
                 }}
               />
             </Grid>
@@ -227,7 +269,7 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
                 helperText={errors.quantity}
                 disabled={loading}
                 InputProps={{
-                  inputProps: { min: 1, step: 1 }
+                  inputProps: { min: 1, step: 1 },
                 }}
               />
             </Grid>
@@ -249,4 +291,4 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
       </DialogActions>
     </Dialog>
   );
-} 
+}

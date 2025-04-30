@@ -91,22 +91,55 @@ export interface PaginatedOrders {
   lastPage: boolean;
 }
 
-// Cache for recent API requests
-interface CacheItem {
-  data: PaginatedOrders;
-  timestamp: number;
+// Helper function to normalize Vietnamese text for searching
+export const normalizeVietnameseText = (text: string): string => {
+  if (!text) return '';
+  
+  return text.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd');
+};
+
+// Function to check if a search query is included in a text, considering Vietnamese characters
+export const vietnameseIncludes = (text: string, search: string): boolean => {
+  if (!text || !search) return false;
+  
+  const normalizedText = normalizeVietnameseText(text);
+  const normalizedSearch = normalizeVietnameseText(search);
+  
+  return normalizedText.includes(normalizedSearch);
+};
+
+// For debouncing requests
+let debounceTimer: NodeJS.Timeout | null = null;
+
+// Helper function to map API status to our OrderStatus enum
+function mapApiStatus(apiStatus: string): OrderStatus {
+  // Convert to consistent casing for matching
+  const status = apiStatus.toUpperCase();
+
+  // Match to our OrderStatus type
+  switch (status) {
+    case 'PENDING':
+      return 'Pending';
+    case 'DELIVERING':
+      return 'Delivering';
+    case 'SUCCESS':
+      return 'Success';
+    case 'CANCELLED':
+    case 'CANCELED': // Handle both spellings
+      return 'Cancelled';
+    default:
+      console.warn(`Unknown status from API: ${apiStatus}, defaulting to 'Pending'`);
+      return 'Pending';
+  }
 }
-
-// In-memory cache with 30-second validity
-const requestCache = new Map<string, CacheItem>();
-const CACHE_TTL = 30 * 1000; // 30 seconds in milliseconds
-
-// In-flight request tracking to prevent duplicate requests
-const pendingRequests = new Map<string, Promise<PaginatedOrders>>();
 
 export const getOrders = async (filters: OrdersFilter = {}): Promise<PaginatedOrders> => {
   try {
-    // Build query parameters
+    // Build query parameters for the API request
     const params = new URLSearchParams();
     
     // Only add defined and non-empty filters
@@ -153,39 +186,24 @@ export const getOrders = async (filters: OrdersFilter = {}): Promise<PaginatedOr
     // Always include pagination parameters
     params.append('pageIndex', String(filters.pageIndex || 1));
     params.append('pageSize', String(filters.pageSize || 10));
-
-    // Create cache key based on query parameters
-    const cacheKey = params.toString();
     
-    // Check if a request with these exact parameters is already in flight
-    if (pendingRequests.has(cacheKey)) {
-      console.log('Using in-flight request for:', cacheKey);
-      return pendingRequests.get(cacheKey)!;
-    }
+    console.log('Making API request with params:', params.toString());
     
-    // Check if we have a valid cached response
-    const cachedItem = requestCache.get(cacheKey);
-    const now = Date.now();
-    
-    if (cachedItem && (now - cachedItem.timestamp < CACHE_TTL)) {
-      console.log('Using cached response for:', cacheKey);
-      return cachedItem.data;
-    }
-    
-    // Create and store the promise for this request
-    const requestPromise = (async () => {
-      console.log('Making API request with params:', cacheKey);
-      
+    try {
       // Make the API request
       const response = await axiosInstance.get<OrdersResponse>(`order?${params.toString()}`);
       
-      // Validate response structure
-      if (!response.data || !response.data.response || !Array.isArray(response.data.response.data)) {
+      if (!response.data || !response.data.response) {
         throw new Error('Invalid response format from API');
       }
       
+      // Ensure data is an array, even if empty
+      const apiOrders = Array.isArray(response.data.response.data) 
+        ? response.data.response.data 
+        : [];
+      
       // Map API response to Order objects
-      const orders = response.data.response.data.map((apiOrder) => ({
+      let orders = apiOrders.map((apiOrder) => ({
         id: apiOrder.id,
         userId: apiOrder.userId,
         orderNumber: apiOrder.id.substring(0, 8).toUpperCase(),
@@ -204,61 +222,78 @@ export const getOrders = async (filters: OrdersFilter = {}): Promise<PaginatedOr
         fullName: apiOrder.fullName,
       }));
       
+      // Nếu đang tìm kiếm với keyword có dấu tiếng Việt, thực hiện thêm lọc phía client
+      if (filters.keyword && filters.keyword.trim()) {
+        orders = orders.filter(order => {
+          if (!order.fullName) return false;
+          return vietnameseIncludes(order.fullName, filters.keyword!);
+        });
+      }
+      
       // Prepare result object
-      const result: PaginatedOrders = {
+      return {
         orders,
-        currentPage: response.data.response.currentPage,
-        totalPages: response.data.response.totalPages,
-        totalItems: response.data.response.totalItems,
-        pageSize: response.data.response.pageSize,
-        lastPage: response.data.response.lastPage,
+        currentPage: response.data.response.currentPage || 1,
+        totalPages: response.data.response.totalPages || 1,
+        totalItems: response.data.response.totalItems || orders.length, // Use filtered length
+        pageSize: response.data.response.pageSize || 10,
+        lastPage: response.data.response.lastPage || true,
       };
-      
-      // Cache the result
-      requestCache.set(cacheKey, {
-        data: result,
-        timestamp: Date.now()
-      });
-      
-      return result;
-    })();
-    
-    // Store the promise and clean up when resolved
-    pendingRequests.set(cacheKey, requestPromise);
-    
-    try {
-      return await requestPromise;
-    } finally {
-      // Clean up the pending request reference
-      pendingRequests.delete(cacheKey);
+    } catch (error) {
+      console.error('API request failed:', error);
+      // Return empty result set on error to prevent UI issues
+      return {
+        orders: [],
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        pageSize: filters.pageSize || 10,
+        lastPage: true,
+      };
     }
   } catch (error) {
-    console.error('Error fetching orders:', error);
-    throw error;
+    console.error('Error in getOrders:', error);
+    // Return a fallback empty result set to prevent UI issues
+    return {
+      orders: [],
+      currentPage: 1,
+      totalPages: 1,
+      totalItems: 0,
+      pageSize: filters.pageSize || 10,
+      lastPage: true,
+    };
   }
 };
 
-// Helper function to map API status to our OrderStatus enum
-function mapApiStatus(apiStatus: string): OrderStatus {
-  // Convert to consistent casing for matching
-  const status = apiStatus.toUpperCase();
-
-  // Match to our OrderStatus type
-  switch (status) {
-    case 'PENDING':
-      return 'Pending';
-    case 'DELIVERING':
-      return 'Delivering';
-    case 'SUCCESS':
-      return 'Success';
-    case 'CANCELLED':
-    case 'CANCELED': // Handle both spellings
-      return 'Cancelled';
-    default:
-      console.warn(`Unknown status from API: ${apiStatus}, defaulting to 'Pending'`);
-      return 'Pending';
+// Debounced version of getOrders for search fields
+export const debouncedGetOrders = (filters: OrdersFilter = {}, callback: (result: PaginatedOrders) => void) => {
+  // Clear any previous pending debounce
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
   }
-}
+  
+  // Set new debounce timer - tăng thời gian lên 500ms để tránh gửi quá nhiều request
+  debounceTimer = setTimeout(async () => {
+    try {
+      const result = await getOrders(filters);
+      callback(result);
+    } catch (error) {
+      console.error('Debounced getOrders failed:', error);
+      // Call callback with empty results to prevent UI issues
+      callback({
+        orders: [],
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        pageSize: filters.pageSize || 10,
+        lastPage: true,
+      });
+    } finally {
+      // Đảm bảo xóa debounceTimer sau khi hoàn thành
+      debounceTimer = null;
+    }
+  }, 500); // 500ms debounce delay
+};
 
 // Cache for order details
 const orderDetailsCache = new Map<string, OrderDetailsData>();

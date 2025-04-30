@@ -19,8 +19,122 @@ import Typography from '@mui/material/Typography';
 import { Info, NotePencil, TrashSimple } from '@phosphor-icons/react';
 
 import { Device } from '@/types/device';
+
 import { DeviceFilters } from './device-filters';
 import { EditDeviceModal } from './edit-device-modal';
+
+// Helper function to format rich text content
+const formatRichTextContent = (content: string) => {
+  try {
+    const contentObj = JSON.parse(content);
+    if (!contentObj.blocks || !Array.isArray(contentObj.blocks)) {
+      return content;
+    }
+
+    // Create formatted HTML from the rich text structure
+    return (
+      <Box>
+        {contentObj.blocks.map((block: any, index: number) => {
+          // Handle different block types
+          let blockStyle = { my: 0.5 };
+          let listItemPrefix = '';
+
+          if (block.type === 'ordered-list-item') {
+            listItemPrefix = `${index + 1}. `;
+          } else if (block.type === 'unordered-list-item') {
+            listItemPrefix = '• ';
+          }
+
+          // Special styles for block types
+          const getBlockStyle = () => {
+            if (block.type === 'blockquote') {
+              return {
+                ...blockStyle,
+                pl: 2,
+                borderLeft: '4px solid',
+                borderColor: 'divider',
+              };
+            }
+            if (block.type === 'header-one') {
+              return { ...blockStyle, fontSize: '1.5rem', fontWeight: 'bold' };
+            }
+            if (block.type === 'header-two') {
+              return { ...blockStyle, fontSize: '1.25rem', fontWeight: 'bold' };
+            }
+            if (block.type === 'header-three') {
+              return { ...blockStyle, fontSize: '1.1rem', fontWeight: 'bold' };
+            }
+            return blockStyle;
+          };
+
+          // Process inline style ranges
+          const text = block.text;
+          if (!block.inlineStyleRanges || block.inlineStyleRanges.length === 0) {
+            return (
+              <Typography key={block.key || index} sx={getBlockStyle()} component="div">
+                {listItemPrefix}
+                {text}
+              </Typography>
+            );
+          }
+
+          // Sort inline style ranges by offset
+          const sortedRanges = [...block.inlineStyleRanges].sort((a, b) => a.offset - b.offset);
+
+          // Create text segments with styles
+          const segments: JSX.Element[] = [];
+          let lastIndex = 0;
+
+          sortedRanges.forEach((range, i) => {
+            // Add text before this style range
+            if (range.offset > lastIndex) {
+              segments.push(
+                <React.Fragment key={`${block.key}-before-${i}`}>{text.slice(lastIndex, range.offset)}</React.Fragment>
+              );
+            }
+
+            // Add styled text
+            const styledText = text.slice(range.offset, range.offset + range.length);
+            const style: React.CSSProperties = {};
+
+            if (range.style === 'BOLD') {
+              style.fontWeight = 'bold';
+            } else if (range.style === 'ITALIC') {
+              style.fontStyle = 'italic';
+            } else if (range.style === 'UNDERLINE') {
+              style.textDecoration = 'underline';
+            } else if (range.style === 'STRIKETHROUGH') {
+              style.textDecoration = 'line-through';
+            }
+
+            segments.push(
+              <span key={`${block.key}-style-${i}`} style={style}>
+                {styledText}
+              </span>
+            );
+
+            lastIndex = range.offset + range.length;
+          });
+
+          // Add remaining text after the last style range
+          if (lastIndex < text.length) {
+            segments.push(<React.Fragment key={`${block.key}-after`}>{text.slice(lastIndex)}</React.Fragment>);
+          }
+
+          return (
+            <Typography key={block.key || index} sx={getBlockStyle()} component="div">
+              {listItemPrefix}
+              {segments}
+            </Typography>
+          );
+        })}
+      </Box>
+    );
+  } catch (e) {
+    // If not valid JSON or any error occurs, return the raw text
+    return content;
+  }
+};
 
 interface DeviceTableProps {
   refreshTrigger?: number;
@@ -35,7 +149,8 @@ export function DeviceTable({
   onEdit,
   onDelete,
 }: DeviceTableProps): React.JSX.Element {
-  const [devices, setDevices] = React.useState<Device[]>([]);
+  const [allDevices, setAllDevices] = React.useState<Device[]>([]);
+  const [filteredDevices, setFilteredDevices] = React.useState<Device[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
@@ -48,7 +163,9 @@ export function DeviceTable({
     try {
       setLoading(true);
       const response = await deviceService.getDevices(page + 1, rowsPerPage);
-      setDevices(response.response.data);
+      const devices = response.response.data;
+      setAllDevices(devices);
+      setFilteredDevices(devices);
       setTotalItems(response.response.totalItems);
     } catch (error) {
       console.error('Error fetching devices:', error);
@@ -58,12 +175,27 @@ export function DeviceTable({
   };
 
   React.useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      fetchDevices();
-    }, 500);
+    fetchDevices();
+  }, [refreshTrigger]);
 
-    return () => clearTimeout(debounceTimer);
-  }, [page, rowsPerPage, searchValue, refreshTrigger]);
+  // Apply search filter
+  React.useEffect(() => {
+    if (!searchValue.trim()) {
+      setFilteredDevices(allDevices);
+      return;
+    }
+
+    const lowercasedSearch = searchValue.toLowerCase();
+    const filtered = allDevices.filter(
+      (device) =>
+        device.name.toLowerCase().includes(lowercasedSearch) ||
+        (device.description && device.description.toLowerCase().includes(lowercasedSearch))
+    );
+
+    setFilteredDevices(filtered);
+    // Reset to first page when searching
+    setPage(0);
+  }, [searchValue, allDevices]);
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -93,7 +225,11 @@ export function DeviceTable({
     setSelectedDevice(null);
   };
 
-  if (loading && devices.length === 0) {
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+  };
+
+  if (loading && filteredDevices.length === 0) {
     return (
       <Card>
         <Box display="flex" justifyContent="center" p={3}>
@@ -103,9 +239,14 @@ export function DeviceTable({
     );
   }
 
+  // Calculate pagination for client-side
+  const startIndex = page * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const paginatedDevices = filteredDevices.slice(startIndex, endIndex);
+
   return (
     <Stack spacing={3}>
-      <DeviceFilters onSearchChange={setSearchValue} searchValue={searchValue} />
+      <DeviceFilters onSearchChange={handleSearchChange} searchValue={searchValue} />
       <Card>
         <Table>
           <TableHead>
@@ -119,59 +260,75 @@ export function DeviceTable({
             </TableRow>
           </TableHead>
           <TableBody>
-            {devices.map((device) => (
-              <TableRow hover key={device.id}>
-                <TableCell>
-                  <Typography variant="subtitle2">{device.name}</Typography>
-                </TableCell>
-                <TableCell>
-                  {device.attachment && (
-                    <Box
-                      component="img"
-                      src={device.attachment}
-                      alt={device.name}
-                      sx={{
-                        width: 50,
-                        height: 50,
-                        objectFit: 'cover',
-                        borderRadius: 1,
-                      }}
-                    />
-                  )}
-                </TableCell>
-                <TableCell>{device.description}</TableCell>
-                <TableCell>{device.price.toLocaleString('vi-VN')} đ</TableCell>
-                <TableCell>{device.quantity}</TableCell>
-                <TableCell align="right">
-                  <Stack direction="row" spacing={1} justifyContent="flex-end">
-                    {onViewDetails && (
-                      <Tooltip title="Xem chi tiết">
-                        <IconButton onClick={() => onViewDetails(device)} color="primary" size="small">
-                          <Info size={20} />
+            {paginatedDevices.length > 0 ? (
+              paginatedDevices.map((device) => (
+                <TableRow hover key={device.id}>
+                  <TableCell>
+                    <Typography variant="subtitle2">{device.name}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    {device.attachment && (
+                      <Box
+                        component="img"
+                        src={device.attachment}
+                        alt={device.name}
+                        sx={{
+                          width: 50,
+                          height: 50,
+                          objectFit: 'cover',
+                          borderRadius: 1,
+                        }}
+                      />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {device.description
+                      ? typeof device.description === 'string' && device.description.startsWith('{')
+                        ? formatRichTextContent(device.description)
+                        : device.description
+                      : 'N/A'}
+                  </TableCell>
+                  <TableCell>{device.price.toLocaleString('vi-VN')} đ</TableCell>
+                  <TableCell>{device.quantity}</TableCell>
+                  <TableCell align="right">
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      {onViewDetails && (
+                        <Tooltip title="Xem chi tiết">
+                          <IconButton onClick={() => onViewDetails(device)} color="primary" size="small">
+                            <Info size={20} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      <Tooltip title="Chỉnh sửa">
+                        <IconButton onClick={() => handleEditClick(device)} color="primary" size="small">
+                          <NotePencil size={20} />
                         </IconButton>
                       </Tooltip>
-                    )}
-                    <Tooltip title="Chỉnh sửa">
-                      <IconButton onClick={() => handleEditClick(device)} color="primary" size="small">
-                        <NotePencil size={20} />
-                      </IconButton>
-                    </Tooltip>
-                    {onDelete && (
-                      <Tooltip title="Xóa">
-                        <IconButton onClick={() => onDelete(device)} color="error" size="small">
-                          <TrashSimple size={20} />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </Stack>
+                      {onDelete && (
+                        <Tooltip title="Xóa">
+                          <IconButton onClick={() => onDelete(device)} color="error" size="small">
+                            <TrashSimple size={20} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  <Typography variant="body1" sx={{ py: 2 }}>
+                    Không tìm thấy thiết bị nào
+                  </Typography>
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
         <TablePagination
           component="div"
-          count={totalItems}
+          count={filteredDevices.length}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
           page={page}
@@ -182,11 +339,11 @@ export function DeviceTable({
       </Card>
 
       {selectedDevice && (
-        <EditDeviceModal 
-          open={isEditModalOpen} 
-          onClose={handleEditModalClose} 
-          onSuccess={handleEditSuccess} 
-          device={selectedDevice} 
+        <EditDeviceModal
+          open={isEditModalOpen}
+          onClose={handleEditModalClose}
+          onSuccess={handleEditSuccess}
+          device={selectedDevice}
         />
       )}
     </Stack>

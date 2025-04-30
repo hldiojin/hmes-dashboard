@@ -57,7 +57,7 @@ export default function Page(): React.JSX.Element {
   };
 
   const handleEditDevice = (device: Device) => {
-    // In a real application, you would open an edit modal
+    // This is now handled within the DeviceTable component
     console.log('Edit device:', device);
   };
 

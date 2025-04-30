@@ -28,7 +28,7 @@ export function DeviceFilters({
           label="Tìm kiếm thiết bị"
           value={searchValue}
           onChange={handleSearchChange}
-          placeholder="Tìm theo tên thiết bị..."
+          placeholder="Tìm theo tên hoặc mô tả thiết bị..."
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
