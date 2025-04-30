@@ -458,7 +458,7 @@ function TicketDetail(): React.JSX.Element {
 
         setSnackbar({
           open: true,
-          message: 'Đã nhận ticket thành công',
+          message: 'Đã gán ticket thành công',
           severity: 'success',
         });
 
