@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert, Box, CircularProgress, Snackbar, Stack, Typography } from '@mui/material';
 
+import usePageTitle from '@/lib/hooks/usePageTitle';
+
 import OrderModal from '../../../components/dashboard/order/order-modal';
 import OrderTable from '../../../components/dashboard/order/order-table';
 import {
@@ -14,12 +16,11 @@ import {
   PaginatedOrders,
 } from '../../../services/orderService';
 import { Order } from '../../../types/order';
-import usePageTitle from '@/lib/hooks/usePageTitle';
 
 export default function OrdersPage() {
   // Đặt tiêu đề trang là Hmes-dashboard
   usePageTitle('Đơn hàng');
-  
+
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +46,10 @@ export default function OrdersPage() {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('Fetching orders with filters:', filters);
       const response: PaginatedOrders = await getOrders(filters);
+      console.log('Order response:', response);
+
       setOrders(response.orders);
       setPagination({
         currentPage: response.currentPage,
@@ -73,11 +77,43 @@ export default function OrdersPage() {
 
   // Handle filter changes
   const handleFilterChange = (newFilters: OrdersFilter) => {
-    console.log('Updating filters:', newFilters);
-    setFilters((prev) => ({
-      ...prev,
-      ...newFilters,
-    }));
+    console.log('OrderPage - Received new filters:', newFilters);
+    console.log('OrderPage - Current filters before update:', filters);
+
+    // Update filters state
+    setFilters((prev) => {
+      const updatedFilters = {
+        ...prev,
+        ...newFilters,
+      };
+
+      // Explicitly check and handle status changes
+      if (newFilters.status === undefined && prev.status !== undefined) {
+        console.log('OrderPage - Removing status filter');
+        delete updatedFilters.status;
+      }
+
+      // Explicitly check and handle keyword changes
+      if (newFilters.keyword === undefined && prev.keyword !== undefined) {
+        console.log('OrderPage - Removing keyword filter');
+        delete updatedFilters.keyword;
+      } else if (newFilters.keyword === '') {
+        console.log('OrderPage - Removing empty keyword filter');
+        delete updatedFilters.keyword;
+      }
+
+      console.log('OrderPage - Final filters after update:', updatedFilters);
+      return updatedFilters;
+    });
+
+    // If changing page size, make sure we update pagination state too
+    if (newFilters.pageSize && newFilters.pageSize !== pagination.pageSize) {
+      setPagination((prev) => ({
+        ...prev,
+        pageSize: newFilters.pageSize!,
+        currentPage: 1, // Reset to page 1 when changing page size
+      }));
+    }
   };
 
   // Handle close alerts

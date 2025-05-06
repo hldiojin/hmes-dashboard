@@ -39,26 +39,27 @@ function noop(): void {
 
 // Update the interface to include searchQuery
 interface ProductTableProps {
-  count?: number;
-  page?: number;
-  rowsPerPage?: number;
   refreshTrigger?: number;
   onRefreshNeeded?: () => void;
-  searchQuery?: string; // Add this
+  searchQuery?: string;
 }
 
-function ProductTable({
-  count = 0,
-  page = 0,
-  rowsPerPage = 0,
-  refreshTrigger = 0,
-  onRefreshNeeded,
-  searchQuery = '', // Add this with default value
-}: ProductTableProps): React.JSX.Element {
+function ProductTable({ refreshTrigger = 0, onRefreshNeeded, searchQuery = '' }: ProductTableProps): React.JSX.Element {
   const [products, setProducts] = React.useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = React.useState<Product[]>([]); // Add this
   const [loading, setLoading] = React.useState<boolean>(true);
-  const [totalCount, setTotalCount] = React.useState<number>(0);
+
+  // State for pagination
+  const [pagination, setPagination] = React.useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    pageSize: 10,
+    lastPage: false,
+  });
+
+  // Local pagination state for MUI
+  const [page, setPage] = React.useState(0); // MUI uses 0-indexed pages
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
   // State for delete confirmation dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
@@ -82,37 +83,74 @@ function ProductTable({
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const response = await productService.getAllProducts();
-        setProducts(response.response.data);
-        setTotalCount(response.response.data.length);
+        const response = await productService.getAllProducts(pagination.currentPage, pagination.pageSize, searchQuery);
+
+        if (response.response && Array.isArray(response.response.data)) {
+          setProducts(response.response.data);
+          setPagination({
+            currentPage: response.response.currentPage || 1,
+            totalPages: response.response.totalPages || 1,
+            totalItems: response.response.totalItems || response.response.data.length,
+            pageSize: response.response.pageSize || 10,
+            lastPage: response.response.lastPage || false,
+          });
+
+          // Update MUI pagination state
+          setPage(Math.max(0, (response.response.currentPage || 1) - 1)); // Convert 1-indexed API to 0-indexed MUI
+          setRowsPerPage(response.response.pageSize || 10);
+        } else {
+          console.error('Invalid API response format:', response);
+          setProducts([]);
+          setSnackbar({
+            open: true,
+            message: 'Invalid API response format. Please try again.',
+            severity: 'error',
+          });
+        }
       } catch (error) {
         console.error('Failed to fetch products:', error);
+        setProducts([]);
+        setSnackbar({
+          open: true,
+          message: 'Failed to load products. Please try again.',
+          severity: 'error',
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, pagination.currentPage, pagination.pageSize, searchQuery]);
 
-  // Add this effect to filter products based on searchQuery
-  React.useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredProducts(products);
-    } else {
-      const filtered = products.filter(product => 
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (product.categoryName && product.categoryName.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-      setFilteredProducts(filtered);
-    }
-  }, [searchQuery, products]);
+  // Handle page change
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    console.log('Page changed to:', newPage + 1); // Convert 0-indexed MUI to 1-indexed API
+    setPage(newPage);
+    setPagination((prev) => ({
+      ...prev,
+      currentPage: newPage + 1, // Convert from 0-indexed MUI to 1-indexed API
+    }));
+  };
 
-  // Use filteredProducts for rowIds instead of products
+  // Handle rows per page change
+  const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newPageSize = parseInt(event.target.value, 10);
+    console.log('Rows per page changed to:', newPageSize);
+    setRowsPerPage(newPageSize);
+    setPage(0); // Reset to first page
+
+    setPagination((prev) => ({
+      ...prev,
+      pageSize: newPageSize,
+      currentPage: 1, // Reset to first page when changing page size
+    }));
+  };
+
+  // Use products directly without filtering them client-side
   const rowIds = React.useMemo(() => {
-    return filteredProducts.map((product) => product.id);
-  }, [filteredProducts]);
+    return products.map((product) => product.id);
+  }, [products]);
 
   const { selectAll, deselectAll, selectOne, deselectOne, selected } = useSelection(rowIds);
 
@@ -123,8 +161,8 @@ function ProductTable({
     }
   }, [products, deselectAll, selected.size]);
 
-  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < filteredProducts.length;
-  const selectedAll = filteredProducts.length > 0 && selected?.size === filteredProducts.length;
+  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < products.length;
+  const selectedAll = products.length > 0 && selected?.size === products.length;
 
   // Handle delete button click
   const handleDeleteClick = (product: Product) => {
@@ -264,7 +302,6 @@ function ProductTable({
         // Refresh the list internally
         const response = await productService.getAllProducts();
         setProducts(response.response.data);
-        setTotalCount(response.response.data.length);
       }
     } catch (error) {
       console.error('Error deleting product:', error);
@@ -304,7 +341,6 @@ function ProductTable({
         // Refresh the list internally
         const response = await productService.getAllProducts();
         setProducts(response.response.data);
-        setTotalCount(response.response.data.length);
       }
     } catch (error) {
       console.error('Error updating product:', error);
@@ -348,16 +384,22 @@ function ProductTable({
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredProducts.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    <CircularProgress size={24} sx={{ my: 2 }} />
+                  </TableCell>
+                </TableRow>
+              ) : products.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
                     <Typography variant="body1" py={2}>
-                      {products.length === 0 ? "Không tìm thấy sản phẩm nào" : "Không tìm thấy sản phẩm phù hợp"}
+                      {searchQuery ? 'Không tìm thấy sản phẩm phù hợp' : 'Không tìm thấy sản phẩm nào'}
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProducts.map((product) => {
+                products.map((product) => {
                   const isSelected = selected?.has(product.id);
                   return (
                     <TableRow
@@ -410,14 +452,13 @@ function ProductTable({
         <Divider />
         <TablePagination
           component="div"
-          count={totalCount}
-          onPageChange={noop}
-          onRowsPerPageChange={noop}
+          count={pagination.totalItems}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
           page={page}
           rowsPerPage={rowsPerPage}
-          rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Số hàng mỗi trang:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
+          rowsPerPageOptions={[5, 10, 25, 50]}
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} / ${count !== -1 ? count : `hơn ${to}`}`}
         />
       </Card>
 

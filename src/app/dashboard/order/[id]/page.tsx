@@ -62,6 +62,21 @@ const getOrderStatusStep = (status: OrderStatus) => {
   }
 };
 
+// Helper function to format dates in DD-MM-YYYY format
+const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    // Format to DD-MM-YYYY
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
+};
+
 export default function OrderDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
@@ -241,7 +256,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
                   <Typography variant="body2" color="text.secondary">
                     Order Date
                   </Typography>
-                  <Typography variant="body1">{new Date(order.date).toLocaleDateString()}</Typography>
+                  <Typography variant="body1">{formatDate(order.date)}</Typography>
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="body2" color="text.secondary">

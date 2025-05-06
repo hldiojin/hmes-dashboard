@@ -94,8 +94,9 @@ export interface PaginatedOrders {
 // Helper function to normalize Vietnamese text for searching
 export const normalizeVietnameseText = (text: string): string => {
   if (!text) return '';
-  
-  return text.toLowerCase()
+
+  return text
+    .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/đ/g, 'd')
@@ -105,10 +106,10 @@ export const normalizeVietnameseText = (text: string): string => {
 // Function to check if a search query is included in a text, considering Vietnamese characters
 export const vietnameseIncludes = (text: string, search: string): boolean => {
   if (!text || !search) return false;
-  
+
   const normalizedText = normalizeVietnameseText(text);
   const normalizedSearch = normalizeVietnameseText(search);
-  
+
   return normalizedText.includes(normalizedSearch);
 };
 
@@ -141,16 +142,16 @@ export const getOrders = async (filters: OrdersFilter = {}): Promise<PaginatedOr
   try {
     // Build query parameters for the API request
     const params = new URLSearchParams();
-    
+
     // Only add defined and non-empty filters
     if (filters.keyword && filters.keyword.trim()) {
       params.append('keyword', filters.keyword.trim());
     }
-    
+
     if (filters.minPrice !== undefined && !isNaN(filters.minPrice)) {
       params.append('minPrice', filters.minPrice.toString());
     }
-    
+
     if (filters.maxPrice !== undefined && !isNaN(filters.maxPrice)) {
       params.append('maxPrice', filters.maxPrice.toString());
     }
@@ -183,27 +184,37 @@ export const getOrders = async (filters: OrdersFilter = {}): Promise<PaginatedOr
       params.append('status', filters.status);
     }
 
-    // Always include pagination parameters
-    params.append('pageIndex', String(filters.pageIndex || 1));
-    params.append('pageSize', String(filters.pageSize || 10));
-    
+    // Always include pagination parameters with validation
+    const pageIndex = Math.max(1, filters.pageIndex || 1);
+    const pageSize = Math.max(5, filters.pageSize || 10);
+
+    params.append('pageIndex', String(pageIndex));
+    params.append('pageSize', String(pageSize));
+
     console.log('Making API request with params:', params.toString());
-    
+
     try {
       // Make the API request
       const response = await axiosInstance.get<OrdersResponse>(`order?${params.toString()}`);
-      
+
       if (!response.data || !response.data.response) {
         throw new Error('Invalid response format from API');
       }
-      
+
+      // Debug pagination response values
+      console.log('Pagination response values:', {
+        currentPage: response.data.response.currentPage,
+        totalPages: response.data.response.totalPages,
+        totalItems: response.data.response.totalItems,
+        pageSize: response.data.response.pageSize,
+        lastPage: response.data.response.lastPage,
+      });
+
       // Ensure data is an array, even if empty
-      const apiOrders = Array.isArray(response.data.response.data) 
-        ? response.data.response.data 
-        : [];
-      
+      const apiOrders = Array.isArray(response.data.response.data) ? response.data.response.data : [];
+
       // Map API response to Order objects
-      let orders = apiOrders.map((apiOrder) => ({
+      const orders = apiOrders.map((apiOrder) => ({
         id: apiOrder.id,
         userId: apiOrder.userId,
         orderNumber: apiOrder.id.substring(0, 8).toUpperCase(),
@@ -221,33 +232,26 @@ export const getOrders = async (filters: OrdersFilter = {}): Promise<PaginatedOr
         paymentMethod: 'BANK' as PaymentMethod,
         fullName: apiOrder.fullName,
       }));
-      
-      // Nếu đang tìm kiếm với keyword có dấu tiếng Việt, thực hiện thêm lọc phía client
-      if (filters.keyword && filters.keyword.trim()) {
-        orders = orders.filter(order => {
-          if (!order.fullName) return false;
-          return vietnameseIncludes(order.fullName, filters.keyword!);
-        });
-      }
-      
-      // Prepare result object
+
+      // Prepare result object with validated pagination values
       return {
         orders,
-        currentPage: response.data.response.currentPage || 1,
+        currentPage: response.data.response.currentPage || pageIndex,
         totalPages: response.data.response.totalPages || 1,
-        totalItems: response.data.response.totalItems || orders.length, // Use filtered length
-        pageSize: response.data.response.pageSize || 10,
-        lastPage: response.data.response.lastPage || true,
+        totalItems: response.data.response.totalItems || orders.length,
+        pageSize: response.data.response.pageSize || pageSize,
+        lastPage:
+          response.data.response.lastPage || response.data.response.currentPage >= response.data.response.totalPages,
       };
     } catch (error) {
       console.error('API request failed:', error);
       // Return empty result set on error to prevent UI issues
       return {
         orders: [],
-        currentPage: 1,
+        currentPage: pageIndex,
         totalPages: 1,
         totalItems: 0,
-        pageSize: filters.pageSize || 10,
+        pageSize: pageSize,
         lastPage: true,
       };
     }
@@ -271,7 +275,7 @@ export const debouncedGetOrders = (filters: OrdersFilter = {}, callback: (result
   if (debounceTimer) {
     clearTimeout(debounceTimer);
   }
-  
+
   // Set new debounce timer - tăng thời gian lên 500ms để tránh gửi quá nhiều request
   debounceTimer = setTimeout(async () => {
     try {
@@ -305,9 +309,9 @@ export const getOrderDetails = async (orderId: string): Promise<OrderDetailsData
     if (orderDetailsCache.has(orderId)) {
       return orderDetailsCache.get(orderId)!;
     }
-    
+
     const response = await axiosInstance.get<OrderDetailsResponse>(`order/${orderId}`);
-    
+
     if (response.data && response.data.statusCodes === 200 && response.data.response.data) {
       // Store in cache
       orderDetailsCache.set(orderId, response.data.response.data);
@@ -375,7 +379,7 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus): P
     if (response.data && response.data.statusCodes === 200) {
       // Clear cache for this order
       orderDetailsCache.delete(orderId);
-      
+
       // Return the updated order by getting it again
       const updatedOrder = await getOrderById(orderId);
       if (updatedOrder) {
@@ -435,7 +439,7 @@ export const updateOrder = async (orderId: string, orderData: Partial<Order>): P
 
     // Clear cache for this order
     orderDetailsCache.delete(orderId);
-    
+
     // For now, just return the combined data
     const currentOrder = await getOrderById(orderId);
 

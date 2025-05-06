@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   assignTicket,
   changeTicketStatus,
+  getDeviceById,
   getStaffs,
   getTicketById,
   manageTransferTicket,
@@ -53,7 +54,60 @@ import {
   XCircle,
 } from '@phosphor-icons/react/dist/ssr';
 
-import { Staff, StaffListResponse, Ticket, TicketResponse, TicketStatus, TicketType } from '@/types/ticket';
+import { DeviceItem, Staff, StaffListResponse, Ticket, TicketResponse, TicketStatus, TicketType } from '@/types/ticket';
+
+// Helper function to format dates in DD-MM-YYYY format
+const formatDate = (dateString: string): string => {
+  try {
+    console.log('Formatting date from:', dateString);
+    const date = new Date(dateString);
+    // Format to DD-MM-YYYY
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const formatted = `${day}-${month}-${year}`;
+    console.log('Formatted date result:', formatted);
+    return formatted;
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
+};
+
+// Helper function to format date and time (without seconds)
+const formatDateTime = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    // Format to DD-MM-YYYY HH:MM
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
+  } catch (error) {
+    console.error('Error formatting date and time:', error);
+    return dateString;
+  }
+};
+
+// Helper function to format date and time including seconds
+const formatDateTimeWithSeconds = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    // Format to DD-MM-YYYY HH:MM:SS
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+    return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
+  } catch (error) {
+    console.error('Error formatting date and time with seconds:', error);
+    return dateString;
+  }
+};
 
 // Function to translate ticket type to Vietnamese
 const translateType = (type: string): string => {
@@ -129,6 +183,10 @@ function TicketDetail(): React.JSX.Element {
   const [ticket, setTicket] = React.useState<Ticket | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [storedHandledBy, setStoredHandledBy] = React.useState<string | null>(null);
+
+  // Add device state
+  const [deviceInfo, setDeviceInfo] = React.useState<DeviceItem | null>(null);
+  const [loadingDevice, setLoadingDevice] = React.useState(false);
 
   // Response form state
   const [responseMessage, setResponseMessage] = React.useState('');
@@ -255,6 +313,11 @@ function TicketDetail(): React.JSX.Element {
         // Handle response structure
         if (data && data.statusCodes === 200 && data.response?.data) {
           setTicket(data.response.data);
+
+          // If it's a technical ticket and has deviceItemId, fetch device info
+          if (data.response.data.type === TicketType.Technical && data.response.data.deviceItemId) {
+            fetchDeviceInfo(data.response.data.deviceItemId);
+          }
         } else {
           console.error('Invalid ticket data structure:', data);
           setError('Ticket data has an unexpected format');
@@ -264,6 +327,29 @@ function TicketDetail(): React.JSX.Element {
         setError('Failed to load ticket details');
       } finally {
         setLoading(false);
+      }
+    };
+
+    // Function to fetch device info
+    const fetchDeviceInfo = async (deviceId: string) => {
+      setLoadingDevice(true);
+      try {
+        console.log('Fetching device info with ID:', deviceId);
+        const result = await getDeviceById(deviceId);
+        console.log('Device info response:', result);
+
+        if (result && result.statusCodes === 200 && result.response?.data) {
+          // Log the warranty date for debugging
+          console.log('Warranty expiry date (raw):', result.response.data.warrantyExpiryDate);
+          console.log('Warranty expiry date (formatted):', formatDate(result.response.data.warrantyExpiryDate));
+
+          setDeviceInfo(result.response.data);
+        }
+      } catch (err) {
+        console.error('Error fetching device info:', err);
+        // Don't set an error, just log it - the ticket still loads
+      } finally {
+        setLoadingDevice(false);
       }
     };
 
@@ -466,6 +552,8 @@ function TicketDetail(): React.JSX.Element {
         if (response.response?.data) {
           setTicket(response.response.data);
         }
+        setNavigationAttempted(false);
+        setNavigationTarget('/dashboard/tickets?tab=1');
       } else {
         throw new Error('Failed to assign ticket');
       }
@@ -564,6 +652,7 @@ function TicketDetail(): React.JSX.Element {
         }
 
         setTransferDialogOpen(false);
+        setNavigationTarget('/dashboard/tickets?tab=1');
       }
     } catch (error) {
       console.error('Error transferring ticket:', error);
@@ -624,6 +713,11 @@ function TicketDetail(): React.JSX.Element {
     setSelectedStatus(event.target.value as TicketStatus);
   };
 
+  // Update the formatWarrantyDate function to use the new format with time
+  const formatWarrantyDate = (dateString: string): string => {
+    return formatDateTimeWithSeconds(dateString);
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
@@ -674,7 +768,7 @@ function TicketDetail(): React.JSX.Element {
               <Typography variant="subtitle2" color="text.secondary">
                 Ngày tạo
               </Typography>
-              <Typography variant="body1">{new Date(ticket.createdAt).toLocaleDateString()}</Typography>
+              <Typography variant="body1">{formatDate(ticket.createdAt)}</Typography>
             </Grid>
 
             <Grid item xs={12} md={6}>
@@ -690,6 +784,39 @@ function TicketDetail(): React.JSX.Element {
               </Typography>
               <Typography variant="body1">{ticket.handledBy || storedHandledBy || '-'}</Typography>
             </Grid>
+
+            {/* Add Device Information for Technical tickets */}
+            {ticket.type === TicketType.Technical && (
+              <>
+                {ticket.deviceItemId && ticket.deviceItemSerial && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Mã thiết bị
+                    </Typography>
+                    <Typography variant="body1">{ticket.deviceItemSerial}</Typography>
+                  </Grid>
+                )}
+
+                {loadingDevice ? (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Thông tin thiết bị
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <CircularProgress size={20} sx={{ mr: 1 }} />
+                      <Typography variant="body2">Đang tải...</Typography>
+                    </Box>
+                  </Grid>
+                ) : deviceInfo ? (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Hạn bảo hành
+                    </Typography>
+                    <Typography variant="body1">{formatWarrantyDate(deviceInfo.warrantyExpiryDate)}</Typography>
+                  </Grid>
+                ) : null}
+              </>
+            )}
 
             {(ticket.description || ticket.briefDescription) && (
               <Grid item xs={12}>
@@ -796,7 +923,7 @@ function TicketDetail(): React.JSX.Element {
                         <Box display="flex" justifyContent="space-between" alignItems="center">
                           <Typography variant="subtitle2">{response.userFullName}</Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {new Date(response.createdAt).toLocaleString()}
+                            {formatDateTime(response.createdAt)}
                           </Typography>
                         </Box>
                         <Typography variant="body2">{response.message}</Typography>
@@ -959,7 +1086,8 @@ function TicketDetail(): React.JSX.Element {
                 {/* Status Change button - Show for tickets that are not Closed or Done, primarily in Assigned Tickets tab */}
                 {(isAssignedTicket || (isAllTickets && ticket.handledBy)) &&
                   ticket.status !== TicketStatus.Closed &&
-                  ticket.status !== TicketStatus.Done && (
+                  ticket.status !== TicketStatus.Done &&
+                  ticket.status !== TicketStatus.IsTransferring && (
                     <Button
                       variant="contained"
                       color="info"
@@ -993,7 +1121,7 @@ function TicketDetail(): React.JSX.Element {
                 )}
 
                 {/* Transfer button - Only show in Assigned Tickets tab */}
-                {isAssignedTicket && (
+                {isAssignedTicket && ticket.status !== TicketStatus.IsTransferring && (
                   <Button
                     variant="contained"
                     color="secondary"

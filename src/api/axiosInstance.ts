@@ -11,7 +11,6 @@ const axiosInstance = axios.create({
   timeout: 30000, // 30 seconds
 });
 
-// Add request interceptor to attach the authorization token
 axiosInstance.interceptors.request.use(
   (config) => {
     // Get token from localStorage

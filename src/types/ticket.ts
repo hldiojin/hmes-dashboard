@@ -24,16 +24,32 @@ export interface Ticket {
   isProcessed?: boolean;
   createdAt: string;
   deviceItemId?: string;
+  deviceItemSerial?: string;
   attachments?: string[];
   ticketResponses?: any[];
 }
 
+// Device item from ticket/device/{id} API
+export interface DeviceItem {
+  id: string;
+  serial: string;
+  warrantyExpiryDate: string;
+}
+
+export interface DeviceItemResponse {
+  statusCodes: number;
+  response: {
+    data: DeviceItem;
+  };
+}
+
 export interface TicketData {
   data: Ticket[];
-  total: number;
-  pageIndex: number;
-  pageSize: number;
+  currentPage: number;
   totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  lastPage: boolean;
 }
 
 export interface TicketListResponse {

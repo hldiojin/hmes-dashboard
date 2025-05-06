@@ -46,9 +46,20 @@ import { PencilSimple } from '@phosphor-icons/react';
 
 import { Ticket, TicketResponse, TicketStatus, TicketType } from '@/types/ticket';
 
-function noop(): void {
-  // do nothing
-}
+// Helper function to format dates in DD-MM-YYYY format
+const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    // Format to DD-MM-YYYY
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
+};
 
 interface TicketListProps {
   refreshTrigger?: number;
@@ -114,25 +125,23 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
   const fetchTickets = async (pageIndex: number = pagination.current, pageSize: number = pagination.pageSize) => {
     setLoading(true);
     try {
-      console.log('Đang tải danh sách ticket với thông số:', {
-        endpoint,
-        keyword,
-        type: typeFilter,
-        status: statusFilter,
-        pageIndex,
-        pageSize,
-      });
-
       const response = await getTickets(endpoint, keyword, typeFilter, statusFilter, pageIndex, pageSize);
-      console.log('Đã tải danh sách ticket thành công:', response);
 
       // Access the correct response structure
       if (response?.statusCodes === 200 && response?.response?.data) {
         setTickets(response.response.data);
         setPagination({
-          current: response.response.pageIndex || 1,
-          pageSize: response.response.pageSize || 10,
-          total: response.response.total || response.response.data.length || 0,
+          current: response.response.currentPage || pageIndex,
+          pageSize: response.response.pageSize || pageSize,
+          total: response.response.totalItems || response.response.data.length || 0,
+        });
+
+        console.log('Pagination updated:', {
+          current: response.response.currentPage || pageIndex,
+          pageSize: response.response.pageSize || pageSize,
+          total: response.response.totalItems || response.response.data.length || 0,
+          totalPages: response.response.totalPages,
+          lastPage: response.response.lastPage,
         });
 
         // Show success message for transfer ticket if applicable
@@ -146,11 +155,21 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
       } else {
         console.error('Cấu trúc phản hồi không đúng định dạng:', response);
         setTickets([]);
-        setPagination({
-          current: 1,
-          pageSize: 10,
-          total: 0,
-        });
+
+        // Even if data is not available, use pagination info if present
+        if (response?.response?.totalItems !== undefined) {
+          setPagination({
+            current: response.response.currentPage || 1,
+            pageSize: response.response.pageSize || 10,
+            total: response.response.totalItems || 0,
+          });
+        } else {
+          setPagination({
+            current: 1,
+            pageSize: 10,
+            total: 0,
+          });
+        }
 
         if (endpoint === 'ticket/transfer') {
           setSnackbar({
@@ -198,7 +217,14 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
   }, [endpoint]);
 
   const handleSearch = () => {
-    console.log('Tìm kiếm ticket với từ khóa:', keyword);
+    // Always start search from page 1
+    fetchTickets(1, pagination.pageSize);
+  };
+
+  const handleReset = () => {
+    setKeyword('');
+    setTypeFilter('');
+    setStatusFilter('');
     fetchTickets(1, pagination.pageSize);
   };
 
@@ -217,8 +243,18 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
   };
 
   const handlePaginationChange = (_event: React.MouseEvent<HTMLButtonElement> | null, page: number) => {
-    console.log('Chuyển đến trang:', page);
-    fetchTickets(page, pagination.pageSize);
+    fetchTickets(page + 1, pagination.pageSize);
+  };
+
+  const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newPageSize = parseInt(event.target.value, 10);
+    setPagination((prev) => ({
+      ...prev,
+      pageSize: newPageSize,
+      current: 1,
+    }));
+    // Then fetch tickets with the new page size
+    fetchTickets(1, newPageSize);
   };
 
   const handleCloseSnackbar = () => {
@@ -269,8 +305,20 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
                   <SearchIcon fontSize="small" />
                 </InputAdornment>
               ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={handleSearch} size="small" aria-label="search">
+                    <SearchIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
             }}
             sx={{ flex: 1 }}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              }
+            }}
           />
 
           {!isTransferRequest && (
@@ -305,11 +353,7 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
           )}
 
           <Stack direction="row" spacing={2}>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={() => fetchTickets(pagination.current, pagination.pageSize)}
-            >
+            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleReset}>
               Làm mới
             </Button>
           </Stack>
@@ -385,7 +429,7 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
                         />
                       </TableCell>
                       <TableCell>{ticket.handledBy || '-'}</TableCell>
-                      <TableCell>{new Date(ticket.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>{formatDate(ticket.createdAt)}</TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={1} justifyContent="flex-end" className="row-actions">
                           <Tooltip title="Xem chi tiết">
@@ -427,8 +471,8 @@ const TicketList: React.FC<TicketListProps> = ({ refreshTrigger = 0, onRefreshNe
           component="div"
           count={pagination.total || 0}
           onPageChange={handlePaginationChange}
-          onRowsPerPageChange={noop}
-          page={pagination.current > 0 ? pagination.current - 1 : 0}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          page={Math.max(0, (pagination.current || 1) - 1)}
           rowsPerPage={pagination.pageSize || 10}
           rowsPerPageOptions={[5, 10, 25]}
           labelDisplayedRows={({ from, to, count }) => `${from}-${to} / ${count !== -1 ? count : 'hơn ' + to}`}

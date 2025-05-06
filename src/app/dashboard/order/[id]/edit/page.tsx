@@ -28,6 +28,21 @@ interface EditOrderItemInput extends OrderItem {
   isNew?: boolean;
 }
 
+// Helper function to format dates in DD-MM-YYYY format
+const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    // Format to DD-MM-YYYY
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
+};
+
 export default function EditOrderPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const orderId = params.id;
@@ -235,10 +250,11 @@ export default function EditOrderPage({ params }: { params: { id: string } }) {
                   </Grid>
                   <Grid item xs={12} md={3}>
                     <TextField
+                      label="Order Date"
                       fullWidth
-                      label="Date"
-                      value={new Date(order.date).toLocaleDateString()}
-                      InputProps={{ readOnly: true }}
+                      disabled
+                      variant="outlined"
+                      value={formatDate(order.date)}
                     />
                   </Grid>
                   <Grid item xs={12} md={3}>

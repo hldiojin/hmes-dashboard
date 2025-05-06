@@ -1,5 +1,6 @@
 import axiosInstance from '../api/axiosInstance';
 import {
+  DeviceItemResponse,
   Ticket,
   TicketDetailResponse,
   TicketListResponse,
@@ -33,6 +34,11 @@ export const getTicketById = async (id: string): Promise<TicketDetailResponse> =
   return response.data;
 };
 
+export const getDeviceById = async (id: string): Promise<DeviceItemResponse> => {
+  const response = await axiosInstance.get(`ticket/device/${id}`);
+  return response.data;
+};
+
 export const createTicket = async (ticketData: Partial<Ticket>): Promise<Ticket> => {
   try {
     console.log('Creating ticket with data:', ticketData);
@@ -55,20 +61,20 @@ export const deleteTicket = async (id: string): Promise<void> => {
     console.log('Deleting ticket with ID:', id);
     // Using formData with DELETE request since the server expects it
     const formData = new FormData();
-    
+
     // Use POST method with the action=delete pattern instead of DELETE method
     const response = await axiosInstance.post(`ticket/${id}/delete`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    
+
     console.log('Delete ticket response:', response);
-    
+
     if (!response.data || response.data.statusCodes !== 200) {
       throw new Error(response.data?.response?.message || 'Failed to delete ticket');
     }
-    
+
     return response.data;
   } catch (error) {
     console.error('Error deleting ticket:', error);
@@ -131,39 +137,39 @@ export const manageTransferTicket = async (ticketId: string, decision: boolean):
 export const assignTicket = async (ticketId: string): Promise<TicketResponseResult> => {
   try {
     console.log('Assigning ticket', { ticketId });
-    
+
     // Kiểm tra ticketId trước khi gọi API
     if (!ticketId) {
       console.error('Error: ticketId is empty or undefined');
       throw new Error('Missing ticketId');
     }
-    
+
     const response = await axiosInstance.put(`ticket/assign/${ticketId}`);
-    
+
     // Log full response for debugging
     console.log('Assign ticket API response:', {
       status: response.status,
       statusText: response.statusText,
-      data: response.data
+      data: response.data,
     });
-    
+
     // Kiểm tra response từ API
     if (!response.data) {
       console.error('No data returned from assign ticket API');
       throw new Error('No data returned from server');
     }
-    
+
     // Kiểm tra mã trạng thái từ server
     if (response.data.statusCodes !== 200) {
       console.error('Server returned error code:', response.data.statusCodes);
       console.error('Server error message:', response.data.response?.message || 'Unknown error');
       throw new Error(response.data.response?.message || 'Server returned an error');
     }
-    
+
     return response.data;
   } catch (error: any) {
     console.error('Error assigning ticket:', error);
-    
+
     // Log detailed error information
     if (error.response) {
       console.error('Error response data:', error.response.data);
@@ -174,7 +180,7 @@ export const assignTicket = async (ticketId: string): Promise<TicketResponseResu
     } else {
       console.error('Error message:', error.message);
     }
-    
+
     throw error;
   }
 };

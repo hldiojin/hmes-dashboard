@@ -1,14 +1,41 @@
 import axiosInstance from '@/api/axiosInstance';
 
-import { ApiResponse, Product } from '@/types/product';
+import { ApiResponse, PaginatedProductResponse, Product } from '@/types/product';
 
 class ProductService {
-  async getAllProducts(): Promise<ApiResponse> {
+  async getAllProducts(
+    pageIndex: number = 1,
+    pageSize: number = 10,
+    keyword?: string
+  ): Promise<PaginatedProductResponse> {
     try {
-      const response = await axiosInstance.get<ApiResponse>('/product');
+      // Build query parameters
+      const params = new URLSearchParams();
+      params.append('pageIndex', pageIndex.toString());
+      params.append('pageSize', pageSize.toString());
+
+      if (keyword && keyword.trim()) {
+        params.append('keyword', keyword.trim());
+      }
+
+      console.log('Fetching products with params:', params.toString());
+
+      const response = await axiosInstance.get<PaginatedProductResponse>(`/product/search?${params.toString()}`);
       return response.data;
     } catch (error) {
-      throw error;
+      console.error('Error fetching products:', error);
+      // Return empty response on error to prevent UI issues
+      return {
+        statusCodes: 500,
+        response: {
+          data: [],
+          currentPage: pageIndex,
+          totalPages: 0,
+          totalItems: 0,
+          pageSize: pageSize,
+          lastPage: true,
+        },
+      };
     }
   }
 

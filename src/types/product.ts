@@ -21,3 +21,16 @@ export interface ApiResponse {
   message: string;
   statusCode: number;
 }
+
+// Paginated response format similar to the ticket API
+export interface PaginatedProductResponse {
+  statusCodes: number;
+  response: {
+    data: Product[];
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    pageSize: number;
+    lastPage: boolean;
+  };
+}
