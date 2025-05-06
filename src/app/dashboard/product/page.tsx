@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import productService from '@/services/productService';
-import { Alert, Snackbar } from '@mui/material';
+import { Alert, Box, Snackbar } from '@mui/material';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -15,9 +15,6 @@ import ProductTable from '@/components/dashboard/product/product-table';
 
 function Products(): React.JSX.Element {
   const router = useRouter();
-  const page = 0;
-  const rowsPerPage = 5;
-  const count = 0;
 
   // Add a refresh trigger state
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
@@ -35,6 +32,8 @@ function Products(): React.JSX.Element {
 
   const handleCloseModal = () => {
     setModalOpen(false);
+    // Refresh product list after modal closes
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   const handleCloseSnackbar = () => {
@@ -45,56 +44,60 @@ function Products(): React.JSX.Element {
     setSearchQuery(event.target.value);
   };
 
+  const handleSearchSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    // Refresh the product list with the new search query
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
+  // Function to handle product refresh when needed
+  const handleRefreshNeeded = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
+  // Handle form submission for creating products
   const handleSubmit = async (formData: FormData) => {
     try {
+      // Handle product creation
       await productService.createProduct(formData);
 
+      setModalOpen(false);
+      // Refresh the product list
+      setRefreshTrigger((prev) => prev + 1);
+      // Show success message
       setSnackbar({
         open: true,
         message: 'Sản phẩm đã được tạo thành công',
         severity: 'success',
       });
-
-      // Refresh the table
-      setRefreshTrigger((prev) => prev + 1);
     } catch (error) {
-      console.error('Error creating product:', error);
+      console.error('Failed to create product:', error);
       setSnackbar({
         open: true,
-        message: 'Không thể tạo sản phẩm',
+        message: 'Không thể tạo sản phẩm. Vui lòng thử lại',
         severity: 'error',
       });
     }
   };
 
   return (
-    <Stack spacing={3}>
-      <Stack direction="row" spacing={3}>
-        <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Sản phẩm</Typography>
-          {/* Import and Export buttons removed */}
-        </Stack>
-        <div>
-          <Button
-            startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
-            variant="contained"
-            onClick={handleOpenModal}
-          >
-            Thêm
-          </Button>
-        </div>
+    <Box sx={{ p: 3 }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={4} sx={{ mb: 3 }}>
+        <Typography variant="h4">Quản lý sản phẩm</Typography>
+        <Button startIcon={<PlusIcon />} onClick={handleOpenModal} variant="contained">
+          Tạo sản phẩm
+        </Button>
       </Stack>
-      <ProductFilters 
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
-      />
-      <ProductTable 
-        count={count} 
-        page={page} 
-        rowsPerPage={rowsPerPage} 
-        refreshTrigger={refreshTrigger}
-        searchQuery={searchQuery}
-      />
+
+      <Stack spacing={3} sx={{ mb: 3 }}>
+        <ProductFilters
+          searchValue={searchQuery}
+          onSearchChange={handleSearchChange}
+          onSearchSubmit={handleSearchSubmit}
+        />
+      </Stack>
+
+      <ProductTable refreshTrigger={refreshTrigger} onRefreshNeeded={handleRefreshNeeded} searchQuery={searchQuery} />
 
       <ProductModal open={modalOpen} onClose={handleCloseModal} onSubmit={handleSubmit} mode="create" />
 
@@ -102,13 +105,13 @@ function Products(): React.JSX.Element {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled" sx={{ width: '100%' }}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Stack>
+    </Box>
   );
 }
 

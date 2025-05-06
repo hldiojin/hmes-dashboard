@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create base axios instance with common configurations
 const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'https://api.hmes.site/api/',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5151/api/',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -11,7 +11,6 @@ const axiosInstance = axios.create({
   timeout: 30000, // 30 seconds
 });
 
-// Add request interceptor to attach the authorization token
 axiosInstance.interceptors.request.use(
   (config) => {
     // Get token from localStorage

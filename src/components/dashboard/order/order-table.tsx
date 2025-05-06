@@ -104,149 +104,213 @@ export default function OrderTable({
   const [endDate, setEndDate] = useState<string>('');
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
 
-  // Local state for pagination that doesn't trigger effects
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  // Local pagination state
+  const [page, setPage] = useState(0); // MUI uses 0-indexed pages
+  const [rowsPerPage, setRowsPerPage] = useState(pagination.pageSize || 10);
 
   // Add a ref for debouncing search
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize pagination from props
   useEffect(() => {
-    if (pagination && pagination.currentPage > 0) {
+    if (pagination.currentPage > 0) {
       setPage(pagination.currentPage - 1);
     }
-    if (pagination && pagination.pageSize > 0) {
+    if (pagination.pageSize > 0) {
       setRowsPerPage(pagination.pageSize);
     }
   }, [pagination]);
 
-  // Apply filters when any filter changes
-  const applyFilters = useCallback(() => {
-    const filters: OrdersFilter = {
-      pageIndex: page + 1,
-      pageSize: rowsPerPage,
-    };
+  // Central function to build filters consistently
+  const buildFilters = (
+    pageIndex: number,
+    customPageSize?: number,
+    overrideStatus?: OrderStatus | '',
+    overrideKeyword?: string
+  ): OrdersFilter => {
+    try {
+      const filters: OrdersFilter = {
+        pageIndex: Math.max(1, pageIndex || 1),
+        pageSize: customPageSize || rowsPerPage || 10,
+      };
 
-    // Add all existing filters
-    if (keyword.trim()) {
-      filters.keyword = keyword.trim();
+      // Handle keyword - use override if provided
+      const keywordToUse = overrideKeyword !== undefined ? overrideKeyword : (keyword || '').trim();
+      if (keywordToUse && keywordToUse.length > 0) {
+        filters.keyword = keywordToUse;
+      }
+
+      // Use override status if provided, otherwise use component state
+      const statusToUse = overrideStatus !== undefined ? overrideStatus : statusFilter;
+
+      // Only include status if it's not empty
+      if (statusToUse && statusToUse.length > 0) {
+        filters.status = statusToUse;
+      }
+
+      // Add price filters if they exist
+      if (minPrice && minPrice.length > 0) {
+        try {
+          const minPriceNum = parseFloat(minPrice);
+          if (!isNaN(minPriceNum)) {
+            filters.minPrice = minPriceNum;
+          }
+        } catch (e) {
+          console.warn('Invalid minPrice value:', minPrice);
+        }
+      }
+
+      if (maxPrice && maxPrice.length > 0) {
+        try {
+          const maxPriceNum = parseFloat(maxPrice);
+          if (!isNaN(maxPriceNum)) {
+            filters.maxPrice = maxPriceNum;
+          }
+        } catch (e) {
+          console.warn('Invalid maxPrice value:', maxPrice);
+        }
+      }
+
+      // Add date filters if they exist
+      if (startDate && startDate.length > 0) {
+        filters.startDate = startDate;
+      }
+
+      if (endDate && endDate.length > 0) {
+        filters.endDate = endDate;
+      }
+
+      return filters;
+    } catch (error) {
+      console.error('Error building filters:', error);
+      // Return minimal valid filters as fallback
+      return {
+        pageIndex: pageIndex || 1,
+        pageSize: customPageSize || rowsPerPage || 10,
+      };
     }
+  };
 
-    if (statusFilter) {
-      filters.status = statusFilter;
-    }
-
-    if (minPrice) {
-      filters.minPrice = parseFloat(minPrice);
-    }
-
-    if (maxPrice) {
-      filters.maxPrice = parseFloat(maxPrice);
-    }
-
-    if (startDate) {
-      filters.startDate = startDate;
-    }
-
-    if (endDate) {
-      filters.endDate = endDate;
-    }
-
-    console.log('Applying filters:', filters);
-    onFilterChange(filters);
-  }, [keyword, statusFilter, minPrice, maxPrice, startDate, endDate, page, rowsPerPage, onFilterChange]);
-
-  // Handle input change for keyword with debounce
   const handleKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    
-    // Only update state if value actually changed to prevent rerenders
-    if (value !== keyword) {
-      setKeyword(value);
-      
-      // Cancel previous timeout
-      if (searchTimeout.current) {
-        clearTimeout(searchTimeout.current);
+
+    // Update the keyword state without triggering search
+    setKeyword(value);
+  };
+
+  // Add a function to handle Enter key press
+  const handleKeywordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Only trigger search on Enter key
+    if (e.key === 'Enter') {
+      // Safely get the current input value
+      let inputValue = '';
+
+      try {
+        // Try to get value from event, fall back to state if needed
+        if (e.currentTarget && typeof e.currentTarget.value === 'string') {
+          inputValue = e.currentTarget.value.trim();
+        } else {
+          inputValue = keyword.trim();
+        }
+      } catch (error) {
+        // If any error occurs, fall back to component state
+        console.error('Error accessing input value from event:', error);
+        inputValue = keyword.trim();
       }
-      
-      // Create new timeout with longer debounce
-      searchTimeout.current = setTimeout(() => {
-        console.log('Search keyword debounce triggered:', value);
-        applyFilters();
-      }, 800); // Increase debounce to 800ms
+      // Create base filters
+      const filters: OrdersFilter = {
+        pageIndex: 1,
+        pageSize: rowsPerPage,
+      };
+
+      // IMPORTANT: Set keyword to empty string explicitly when empty to clear previous value
+      filters.keyword = inputValue;
+
+      // Add other filters
+      if (statusFilter) {
+        filters.status = statusFilter;
+      }
+
+      if (minPrice && minPrice.length > 0) {
+        try {
+          const minPriceNum = parseFloat(minPrice);
+          if (!isNaN(minPriceNum)) {
+            filters.minPrice = minPriceNum;
+          }
+        } catch (e) {
+          console.warn('Invalid minPrice value:', minPrice);
+        }
+      }
+
+      if (maxPrice && maxPrice.length > 0) {
+        try {
+          const maxPriceNum = parseFloat(maxPrice);
+          if (!isNaN(maxPriceNum)) {
+            filters.maxPrice = maxPriceNum;
+          }
+        } catch (e) {
+          console.warn('Invalid maxPrice value:', maxPrice);
+        }
+      }
+
+      if (startDate && startDate.length > 0) {
+        filters.startDate = startDate;
+      }
+
+      if (endDate && endDate.length > 0) {
+        filters.endDate = endDate;
+      }
+      onFilterChange(filters);
     }
   };
 
   // Handle status filter change
   const handleStatusChange = (e: SelectChangeEvent<string>) => {
     const value = e.target.value as OrderStatus | '';
-    
-    // Only update if the value actually changed
-    if (value !== statusFilter) {
-      setStatusFilter(value);
-      
-      // Apply filters after a short delay
-      if (searchTimeout.current) {
-        clearTimeout(searchTimeout.current);
-      }
-      
-      searchTimeout.current = setTimeout(() => {
-        applyFilters();
-      }, 300); // Small delay for better UX
-    }
+
+    // Create filters using the NEW status value BEFORE updating state
+    const filters = buildFilters(1, undefined, value);
+    // Update the local state AFTER creating filters
+    setStatusFilter(value);
+    // Send the filters to parent
+    onFilterChange(filters);
   };
 
   // Handle advanced filter changes
   const handleAdvancedFilterChange = (type: 'minPrice' | 'maxPrice' | 'startDate' | 'endDate', value: string) => {
-    let shouldUpdate = false;
-    
+    // Cancel previous timeout to avoid race conditions
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+
+    // Update state based on filter type
     switch (type) {
       case 'minPrice':
-        if (value !== minPrice) {
-          setMinPrice(value);
-          shouldUpdate = true;
-        }
+        setMinPrice(value);
         break;
       case 'maxPrice':
-        if (value !== maxPrice) {
-          setMaxPrice(value);
-          shouldUpdate = true;
-        }
+        setMaxPrice(value);
         break;
       case 'startDate':
-        if (value !== startDate) {
-          setStartDate(value);
-          shouldUpdate = true;
-        }
+        setStartDate(value);
         break;
       case 'endDate':
-        if (value !== endDate) {
-          setEndDate(value);
-          shouldUpdate = true;
-        }
+        setEndDate(value);
         break;
     }
 
-    // Only proceed if a value actually changed
-    if (shouldUpdate) {
-      // Apply filters with a longer debounce for numeric/date inputs
-      if (searchTimeout.current) {
-        clearTimeout(searchTimeout.current);
-      }
-      
-      searchTimeout.current = setTimeout(() => {
-        applyFilters();
-      }, 1000); // Longer debounce (1s) for advanced filters
-    }
+    searchTimeout.current = setTimeout(() => {
+      const filters = buildFilters(1);
+      onFilterChange(filters);
+    }, 500);
   };
 
-  // Handle page change
-  const handlePageChange = (event: unknown, newPage: number) => {
+  const handlePageChange = (_event: unknown, newPage: number) => {
     setPage(newPage);
-    setTimeout(() => {
-      applyFilters();
-    }, 0);
+
+    const filters = buildFilters(newPage + 1);
+
+    onFilterChange(filters);
   };
 
   // Handle rows per page change
@@ -254,9 +318,9 @@ export default function OrderTable({
     const newPageSize = parseInt(event.target.value, 10);
     setRowsPerPage(newPageSize);
     setPage(0);
-    setTimeout(() => {
-      applyFilters();
-    }, 0);
+    const filters = buildFilters(1, newPageSize);
+
+    onFilterChange(filters);
   };
 
   // Handle view order details
@@ -267,6 +331,66 @@ export default function OrderTable({
   // Toggle advanced filters visibility
   const toggleAdvancedFilters = () => {
     setAdvancedFiltersOpen(!advancedFiltersOpen);
+  };
+
+  // Function to execute search with current input value
+  const executeSearch = () => {
+    try {
+      // Get current keyword from state
+      const inputValue = (keyword || '').trim();
+
+      // Create base filters
+      const filters: OrdersFilter = {
+        pageIndex: 1,
+        pageSize: rowsPerPage,
+      };
+
+      // IMPORTANT: Set keyword to empty string explicitly when empty
+      filters.keyword = inputValue;
+
+      // Add other filters
+      if (statusFilter) {
+        filters.status = statusFilter;
+      }
+
+      if (minPrice && minPrice.length > 0) {
+        try {
+          const minPriceNum = parseFloat(minPrice);
+          if (!isNaN(minPriceNum)) {
+            filters.minPrice = minPriceNum;
+          }
+        } catch (e) {
+          console.warn('Invalid minPrice value:', minPrice);
+        }
+      }
+
+      if (maxPrice && maxPrice.length > 0) {
+        try {
+          const maxPriceNum = parseFloat(maxPrice);
+          if (!isNaN(maxPriceNum)) {
+            filters.maxPrice = maxPriceNum;
+          }
+        } catch (e) {
+          console.warn('Invalid maxPrice value:', maxPrice);
+        }
+      }
+
+      if (startDate && startDate.length > 0) {
+        filters.startDate = startDate;
+      }
+
+      if (endDate && endDate.length > 0) {
+        filters.endDate = endDate;
+      }
+      onFilterChange(filters);
+    } catch (error) {
+      console.error('Error during search execution:', error);
+      onFilterChange({
+        pageIndex: 1,
+        pageSize: rowsPerPage,
+        keyword: '',
+      });
+    }
   };
 
   return (
@@ -280,17 +404,33 @@ export default function OrderTable({
                   label="Tìm kiếm đơn hàng"
                   value={keyword}
                   onChange={handleKeywordChange}
-                  placeholder="Mã đơn hàng, tên khách hàng, điện thoại, hoặc địa chỉ"
+                  onKeyDown={handleKeywordKeyDown}
+                  placeholder="Mã đơn hàng, tên khách hàng"
                   sx={{ flexGrow: 1 }}
                   InputProps={{
-                    startAdornment: (
-                      <SearchIcon style={{ marginRight: 8, color: 'rgba(0, 0, 0, 0.54)' }} size={20} />
-                    ),
+                    startAdornment: <SearchIcon style={{ marginRight: 8, color: 'rgba(0, 0, 0, 0.54)' }} size={20} />,
                     endAdornment: (
-                      <IconButton onClick={toggleAdvancedFilters} size="small" sx={{ mr: 1 }} color="primary">
-                        <FilterIcon />
-                        {advancedFiltersOpen ? <CaretUpIcon /> : <CaretDownIcon />}
-                      </IconButton>
+                      <>
+                        <IconButton
+                          onClick={executeSearch}
+                          size="small"
+                          sx={{ mr: 1 }}
+                          color="primary"
+                          title="Tìm kiếm"
+                        >
+                          <SearchIcon />
+                        </IconButton>
+                        <IconButton
+                          onClick={toggleAdvancedFilters}
+                          size="small"
+                          sx={{ mr: 1 }}
+                          color="primary"
+                          title="Bộ lọc nâng cao"
+                        >
+                          <FilterIcon />
+                          {advancedFiltersOpen ? <CaretUpIcon /> : <CaretDownIcon />}
+                        </IconButton>
+                      </>
                     ),
                   }}
                 />
@@ -300,9 +440,24 @@ export default function OrderTable({
                     labelId="status-filter-label"
                     value={statusFilter}
                     label="Trạng thái"
-                    onChange={handleStatusChange}
+                    onChange={(e) => {
+                      handleStatusChange(e);
+                    }}
+                    onClick={() => console.log('Select clicked')}
                   >
-                    <MenuItem value="">Tất cả</MenuItem>
+                    <MenuItem
+                      value=""
+                      onClick={() => {
+                        // Create filters with empty status BEFORE updating state
+                        const filters = buildFilters(1, undefined, '');
+                        // Update state AFTER creating filters
+                        setStatusFilter('');
+                        // Send filters to parent
+                        onFilterChange(filters);
+                      }}
+                    >
+                      Tất cả
+                    </MenuItem>
                     <MenuItem value="Pending">Chờ xử lý</MenuItem>
                     <MenuItem value="Delivering">Đang giao</MenuItem>
                     <MenuItem value="Success">Thành công</MenuItem>
