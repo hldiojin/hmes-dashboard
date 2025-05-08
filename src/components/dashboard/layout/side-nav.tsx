@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
@@ -13,15 +13,18 @@ import { CaretUpDown as CaretUpDownIcon } from '@phosphor-icons/react/dist/ssr/C
 
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
-import { isNavItemActive } from '@/lib/is-nav-item-active';
-import { Logo } from '@/components/core/logo';
 import { useHistoryReplace } from '@/lib/hooks/useHistoryReplace';
+import { isNavItemActive } from '@/lib/is-nav-item-active';
+import { useUser } from '@/hooks/use-user';
+import { Logo } from '@/components/core/logo';
 
-import { navItems } from './config';
+import { getNavItems } from './config';
 import { navIcons } from './nav-icons';
 
 export function SideNav(): React.JSX.Element {
   const pathname = usePathname();
+  const { user } = useUser();
+  const roleBasedNavItems = getNavItems(user);
 
   return (
     <Box
@@ -77,13 +80,17 @@ export function SideNav(): React.JSX.Element {
       </Stack>
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
       <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
-        {renderNavItems({ pathname, items: navItems })}
+        {renderNavItems({ pathname, items: roleBasedNavItems })}
       </Box>
     </Box>
   );
 }
 
 function renderNavItems({ items = [], pathname }: { items?: NavItemConfig[]; pathname: string }): React.JSX.Element {
+  if (!items || items.length === 0) {
+    return <></>;
+  }
+
   const children = items.reduce((acc: React.ReactNode[], curr: NavItemConfig): React.ReactNode[] => {
     const { key, ...item } = curr;
 
@@ -112,7 +119,7 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
     if (disabled) return;
     if (external) return;
     if (!href) return;
-    
+
     e.preventDefault();
     navigateSilently(href);
   };
@@ -126,7 +133,7 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
               href: external ? href : undefined,
               target: external ? '_blank' : undefined,
               rel: external ? 'noreferrer' : undefined,
-              onClick: handleClick
+              onClick: handleClick,
             }
           : { role: 'button' })}
         sx={{

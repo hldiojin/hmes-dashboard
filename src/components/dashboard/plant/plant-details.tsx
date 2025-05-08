@@ -247,7 +247,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
       case 'SoluteConcentration':
         return 'ppm';
       case 'WaterLevel':
-        return 'cm';
+        return '';
       case 'Ph':
         return '';
       default:
