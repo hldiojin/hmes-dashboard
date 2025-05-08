@@ -1,4 +1,5 @@
 import axiosInstance from '@/api/axiosInstance';
+
 export interface User {
   id: string;
   name: string;
@@ -48,6 +49,17 @@ export const userService = {
 
     const response = await axiosInstance.get(`/admin/users?${params.toString()}`);
     return response.data;
+  },
+
+  async getUserCount(): Promise<number> {
+    try {
+      const response = await axiosInstance.get('/admin/users/count');
+      // This endpoint returns just a number
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user count:', error);
+      return 0; // Return 0 as fallback
+    }
   },
 
   async createUser(userData: CreateUserRequest): Promise<ApiResponse<any>> {
