@@ -1232,8 +1232,6 @@ function TicketDetail(): React.JSX.Element {
               onChange={handleStatusChange}
               disabled={updatingStatus}
             >
-              <MenuItem value={TicketStatus.Pending}>Đang chờ</MenuItem>
-              <MenuItem value={TicketStatus.InProgress}>Đang xử lý</MenuItem>
               <MenuItem value={TicketStatus.Done}>Hoàn thành</MenuItem>
               <MenuItem value={TicketStatus.Closed}>Đã đóng</MenuItem>
             </Select>
