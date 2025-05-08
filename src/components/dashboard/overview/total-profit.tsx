@@ -6,6 +6,7 @@ import Stack from '@mui/material/Stack';
 import type { SxProps } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import { CurrencyCircleDollar as CurrencyCircleDollarIcon } from '@phosphor-icons/react/dist/ssr/CurrencyCircleDollar';
+import { ShoppingCart as ShoppingCartIcon } from '@phosphor-icons/react/dist/ssr/ShoppingCart';
 
 export interface TotalProfitProps {
   sx?: SxProps;
@@ -19,12 +20,12 @@ export function TotalProfit({ sx, value }: TotalProfitProps): React.JSX.Element 
         <Stack spacing={1} direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <Stack spacing={1}>
             <Typography color="text.secondary" variant="overline">
-              Tổng lợi nhuận
+              Tổng đơn hàng
             </Typography>
             <Typography variant="h4">{value}</Typography>
           </Stack>
           <Avatar sx={{ backgroundColor: 'var(--mui-palette-primary-main)', height: '56px', width: '56px' }}>
-            <CurrencyCircleDollarIcon fontSize="var(--icon-fontSize-lg)" />
+            <ShoppingCartIcon fontSize="var(--icon-fontSize-lg)" />
           </Avatar>
         </Stack>
       </CardContent>
