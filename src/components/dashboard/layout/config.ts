@@ -1,7 +1,9 @@
 import type { NavItemConfig } from '@/types/nav';
+import { User } from '@/types/user';
 import { paths } from '@/paths';
 
-export const navItems = [
+// Define all navigation items
+const allNavItems = [
   { key: 'overview', title: 'Tổng quan', href: paths.dashboard.overview, icon: 'chart-pie' },
   //  { key: 'customers', title: 'Customers', href: paths.dashboard.customers, icon: 'users' },
   { key: 'category', title: 'Loại sản phẩm', href: paths.dashboard.category, icon: 'tag' },
@@ -17,3 +19,26 @@ export const navItems = [
   { key: 'order', title: 'Đơn hàng', href: paths.dashboard.order, icon: 'shopping-cart' },
   { key: 'device', title: 'Thiết bị IoT', href: paths.dashboard.device, icon: 'gauge' },
 ] satisfies NavItemConfig[];
+
+// Function to get navigation items based on user role
+export const getNavItems = (user: User | null): NavItemConfig[] => {
+  if (!user) {
+    return [];
+  }
+
+  // For Technician or Consultant, show all except 'Tổng quan'
+  if (user.role === 'Technician' || user.role === 'Consultant') {
+    return allNavItems.filter((item) => item.key !== 'overview' && item.key !== 'users');
+  }
+
+  // For Admin, show all items
+  if (user.role === 'Admin') {
+    return allNavItems;
+  }
+
+  // Default case, return all items (or you could return a subset for other roles)
+  return allNavItems;
+};
+
+// Export the default items for backward compatibility
+export const navItems = allNavItems;

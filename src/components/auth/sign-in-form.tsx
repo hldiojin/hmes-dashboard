@@ -65,9 +65,23 @@ export function SignInForm(): React.JSX.Element {
         }
 
         console.log('Đăng nhập thành công, dữ liệu người dùng:', data);
-        
+
+        // Check if user is a Customer - don't allow access
+        if (data?.role === 'Customer') {
+          console.error('User with Customer role cannot access the dashboard');
+          // Clear any auth data
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setError('root', {
+            type: 'server',
+            message: 'Tài khoản khách hàng không có quyền truy cập vào trang quản trị.',
+          });
+          setIsPending(false);
+          return;
+        }
+
         // Show success message
-        setSuccessMessage(`Đăng nhập thành công. Xin chào ${data?.fullName || 'admin'}`);
+        setSuccessMessage(`Đăng nhập thành công. Xin chào ${data?.fullName || data?.name || 'admin'}`);
 
         // Make sure to wait for the session check to complete BEFORE navigation
         if (checkSession) {
@@ -92,8 +106,14 @@ export function SignInForm(): React.JSX.Element {
         if (authService.isAuthenticated()) {
           console.log('Xác thực thành công, đang chuyển hướng đến trang chủ');
 
-          // Use replace instead of push to avoid history issues
-          router.replace(paths.dashboard.overview);
+          // Redirect based on user role
+          if (data?.role === 'Technician' || data?.role === 'Consultant') {
+            // For technicians and consultants, go to tickets page
+            router.replace(paths.dashboard.tickets);
+          } else {
+            // For admins and other roles, go to overview page
+            router.replace(paths.dashboard.overview);
+          }
         } else {
           console.error('Xác thực thất bại mặc dù phản hồi đăng nhập thành công');
           setError('root', {
