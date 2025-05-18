@@ -1,5 +1,8 @@
+import { Plant } from '@/types/plant';
+
 import axiosInstance from '../api/axiosInstance';
 import { TargetValueApiResponse, ValueType } from '../types/targetValue';
+import { Phase } from './phaseService';
 
 export interface TargetValue {
   id: string;
@@ -8,11 +11,17 @@ export interface TargetValue {
   maxValue: number;
 }
 
+export interface PlantPhaseWithTarget {
+  phaseId: string;
+  phaseName: string;
+  target: TargetValue[];
+}
+
 export interface PlantDetails {
   id: string;
   name: string;
   status: 'Active' | 'Inactive';
-  target: TargetValue[];
+  phases: PlantPhaseWithTarget[];
 }
 
 export interface PlantDetailsResponse {
@@ -34,10 +43,12 @@ export interface TargetValuesResponse {
   };
 }
 
-export interface PlantSummary {
-  id: string;
-  name: string;
-  status: 'Active' | 'Inactive';
+export interface PlantWithPhase {
+  plantOfPhaseId: string;
+  plantId: string;
+  plantName: string;
+  phaseId: string;
+  phaseName: string;
 }
 
 export interface TargetValueWithPlants {
@@ -45,7 +56,7 @@ export interface TargetValueWithPlants {
   type: string;
   minValue: number;
   maxValue: number;
-  plants: PlantSummary[];
+  plants: PlantWithPhase[];
 }
 
 export interface TargetValueWithPlantsResponse {
@@ -64,10 +75,11 @@ const targetValueService = {
   updateTargetValue: async (
     plantId: string,
     targetId: string,
+    phaseId: string,
     minValue: number,
     maxValue: number
   ): Promise<TargetValue> => {
-    const response = await axiosInstance.put(`/plant/${plantId}/target/${targetId}`, {
+    const response = await axiosInstance.put(`/plant/${plantId}/target/${targetId}/phase/${phaseId}`, {
       minValue,
       maxValue,
     });
@@ -106,7 +118,7 @@ const targetValueService = {
       console.log('API response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error fetching target values:', error);
+      console.error('Không thể tải danh sách giá trị mục tiêu:', error);
       throw error;
     }
   },
@@ -129,7 +141,7 @@ const targetValueService = {
       console.log('Create response:', response.data);
       return response.data;
     } catch (error: any) {
-      console.error('API Error:', error.response?.data || error.message);
+      console.error('Lỗi API:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -148,7 +160,7 @@ const targetValueService = {
       });
 
       if (response.data.statusCodes >= 400) {
-        const error = new Error(response.data.response.message || 'Target value update failed');
+        const error = new Error(response.data.response.message || 'Không thể cập nhật giá trị mục tiêu');
         (error as any).response = { data: response.data };
         throw error;
       }
@@ -164,7 +176,7 @@ const targetValueService = {
       const response = await axiosInstance.delete(`/target-value/${id}`);
 
       if (response.data?.statusCodes >= 400) {
-        const error = new Error(response.data.response.message || 'Target value deletion failed');
+        const error = new Error(response.data.response.message || 'Không thể xóa giá trị mục tiêu');
         (error as any).response = { data: response.data };
         throw error;
       }
@@ -173,20 +185,12 @@ const targetValueService = {
     }
   },
 
-  changeTargetValue: async (plantId: string, targetId: string, newTargetId: string): Promise<void> => {
-    await axiosInstance.put(`/plant/target/change`, {
-      plantId,
-      targetId,
-      newTargetId,
-    });
-  },
-
-  setValueForPlant: async (plantId: string, targetId: string): Promise<void> => {
+  setValueForPlant: async (plantId: string, targetId: string, phaseId: string): Promise<void> => {
     try {
-      const response = await axiosInstance.post(`/plant/${plantId}/target/${targetId}`);
+      const response = await axiosInstance.post(`/plant/${plantId}/target/${targetId}/phase/${phaseId}`);
 
       if (response.data?.statusCodes >= 400) {
-        const error = new Error(response.data.response.message || 'Failed to set target value for plant');
+        const error = new Error(response.data.response.message || 'Không thể thiết lập giá trị mục tiêu cho cây trồng');
         (error as any).response = { data: response.data };
         throw error;
       }
@@ -200,17 +204,17 @@ const targetValueService = {
     return response.data;
   },
 
-  getPlantsWithoutTargetValueType: async (type: string): Promise<PlantSummary[]> => {
+  getPlantsWithoutTargetValueType: async (type: string): Promise<Plant[]> => {
     const response = await axiosInstance.get(`/plant/not-set-value/${type}`);
     return response.data.response;
   },
 
-  removeValueFromPlant: async (plantId: string, targetId: string): Promise<void> => {
+  removeValueFromPlant: async (plantId: string, targetId: string, phaseId: string): Promise<void> => {
     try {
-      const response = await axiosInstance.delete(`/plant/${plantId}/target/${targetId}`);
+      const response = await axiosInstance.delete(`/plant/${plantId}/target/${targetId}/phase/${phaseId}`);
 
       if (response.data?.statusCodes >= 400) {
-        const error = new Error(response.data.response.message || 'Failed to remove target value from plant');
+        const error = new Error(response.data.response.message || 'Không thể xóa giá trị mục tiêu từ cây trồng');
         (error as any).response = { data: response.data };
         throw error;
       }

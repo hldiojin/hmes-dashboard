@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import targetValueService, { PlantSummary, TargetValueWithPlants } from '@/services/targetValueService';
+import phaseService, { Phase } from '@/services/phaseService';
+import targetValueService, { PlantWithPhase, TargetValueWithPlants } from '@/services/targetValueService';
 import {
   Alert,
   Box,
@@ -37,6 +38,7 @@ import {
 } from '@mui/material';
 import { Plus, Trash, X } from '@phosphor-icons/react';
 
+import { Plant } from '@/types/plant';
 import { ValueType, ValueTypeEnums } from '@/types/targetValue';
 
 interface TargetValueDetailsProps {
@@ -52,10 +54,12 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
 
   // State for add plant functionality
   const [addPlantDialogOpen, setAddPlantDialogOpen] = React.useState(false);
-  const [availablePlants, setAvailablePlants] = React.useState<PlantSummary[]>([]);
+  const [availablePlants, setAvailablePlants] = React.useState<Plant[]>([]);
   const [selectedPlantId, setSelectedPlantId] = React.useState<string>('');
   const [loadingAvailablePlants, setLoadingAvailablePlants] = React.useState(false);
   const [assigningPlant, setAssigningPlant] = React.useState(false);
+  const [phases, setPhases] = React.useState<Phase[]>([]);
+  const [selectedPhaseId, setSelectedPhaseId] = React.useState<string>('');
 
   // State for snackbar
   const [snackbar, setSnackbar] = React.useState({
@@ -66,15 +70,31 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
 
   // State for remove confirmation
   const [removeDialogOpen, setRemoveDialogOpen] = React.useState(false);
-  const [plantToRemove, setPlantToRemove] = React.useState<PlantSummary | null>(null);
+  const [plantToRemove, setPlantToRemove] = React.useState<PlantWithPhase | null>(null);
   const [removingPlant, setRemovingPlant] = React.useState(false);
+
+  // Add a new state for combined plant-phase selection
+  const [selectedPlantPhase, setSelectedPlantPhase] = React.useState<{ plantId: string; phaseId: string }>({
+    plantId: '',
+    phaseId: '',
+  });
 
   // Fetch target value details when component mounts or targetValueId changes
   React.useEffect(() => {
     if (open && targetValueId) {
       fetchTargetDetails();
+      fetchPhases();
     }
   }, [open, targetValueId]);
+
+  const fetchPhases = async () => {
+    try {
+      const response = await phaseService.getAllPhases();
+      setPhases(response.response.data);
+    } catch (error) {
+      console.error('Không thể tải danh sách giai đoạn:', error);
+    }
+  };
 
   const fetchTargetDetails = async () => {
     setLoading(true);
@@ -91,7 +111,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
     }
   };
 
-  // Open the add plant dialog
+  // Modify the handleOpenAddPlantDialog function
   const handleOpenAddPlantDialog = async () => {
     if (!targetDetails) return;
 
@@ -100,8 +120,11 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
       const plants = await targetValueService.getPlantsWithoutTargetValueType(targetDetails.type);
       setAvailablePlants(plants);
       setAddPlantDialogOpen(true);
+      // Reset selections
+      setSelectedPlantId('');
+      setSelectedPhaseId('');
     } catch (error) {
-      console.error('Failed to load available plants:', error);
+      console.error('Không thể tải danh sách cây trồng khả dụng:', error);
     } finally {
       setLoadingAvailablePlants(false);
     }
@@ -111,20 +134,25 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
   const handleCloseAddPlantDialog = () => {
     setAddPlantDialogOpen(false);
     setSelectedPlantId('');
+    setSelectedPhaseId('');
   };
 
-  // Handle plant selection
-  const handlePlantChange = (event: SelectChangeEvent<string>) => {
-    setSelectedPlantId(event.target.value);
+  // Add a new handler for the combined selection
+  const handlePlantPhaseChange = (event: SelectChangeEvent<string>) => {
+    const value = event.target.value;
+    const [plantId, phaseId] = value.split('::');
+    setSelectedPlantPhase({ plantId, phaseId });
+    setSelectedPlantId(plantId);
+    setSelectedPhaseId(phaseId);
   };
 
   // Assign the selected plant to this target value
   const handleAssignPlant = async () => {
-    if (!selectedPlantId || !targetValueId) return;
+    if (!selectedPlantId || !targetValueId || !selectedPhaseId) return;
 
     setAssigningPlant(true);
     try {
-      await targetValueService.setValueForPlant(selectedPlantId, targetValueId);
+      await targetValueService.setValueForPlant(selectedPlantId, targetValueId, selectedPhaseId);
       console.log('Đã gán cây trồng vào giá trị mục tiêu thành công');
 
       // Close the dialog and refresh the details
@@ -194,7 +222,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
   };
 
   // Handle remove plant button click
-  const handleRemoveClick = (plant: PlantSummary, event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleRemoveClick = (plant: PlantWithPhase, event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     setPlantToRemove(plant);
     setRemoveDialogOpen(true);
@@ -212,7 +240,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
 
     setRemovingPlant(true);
     try {
-      await targetValueService.removeValueFromPlant(plantToRemove.id, targetValueId);
+      await targetValueService.removeValueFromPlant(plantToRemove.plantId, targetValueId, plantToRemove.phaseId);
       console.log('Đã xóa giá trị mục tiêu khỏi cây trồng thành công');
 
       // Close dialog and refresh details
@@ -223,7 +251,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
       // Show success message
       setSnackbar({
         open: true,
-        message: `Đã xóa giá trị mục tiêu khỏi cây trồng "${plantToRemove.name}" thành công`,
+        message: `Đã xóa giá trị mục tiêu khỏi cây trồng "${plantToRemove.plantName}" thành công`,
         severity: 'success',
       });
     } catch (error: any) {
@@ -320,23 +348,19 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
                       <Table>
                         <TableHead>
                           <TableRow>
-                            <TableCell>Tên</TableCell>
-                            <TableCell>Trạng thái</TableCell>
+                            <TableCell>Tên cây trồng</TableCell>
+                            <TableCell>Giai đoạn</TableCell>
                             <TableCell align="right">Thao tác</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
                           {targetDetails.plants.map((plant) => (
-                            <TableRow key={plant.id} hover>
+                            <TableRow key={plant.plantOfPhaseId} hover>
                               <TableCell>
-                                <Typography variant="body2">{plant.name}</Typography>
+                                <Typography variant="body2">{plant.plantName}</Typography>
                               </TableCell>
                               <TableCell>
-                                <Chip
-                                  label={plant.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
-                                  color={plant.status === 'Active' ? 'success' : 'error'}
-                                  size="small"
-                                />
+                                <Typography variant="body2">{plant.phaseName}</Typography>
                               </TableCell>
                               <TableCell align="right">
                                 <Tooltip title="Xóa khỏi giá trị mục tiêu này" arrow>
@@ -365,7 +389,7 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
         </DialogActions>
       </Dialog>
 
-      {/* Add Plant Dialog */}
+      {/* Add Plant Dialog - Updated UI */}
       <Dialog open={addPlantDialogOpen} onClose={handleCloseAddPlantDialog} maxWidth="sm" fullWidth>
         <DialogTitle>Thêm cây trồng vào giá trị mục tiêu này</DialogTitle>
         <DialogContent>
@@ -375,15 +399,71 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
               thiết lập.
             </Typography>
           ) : (
-            <Box sx={{ mt: 2 }}>
+            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <FormControl fullWidth>
-                <InputLabel>Chọn cây trồng</InputLabel>
-                <Select value={selectedPlantId} onChange={handlePlantChange} label="Chọn cây trồng">
-                  {availablePlants.map((plant) => (
-                    <MenuItem key={plant.id} value={plant.id}>
-                      {plant.name} - {plant.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
-                    </MenuItem>
-                  ))}
+                <InputLabel>Chọn cây trồng và giai đoạn</InputLabel>
+                <Select
+                  value={`${selectedPlantId}::${selectedPhaseId}`}
+                  onChange={handlePlantPhaseChange}
+                  label="Chọn cây trồng và giai đoạn"
+                  displayEmpty
+                  renderValue={(selected) => {
+                    console.log('Selected value:', selected);
+
+                    if (selected === '::') {
+                      return <em>Chọn cây trồng và giai đoạn</em>;
+                    }
+
+                    const [plantId, phaseId] = selected.split('::');
+                    console.log('Plant ID:', plantId, 'Phase ID:', phaseId);
+
+                    if (!plantId || !phaseId) return <em>Chọn cây trồng và giai đoạn</em>;
+
+                    const plant = availablePlants.find((p) => p.id === plantId);
+                    const phase = plant?.phases.find((ph) => ph.phaseId === phaseId);
+                    console.log('Found plant:', plant, 'Found phase:', phase);
+
+                    if (plant && phase) {
+                      const displayText = `${plant.name} - ${phase.phaseName}`;
+                      console.log('Display text:', displayText);
+                      return displayText;
+                    }
+
+                    return <em>Chọn cây trồng và giai đoạn</em>;
+                  }}
+                >
+                  <MenuItem value="::" disabled>
+                    <em>Chọn cây trồng và giai đoạn</em>
+                  </MenuItem>
+
+                  {availablePlants
+                    .map((plant) => [
+                      // Group header
+                      <MenuItem
+                        key={`header-${plant.id}`}
+                        value={`header-${plant.id}`}
+                        disabled
+                        sx={{
+                          fontWeight: 'bold',
+                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        {plant.name}
+                      </MenuItem>,
+
+                      // Phase options for this plant
+                      ...plant.phases.map((phase) => (
+                        <MenuItem
+                          key={`${plant.id}::${phase.phaseId}`}
+                          value={`${plant.id}::${phase.phaseId}`}
+                          sx={{ pl: 4 }}
+                        >
+                          {`${plant.name} - ${phase.phaseName}`}
+                        </MenuItem>
+                      )),
+                    ])
+                    .flat()}
                 </Select>
               </FormControl>
             </Box>
@@ -391,7 +471,11 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseAddPlantDialog}>Hủy</Button>
-          <Button onClick={handleAssignPlant} variant="contained" disabled={!selectedPlantId || assigningPlant}>
+          <Button
+            onClick={handleAssignPlant}
+            variant="contained"
+            disabled={!selectedPlantId || !selectedPhaseId || assigningPlant}
+          >
             {assigningPlant ? 'Đang gán...' : 'Gán'}
           </Button>
         </DialogActions>
@@ -407,8 +491,8 @@ function TargetValueDetails({ open, onClose, targetValueId }: TargetValueDetails
         <DialogTitle id="remove-dialog-title">Xóa giá trị mục tiêu khỏi cây trồng</DialogTitle>
         <DialogContent>
           <DialogContentText id="remove-dialog-description">
-            Bạn có chắc chắn muốn xóa giá trị mục tiêu này khỏi cây trồng "{plantToRemove?.name}"? Hành động này không
-            thể hoàn tác.
+            Bạn có chắc chắn muốn xóa giá trị mục tiêu này khỏi cây trồng "{plantToRemove?.plantName}" trong giai đoạn "
+            {plantToRemove?.phaseName}"? Hành động này không thể hoàn tác.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
