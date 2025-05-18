@@ -15,11 +15,12 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Plus } from '@phosphor-icons/react';
+import { Leaf, Plus } from '@phosphor-icons/react';
 
 import PlantDetails from '@/components/dashboard/plant/plant-details';
 import PlantModal from '@/components/dashboard/plant/plant-modal';
 import PlantTable from '@/components/dashboard/plant/plant-table';
+import PhaseManagement from '@/components/phase/PhaseManagement';
 
 export default function PlantPage(): React.JSX.Element {
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
@@ -35,6 +36,9 @@ export default function PlantPage(): React.JSX.Element {
   // State for details modal
   const [detailsModalOpen, setDetailsModalOpen] = React.useState(false);
   const [selectedPlantId, setSelectedPlantId] = React.useState<string | null>(null);
+
+  // State for phase management modal
+  const [phaseModalOpen, setPhaseModalOpen] = React.useState(false);
 
   // Handle refresh
   const handleRefresh = () => {
@@ -81,6 +85,15 @@ export default function PlantPage(): React.JSX.Element {
     setCreateModalOpen(false);
   };
 
+  // Handle phase modal open/close
+  const handlePhaseModalOpen = () => {
+    setPhaseModalOpen(true);
+  };
+
+  const handlePhaseModalClose = () => {
+    setPhaseModalOpen(false);
+  };
+
   // Handle create submit
   const handleCreateSubmit = async (name: string, status: 'Active' | 'Inactive') => {
     setCreateLoading(true);
@@ -96,7 +109,7 @@ export default function PlantPage(): React.JSX.Element {
       // Force a refresh of the table
       handleRefresh();
     } catch (error) {
-      console.error('Error creating plant:', error);
+      console.error('Lỗi khi tạo cây trồng:', error);
     } finally {
       setCreateLoading(false);
     }
@@ -116,54 +129,66 @@ export default function PlantPage(): React.JSX.Element {
 
   return (
     <Container maxWidth="xl">
-      <Stack spacing={3}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={4}>
-          <Typography variant="h4">Cây trồng</Typography>
-          <Button startIcon={<Plus />} variant="contained" onClick={handleCreateModalOpen}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h5">Cây trồng</Typography>
+        <Stack direction="row" spacing={2}>
+          <Button variant="outlined" color="primary" onClick={handlePhaseModalOpen} startIcon={<Leaf weight="fill" />}>
+            Quản lý giai đoạn
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleCreateModalOpen}
+            startIcon={<Plus weight="fill" />}
+          >
             Thêm cây trồng
           </Button>
         </Stack>
+      </Stack>
 
-        <Box component="form" onSubmit={handleSearch} sx={{ mb: 2 }}>
-          <Stack direction="row" spacing={2} alignItems="center">
-            <TextField
-              label="Tìm kiếm cây trồng"
-              value={keyword}
-              onChange={handleSearchChange}
-              sx={{ width: 300 }}
-              placeholder="Tìm kiếm theo tên cây trồng"
-            />
-            <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel id="status-filter-label">Trạng thái</InputLabel>
-              <Select
-                labelId="status-filter-label"
-                value={status === null ? '' : status}
-                label="Trạng thái"
-                onChange={handleStatusFilterChange}
-              >
-                <MenuItem value="">Tất cả</MenuItem>
-                <MenuItem value="Active">Hoạt động</MenuItem>
-                <MenuItem value="Inactive">Không hoạt động</MenuItem>
-              </Select>
-            </FormControl>
-            <Button type="submit" variant="contained">
-              Tìm kiếm
-            </Button>
-          </Stack>
-        </Box>
+      <form onSubmit={handleSearch}>
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+          <TextField
+            size="small"
+            label="Tìm kiếm"
+            value={keyword}
+            onChange={handleSearchChange}
+            sx={{ minWidth: 240 }}
+          />
 
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel id="status-filter-label">Trạng thái</InputLabel>
+            <Select
+              labelId="status-filter-label"
+              value={status || ''}
+              onChange={handleStatusFilterChange}
+              label="Trạng thái"
+            >
+              <MenuItem value="">Tất cả</MenuItem>
+              <MenuItem value="Active">Hoạt động</MenuItem>
+              <MenuItem value="Inactive">Không hoạt động</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Button type="submit" variant="outlined">
+            Tìm kiếm
+          </Button>
+        </Stack>
+      </form>
+
+      <Box sx={{ position: 'relative', pb: 4 }}>
         <PlantTable
-          page={page}
-          rowsPerPage={rowsPerPage}
           refreshTrigger={refreshTrigger}
-          onRefreshNeeded={handleRefresh}
           keyword={keyword}
           status={status}
+          page={page}
+          rowsPerPage={rowsPerPage}
           onRowClick={handleDetailsModalOpen}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
+          onRefreshNeeded={handleRefresh}
         />
-      </Stack>
+      </Box>
 
       {/* Create Modal */}
       <PlantModal open={createModalOpen} onClose={handleCreateModalClose} onSubmit={handleCreateSubmit} mode="create" />
@@ -172,6 +197,9 @@ export default function PlantPage(): React.JSX.Element {
       {selectedPlantId && (
         <PlantDetails open={detailsModalOpen} onClose={handleDetailsModalClose} plantId={selectedPlantId} />
       )}
+
+      {/* Phase Management Modal */}
+      <PhaseManagement open={phaseModalOpen} onClose={handlePhaseModalClose} />
     </Container>
   );
 }

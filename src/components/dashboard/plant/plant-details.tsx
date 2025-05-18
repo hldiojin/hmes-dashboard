@@ -1,7 +1,12 @@
 'use client';
 
 import * as React from 'react';
+import phaseService, { Phase } from '@/services/phaseService';
+import plantService from '@/services/plantService';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Button,
   Chip,
@@ -28,9 +33,11 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { Plus, Warning, X } from '@phosphor-icons/react';
+import { CaretDown, Plus, Warning, X } from '@phosphor-icons/react';
 
-import type { PlantDetails as PlantDetailsType, TargetValue } from '../../../services/targetValueService';
+import { Plant, PlantPhase } from '@/types/plant';
+
+import type { TargetValue } from '../../../services/targetValueService';
 import targetValueService from '../../../services/targetValueService';
 import { ValueType, ValueTypeEnums } from '../../../types/targetValue';
 
@@ -42,14 +49,17 @@ interface PlantDetailsProps {
 
 function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.Element {
   const [loading, setLoading] = React.useState<boolean>(true);
-  const [plantDetails, setPlantDetails] = React.useState<PlantDetailsType | null>(null);
+  const [plantDetails, setPlantDetails] = React.useState<Plant | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [phases, setPhases] = React.useState<Phase[]>([]);
+  const [loadingPhases, setLoadingPhases] = React.useState<boolean>(false);
 
   // State for target value editing
   const [editingTarget, setEditingTarget] = React.useState<TargetValue | null>(null);
   const [minValue, setMinValue] = React.useState<number>(0);
   const [maxValue, setMaxValue] = React.useState<number>(0);
   const [updateLoading, setUpdateLoading] = React.useState<boolean>(false);
+  const [currentPhaseId, setCurrentPhaseId] = React.useState<string>('');
 
   // State for editing mode
   const [editMode, setEditMode] = React.useState<'values' | 'change'>('values');
@@ -58,6 +68,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
   const [availableTargetValues, setAvailableTargetValues] = React.useState<TargetValue[]>([]);
   const [selectedTargetId, setSelectedTargetId] = React.useState<string>('');
   const [loadingTargetValues, setLoadingTargetValues] = React.useState<boolean>(false);
+  const [selectedPhaseId, setSelectedPhaseId] = React.useState<string>('');
 
   // State for all possible target value types
   const [allTargetTypes, setAllTargetTypes] = React.useState<ValueType[]>([
@@ -83,6 +94,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
   React.useEffect(() => {
     if (open && plantId) {
       fetchPlantDetails();
+      fetchPhases();
     }
   }, [open, plantId]);
 
@@ -91,11 +103,24 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
     setEditingTarget(null);
     setSelectedTargetId('');
     setUpdateLoading(false);
+    setCurrentPhaseId('');
   };
 
   // Handle retry button click
   const handleRetry = () => {
     fetchPlantDetails();
+  };
+
+  const fetchPhases = async () => {
+    setLoadingPhases(true);
+    try {
+      const response = await phaseService.getAllPhases();
+      setPhases(response.response.data);
+    } catch (error) {
+      console.error('Không thể tải danh sách giai đoạn:', error);
+    } finally {
+      setLoadingPhases(false);
+    }
   };
 
   const fetchPlantDetails = async (showLoading = true) => {
@@ -104,11 +129,11 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
     }
     setError(null);
     try {
-      const response = await targetValueService.getPlantDetails(plantId);
-      setPlantDetails(response.response.data);
+      const data = await plantService.getPlantById(plantId);
+      setPlantDetails(data);
     } catch (error) {
-      console.error('Failed to fetch plant details:', error);
-      setError('Failed to load plant details. Please try again.');
+      console.error('Không thể tải thông tin cây trồng:', error);
+      setError('Không thể tải thông tin cây trồng. Vui lòng thử lại.');
     } finally {
       if (showLoading) {
         setLoading(false);
@@ -130,29 +155,31 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
       setAvailableTargetValues(response.response.data);
       setLoadingTargetValues(false);
     } catch (error) {
-      console.error('Failed to load target values:', error);
+      console.error('Không thể tải danh sách giá trị mục tiêu:', error);
       setLoadingTargetValues(false);
     }
   };
 
   // Handle edit target value mode
-  const handleEditValuesMode = (target: TargetValue) => {
+  const handleEditValuesMode = (target: TargetValue, phaseId: string) => {
     setEditingTarget(target);
     setMinValue(target.minValue);
     setMaxValue(target.maxValue);
     setEditMode('values');
+    setCurrentPhaseId(phaseId);
   };
 
   // Handle change target value mode
-  const handleChangeMode = (target: TargetValue) => {
+  const handleChangeMode = (target: TargetValue, phaseId: string) => {
     setEditingTarget(target);
     setEditMode('change');
+    setCurrentPhaseId(phaseId);
     loadAvailableTargetValues(target.type);
   };
 
   // Handle update target value
   const handleUpdateTarget = async () => {
-    if (!editingTarget || !plantDetails) return;
+    if (!editingTarget || !plantDetails || !currentPhaseId) return;
 
     setUpdateLoading(true);
     try {
@@ -160,6 +187,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
       const targetId = editingTarget.id;
       const minValueCopy = minValue;
       const maxValueCopy = maxValue;
+      const phaseIdCopy = currentPhaseId;
 
       // Close the dialog immediately
       handleCancelEdit();
@@ -167,25 +195,31 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
       // Then perform the update after a delay
       timeoutRef.current = setTimeout(async () => {
         try {
-          await targetValueService.updateTargetValue(plantDetails.id, targetId, minValueCopy, maxValueCopy);
+          await targetValueService.updateTargetValue(
+            plantDetails.id,
+            targetId,
+            phaseIdCopy,
+            minValueCopy,
+            maxValueCopy
+          );
 
           // Update smoothly without a flash
           await refreshDataSmoothly();
         } catch (error) {
-          console.error('Failed to update target value:', error);
+          console.error('Không thể cập nhật giá trị mục tiêu:', error);
         } finally {
           setUpdateLoading(false);
         }
       }, 300);
     } catch (error) {
-      console.error('Failed to update target value:', error);
+      console.error('Không thể cập nhật giá trị mục tiêu:', error);
       setUpdateLoading(false);
     }
   };
 
   // Handle change target
   const handleChangeTarget = async () => {
-    if (!plantDetails || !selectedTargetId || !editingTarget) return;
+    if (!plantDetails || !selectedTargetId || !editingTarget || !currentPhaseId) return;
 
     setUpdateLoading(true);
     try {
@@ -194,6 +228,7 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
       const currentPlantId = plantDetails.id;
       const currentTargetId = editingTarget.id;
       const newTargetId = selectedTargetId;
+      const phaseIdCopy = currentPhaseId;
 
       // Close the dialog immediately
       handleCancelEdit();
@@ -203,22 +238,22 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
         try {
           if (isExistingTarget) {
             // Change existing target value
-            await targetValueService.changeTargetValue(currentPlantId, currentTargetId, newTargetId);
+            await plantService.changeTargetValue(currentPlantId, currentTargetId, newTargetId, phaseIdCopy);
           } else {
             // Add new target value
-            await targetValueService.setValueForPlant(currentPlantId, newTargetId);
+            await plantService.setValueForPlant(currentPlantId, newTargetId, phaseIdCopy);
           }
 
           // Refresh data smoothly
           await refreshDataSmoothly();
         } catch (error) {
-          console.error('Failed to change target value:', error);
+          console.error('Không thể thay đổi giá trị mục tiêu:', error);
         } finally {
           setUpdateLoading(false);
         }
       }, 300);
     } catch (error) {
-      console.error('Failed to prepare target value change:', error);
+      console.error('Không thể chuẩn bị thay đổi giá trị mục tiêu:', error);
       setUpdateLoading(false);
     }
   };
@@ -255,16 +290,29 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
     }
   };
 
-  // Check if a specific target type is set for the plant
-  const isTargetTypeSet = (type: ValueType): boolean => {
-    return plantDetails?.target.some((target) => target.type === type) || false;
+  // Check if a specific target type is set for the plant in a specific phase
+  const isTargetTypeSetInPhase = (type: ValueType, phase: PlantPhase): boolean => {
+    return phase.target.some((target) => target.type === type) || false;
   };
 
   // Handle add target value button click
-  const handleAddTargetValue = async (type: ValueType) => {
+  const handleAddTargetValue = async (type: ValueType, phaseId: string) => {
     setEditingTarget({ id: '', type, minValue: 0, maxValue: 0 });
     setEditMode('change');
+    setCurrentPhaseId(phaseId);
     loadAvailableTargetValues(type);
+  };
+
+  // Remove target value from plant
+  const handleRemoveTargetValue = async (targetId: string, phaseId: string) => {
+    if (!plantDetails) return;
+
+    try {
+      await plantService.removeValueFromPlant(plantDetails.id, targetId, phaseId);
+      await refreshDataSmoothly();
+    } catch (error) {
+      console.error('Không thể xóa giá trị mục tiêu:', error);
+    }
   };
 
   return (
@@ -295,7 +343,10 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
               <Grid item xs={12}>
                 <Stack direction="row" spacing={2} alignItems="center">
                   <Typography variant="h5">{plantDetails.name}</Typography>
-                  {/* Status chip hidden but status data still present in the plantDetails object */}
+                  <Chip
+                    label={plantDetails.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
+                    color={plantDetails.status === 'Active' ? 'success' : 'error'}
+                  />
                 </Stack>
               </Grid>
               <Grid item xs={12}>
@@ -303,67 +354,97 @@ function PlantDetails({ open, onClose, plantId }: PlantDetailsProps): React.JSX.
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="subtitle1" gutterBottom>
-                  Giá trị mục tiêu
+                  Các giai đoạn và giá trị mục tiêu
                 </Typography>
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Loại</TableCell>
-                        <TableCell>Giá trị tối thiểu</TableCell>
-                        <TableCell>Giá trị tối đa</TableCell>
-                        <TableCell align="right">Thao tác</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {plantDetails.target.map((target) => (
-                        <TableRow key={target.id}>
-                          <TableCell>{getTargetTypeDisplayName(target.type)}</TableCell>
-                          <TableCell>
-                            {target.minValue} {getTargetTypeUnit(target.type)}
-                          </TableCell>
-                          <TableCell>
-                            {target.maxValue} {getTargetTypeUnit(target.type)}
-                          </TableCell>
-                          <TableCell align="right">
-                            <Button variant="outlined" size="small" onClick={() => handleChangeMode(target)}>
-                              Thay đổi mục tiêu
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
 
-                      {/* Display rows for missing target types */}
-                      {allTargetTypes
-                        .filter((type) => !isTargetTypeSet(type))
-                        .map((type) => (
-                          <TableRow key={type} sx={{ backgroundColor: 'rgba(255, 235, 235, 0.3)' }}>
-                            <TableCell>
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <Tooltip title="Chưa thiết lập giá trị mục tiêu">
-                                  <Warning size={20} color="#f44336" />
-                                </Tooltip>
-                                {getTargetTypeDisplayName(type)}
-                              </Stack>
-                            </TableCell>
-                            <TableCell>—</TableCell>
-                            <TableCell>—</TableCell>
-                            <TableCell align="right">
-                              <Button
-                                variant="contained"
-                                color="primary"
-                                size="small"
-                                startIcon={<Plus size={18} />}
-                                onClick={() => handleAddTargetValue(type)}
-                              >
-                                Thêm
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                {plantDetails.phases.length === 0 ? (
+                  <Box sx={{ p: 2, textAlign: 'center' }}>
+                    <Typography color="text.secondary">Cây trồng chưa có giai đoạn nào</Typography>
+                  </Box>
+                ) : (
+                  plantDetails.phases.map((phase) => (
+                    <Accordion key={phase.phaseId} sx={{ mb: 2 }}>
+                      <AccordionSummary expandIcon={<CaretDown />}>
+                        <Typography>{phase.phaseName}</Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <TableContainer>
+                          <Table>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Loại</TableCell>
+                                <TableCell>Giá trị tối thiểu</TableCell>
+                                <TableCell>Giá trị tối đa</TableCell>
+                                <TableCell align="right">Thao tác</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {phase.target.map((target) => (
+                                <TableRow key={target.id}>
+                                  <TableCell>{getTargetTypeDisplayName(target.type)}</TableCell>
+                                  <TableCell>
+                                    {target.minValue} {getTargetTypeUnit(target.type)}
+                                  </TableCell>
+                                  <TableCell>
+                                    {target.maxValue} {getTargetTypeUnit(target.type)}
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                      <Button
+                                        variant="outlined"
+                                        size="small"
+                                        onClick={() => handleChangeMode(target, phase.phaseId)}
+                                      >
+                                        Thay đổi
+                                      </Button>
+                                      <Button
+                                        variant="outlined"
+                                        color="error"
+                                        size="small"
+                                        onClick={() => handleRemoveTargetValue(target.id, phase.phaseId)}
+                                      >
+                                        Xóa
+                                      </Button>
+                                    </Stack>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+
+                              {/* Display rows for missing target types */}
+                              {allTargetTypes
+                                .filter((type) => !isTargetTypeSetInPhase(type, phase))
+                                .map((type) => (
+                                  <TableRow key={type} sx={{ backgroundColor: 'rgba(255, 235, 235, 0.3)' }}>
+                                    <TableCell>
+                                      <Stack direction="row" spacing={1} alignItems="center">
+                                        <Tooltip title="Chưa thiết lập giá trị mục tiêu">
+                                          <Warning size={20} color="#f44336" />
+                                        </Tooltip>
+                                        {getTargetTypeDisplayName(type)}
+                                      </Stack>
+                                    </TableCell>
+                                    <TableCell>—</TableCell>
+                                    <TableCell>—</TableCell>
+                                    <TableCell align="right">
+                                      <Button
+                                        variant="contained"
+                                        color="primary"
+                                        size="small"
+                                        startIcon={<Plus size={18} />}
+                                        onClick={() => handleAddTargetValue(type, phase.phaseId)}
+                                      >
+                                        Thêm
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </AccordionDetails>
+                    </Accordion>
+                  ))
+                )}
               </Grid>
             </Grid>
 

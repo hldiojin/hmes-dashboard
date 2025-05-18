@@ -89,21 +89,13 @@ function PlantTable({
       setLoading(true);
       try {
         // Luôn sắp xếp với các sản phẩm mới tạo ở đầu bảng (sắp xếp theo createdAt giảm dần)
-        const response = await plantService.getAllPlants(
-          keyword, 
-          status, 
-          page + 1, 
-          rowsPerPage, 
-          'createdAt', 
-          'desc'
-        );
+        const response = await plantService.getAllPlants(keyword, status, page + 1, rowsPerPage, 'createdAt', 'desc');
         setPlants(response.response.data);
         setTotalCount(response.response.totalItems);
         setCurrentPage(response.response.currentPage);
         setTotalPages(response.response.totalPages);
-        
       } catch (error) {
-        console.error('Error fetching plants:', error);
+        console.error('Lỗi khi tải danh sách cây trồng:', error);
         setPlants([]);
         setTotalCount(0);
       } finally {
@@ -185,7 +177,7 @@ function PlantTable({
         setTotalPages(response.response.totalPages);
       }
     } catch (error) {
-      console.error('Error deleting plant:', error);
+      console.error('Lỗi khi xóa cây trồng:', error);
       setSnackbar({
         open: true,
         message: 'Không thể xóa cây trồng',
@@ -227,7 +219,7 @@ function PlantTable({
         setTotalPages(response.response.totalPages);
       }
     } catch (error) {
-      console.error('Error updating plant:', error);
+      console.error('Lỗi khi cập nhật cây trồng:', error);
       setSnackbar({
         open: true,
         message: 'Không thể cập nhật cây trồng',
