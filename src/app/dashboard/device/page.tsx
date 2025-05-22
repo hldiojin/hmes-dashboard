@@ -12,11 +12,17 @@ import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-
-import { DeviceTable } from '@/components/dashboard/device/device-table';
-import { AddDeviceModal } from '@/components/dashboard/device/add-device-modal';
 import { deviceService } from '@/services/deviceService';
 import { Device } from '@/types/device';
+// import { AddDeviceModal } from '@/components/dashboard/device/add-device-modal';
+// import { DeviceTable } from '@/components/dashboard/device/device-table';
+import dynamic from 'next/dynamic';
+
+// Dynamically import DeviceTable and AddDeviceModal with ssr: false
+const DeviceTable = dynamic(() => import('@/components/dashboard/device/device-table').then((mod) => mod.default), { ssr: false });
+const AddDeviceModal = dynamic(() => import('@/components/dashboard/device/add-device-modal').then((mod) => mod.default), { ssr: false });
+
+
 
 export default function Page(): React.JSX.Element {
   const [isAddDeviceModalOpen, setIsAddDeviceModalOpen] = React.useState(false);
@@ -45,19 +51,17 @@ export default function Page(): React.JSX.Element {
   const handleDeviceAdded = () => {
     setRefreshTrigger((prev) => prev + 1);
     setSnackbar({
-      open: true, 
-      message: 'Thiết bị đã được thêm thành công', 
+      open: true,
+      message: 'Thiết bị đã được thêm thành công',
       severity: 'success'
     });
   };
 
   const handleViewDeviceDetails = (device: Device) => {
-    // In a real application, you might navigate to a device details page
     console.log('View device details:', device);
   };
 
   const handleEditDevice = (device: Device) => {
-    // This is now handled within the DeviceTable component
     console.log('Edit device:', device);
   };
 
@@ -100,7 +104,7 @@ export default function Page(): React.JSX.Element {
     if (reason === 'clickaway') {
       return;
     }
-    setSnackbar({...snackbar, open: false});
+    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
@@ -112,26 +116,28 @@ export default function Page(): React.JSX.Element {
             Quản lý danh sách thiết bị và theo dõi số lượng
           </Typography>
         </Stack>
-        <Button 
-          startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} 
+        <Button
+          startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />}
           variant="contained"
           onClick={handleOpenAddDeviceModal}
         >
           Thêm thiết bị
         </Button>
       </Stack>
-      
-      <DeviceTable 
-        refreshTrigger={refreshTrigger} 
+
+      {/* Dynamically loaded DeviceTable */}
+      <DeviceTable
+        refreshTrigger={refreshTrigger}
         onViewDetails={handleViewDeviceDetails}
         onEdit={handleEditDevice}
         onDelete={handleDeleteClick}
       />
-      
-      <AddDeviceModal 
-        open={isAddDeviceModalOpen} 
-        onClose={handleCloseAddDeviceModal} 
-        onSuccess={handleDeviceAdded} 
+
+      {/* Dynamically loaded AddDeviceModal */}
+      <AddDeviceModal
+        open={isAddDeviceModalOpen}
+        onClose={handleCloseAddDeviceModal}
+        onSuccess={handleDeviceAdded}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -142,7 +148,7 @@ export default function Page(): React.JSX.Element {
         <DialogTitle>Xác nhận xóa thiết bị</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Bạn có chắc chắn muốn xóa thiết bị "{selectedDevice?.name}"? 
+            Bạn có chắc chắn muốn xóa thiết bị "{selectedDevice?.name}"?
             Hành động này không thể hoàn tác.
           </DialogContentText>
         </DialogContent>
@@ -157,14 +163,14 @@ export default function Page(): React.JSX.Element {
       </Dialog>
 
       {/* Snackbar for notifications */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert 
-          onClose={handleCloseSnackbar} 
+        <Alert
+          onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           sx={{ width: '100%' }}
         >
@@ -174,3 +180,4 @@ export default function Page(): React.JSX.Element {
     </Stack>
   );
 }
+

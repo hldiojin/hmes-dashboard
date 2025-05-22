@@ -4,7 +4,7 @@ import * as React from 'react';
 import { deviceService } from '@/services/deviceService';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
+import parse from 'html-react-parser';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
@@ -143,7 +143,7 @@ interface DeviceTableProps {
   onDelete?: (device: Device) => void;
 }
 
-export function DeviceTable({
+export default function DeviceTable({
   refreshTrigger = 0,
   onViewDetails,
   onEdit,
@@ -282,11 +282,12 @@ export function DeviceTable({
                     )}
                   </TableCell>
                   <TableCell>
-                    {device.description
+                    {/* {device.description
                       ? typeof device.description === 'string' && device.description.startsWith('{')
                         ? formatRichTextContent(device.description)
                         : device.description
-                      : 'N/A'}
+                      : 'N/A'} */}
+                    {device.description ? parse(device.description) : 'N/A'}
                   </TableCell>
                   <TableCell>{device.price.toLocaleString('vi-VN')} đ</TableCell>
                   <TableCell>{device.quantity}</TableCell>

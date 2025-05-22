@@ -2,8 +2,6 @@
 
 import * as React from 'react';
 import type { Viewport } from 'next';
-import Head from 'next/head';
-
 import '@/styles/global.css';
 
 import { UserProvider } from '@/contexts/user-context';
@@ -28,12 +26,12 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
     };
 
     window.addEventListener('popstate', handleRouteChange);
-    
+
     // Đảm bảo URL đúng khi trang được tải
     if (window.location.pathname !== '/') {
       window.history.replaceState({}, '', '/');
     }
-    
+
     // Đặt tiêu đề mặc định cho trang web
     document.title = 'Hmes-dashboard';
 
