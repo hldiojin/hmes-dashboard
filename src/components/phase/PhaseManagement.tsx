@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import phaseService, { Phase } from '@/services/phaseService';
-import { Add as AddIcon, Close as CloseIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Add as AddIcon, Close as CloseIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import {
   Alert,
   Box,
   Button,
+  Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
+  DialogContentText,
   DialogTitle,
   IconButton,
   Paper,
   Snackbar,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -19,6 +23,7 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
   useTheme,
 } from '@mui/material';
@@ -36,6 +41,8 @@ const PhaseManagement: React.FC<PhaseManagementProps> = ({ open, onClose }) => {
   const [newPhaseName, setNewPhaseName] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState<{
@@ -85,6 +92,7 @@ const PhaseManagement: React.FC<PhaseManagementProps> = ({ open, onClose }) => {
       return;
     }
 
+    setIsProcessing(true);
     try {
       await phaseService.createPhase(newPhaseName);
       showSnackbar('Tạo giai đoạn thành công', 'success');
@@ -93,7 +101,19 @@ const PhaseManagement: React.FC<PhaseManagementProps> = ({ open, onClose }) => {
       fetchPhases();
     } catch (error: any) {
       console.error('Error creating phase:', error);
-      showSnackbar(error.response?.data?.message || 'Không thể tạo giai đoạn', 'error');
+      const errorMessage = error.response?.data?.message || 'Không thể tạo giai đoạn';
+
+      // Handle specific error messages
+      let displayMessage = errorMessage;
+      switch (errorMessage) {
+        case 'Phase with the same name already exists':
+          displayMessage = 'Giai đoạn với tên này đã tồn tại';
+          break;
+      }
+
+      showSnackbar(displayMessage, 'error');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -103,6 +123,7 @@ const PhaseManagement: React.FC<PhaseManagementProps> = ({ open, onClose }) => {
       return;
     }
 
+    setIsProcessing(true);
     try {
       await phaseService.updatePhase(selectedPhase.id, newPhaseName);
       showSnackbar('Cập nhật giai đoạn thành công', 'success');
@@ -112,7 +133,83 @@ const PhaseManagement: React.FC<PhaseManagementProps> = ({ open, onClose }) => {
       fetchPhases();
     } catch (error: any) {
       console.error('Error updating phase:', error);
-      showSnackbar(error.response?.data?.message || 'Không thể cập nhật giai đoạn', 'error');
+      const errorMessage = error.response?.data?.message || 'Không thể cập nhật giai đoạn';
+
+      // Handle specific error messages
+      let displayMessage = errorMessage;
+      switch (errorMessage) {
+        case 'Phase not found':
+          displayMessage = 'Không tìm thấy giai đoạn';
+          break;
+        case 'Phase with the same name already exists':
+          displayMessage = 'Giai đoạn với tên này đã tồn tại';
+          break;
+      }
+
+      showSnackbar(displayMessage, 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeletePhase = async () => {
+    if (!selectedPhase) return;
+
+    setIsProcessing(true);
+    try {
+      await phaseService.deletePhase(selectedPhase.id);
+      showSnackbar('Xóa giai đoạn thành công', 'success');
+      setIsDeleteDialogOpen(false);
+      setSelectedPhase(null);
+      fetchPhases();
+    } catch (error: any) {
+      console.error('Error deleting phase:', error);
+      const errorMessage = error.response?.data?.message || 'Không thể xóa giai đoạn';
+
+      // Handle specific error messages
+      let displayMessage = errorMessage;
+      switch (errorMessage) {
+        case 'Phase not found':
+          displayMessage = 'Không tìm thấy giai đoạn';
+          break;
+        case 'Cannot delete default phase':
+          displayMessage = 'Không thể xóa giai đoạn mặc định';
+          break;
+        case 'Cannot delete because there are device items using this phase':
+          displayMessage = 'Không thể xóa vì có thiết bị đang sử dụng giai đoạn này';
+          break;
+      }
+
+      showSnackbar(displayMessage, 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleUpdateStatus = async (phase: Phase) => {
+    setIsProcessing(true);
+    try {
+      await phaseService.updatePhaseStatus(phase.id);
+      showSnackbar('Cập nhật trạng thái thành công', 'success');
+      fetchPhases();
+    } catch (error: any) {
+      console.error('Error updating phase status:', error);
+      const errorMessage = error.response?.data?.message || 'Không thể cập nhật trạng thái';
+
+      // Handle specific error messages
+      let displayMessage = errorMessage;
+      switch (errorMessage) {
+        case 'Phase not found':
+          displayMessage = 'Không tìm thấy giai đoạn';
+          break;
+        case 'Cannot update status of default phase':
+          displayMessage = 'Không thể cập nhật trạng thái của giai đoạn mặc định';
+          break;
+      }
+
+      showSnackbar(displayMessage, 'error');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -120,6 +217,11 @@ const PhaseManagement: React.FC<PhaseManagementProps> = ({ open, onClose }) => {
     setSelectedPhase(phase);
     setNewPhaseName(phase.name);
     setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (phase: Phase) => {
+    setSelectedPhase(phase);
+    setIsDeleteDialogOpen(true);
   };
 
   return (
@@ -160,6 +262,7 @@ const PhaseManagement: React.FC<PhaseManagementProps> = ({ open, onClose }) => {
               <TableHead>
                 <TableRow>
                   <TableCell>Tên</TableCell>
+                  <TableCell>Loại</TableCell>
                   <TableCell>Trạng thái</TableCell>
                   <TableCell align="right">Thao tác</TableCell>
                 </TableRow>
@@ -168,11 +271,50 @@ const PhaseManagement: React.FC<PhaseManagementProps> = ({ open, onClose }) => {
                 {phases.map((phase) => (
                   <TableRow key={phase.id}>
                     <TableCell>{phase.name}</TableCell>
-                    <TableCell>{phase.status === 'Active' ? 'Hoạt động' : 'Không hoạt động'}</TableCell>
+                    <TableCell>
+                      {phase.isDefault ? (
+                        <Chip
+                          label="Mặc định"
+                          color="primary"
+                          size="small"
+                          sx={{ backgroundColor: theme.palette.info.main }}
+                        />
+                      ) : (
+                        <Chip label="Tùy chỉnh" variant="outlined" size="small" />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip title="Nhấn để thay đổi trạng thái">
+                        <Switch
+                          checked={phase.status === 'Active'}
+                          onChange={() => handleUpdateStatus(phase)}
+                          disabled={isProcessing}
+                        />
+                      </Tooltip>
+                    </TableCell>
                     <TableCell align="right">
-                      <IconButton size="small" color="primary" onClick={() => openEditDialog(phase)}>
-                        <EditIcon />
-                      </IconButton>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                        <Tooltip title="Chỉnh sửa">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => openEditDialog(phase)}
+                            disabled={isProcessing}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Xóa">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => openDeleteDialog(phase)}
+                            disabled={isProcessing}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -189,7 +331,7 @@ const PhaseManagement: React.FC<PhaseManagementProps> = ({ open, onClose }) => {
         </DialogContent>
 
         {/* Add Phase Dialog */}
-        <Dialog open={isAddDialogOpen} onClose={() => setIsAddDialogOpen(false)}>
+        <Dialog open={isAddDialogOpen} onClose={() => !isProcessing && setIsAddDialogOpen(false)}>
           <DialogTitle>Thêm giai đoạn mới</DialogTitle>
           <DialogContent>
             <TextField
@@ -199,18 +341,27 @@ const PhaseManagement: React.FC<PhaseManagementProps> = ({ open, onClose }) => {
               fullWidth
               value={newPhaseName}
               onChange={(e) => setNewPhaseName(e.target.value)}
+              disabled={isProcessing}
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setIsAddDialogOpen(false)}>Hủy</Button>
-            <Button onClick={handleAddPhase} variant="contained" color="primary">
-              Thêm
+            <Button onClick={() => setIsAddDialogOpen(false)} disabled={isProcessing}>
+              Hủy
+            </Button>
+            <Button
+              onClick={handleAddPhase}
+              variant="contained"
+              color="primary"
+              disabled={isProcessing}
+              startIcon={isProcessing ? <CircularProgress size={20} /> : null}
+            >
+              {isProcessing ? 'Đang xử lý...' : 'Thêm'}
             </Button>
           </DialogActions>
         </Dialog>
 
         {/* Edit Phase Dialog */}
-        <Dialog open={isEditDialogOpen} onClose={() => setIsEditDialogOpen(false)}>
+        <Dialog open={isEditDialogOpen} onClose={() => !isProcessing && setIsEditDialogOpen(false)}>
           <DialogTitle>Chỉnh sửa giai đoạn</DialogTitle>
           <DialogContent>
             <TextField
@@ -220,12 +371,45 @@ const PhaseManagement: React.FC<PhaseManagementProps> = ({ open, onClose }) => {
               fullWidth
               value={newPhaseName}
               onChange={(e) => setNewPhaseName(e.target.value)}
+              disabled={isProcessing}
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setIsEditDialogOpen(false)}>Hủy</Button>
-            <Button onClick={handleEditPhase} variant="contained" color="primary">
-              Lưu
+            <Button onClick={() => setIsEditDialogOpen(false)} disabled={isProcessing}>
+              Hủy
+            </Button>
+            <Button
+              onClick={handleEditPhase}
+              variant="contained"
+              color="primary"
+              disabled={isProcessing}
+              startIcon={isProcessing ? <CircularProgress size={20} /> : null}
+            >
+              {isProcessing ? 'Đang xử lý...' : 'Lưu'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onClose={() => !isProcessing && setIsDeleteDialogOpen(false)}>
+          <DialogTitle>Xác nhận xóa giai đoạn</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Bạn có chắc chắn muốn xóa giai đoạn "{selectedPhase?.name}"? Hành động này không thể hoàn tác.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsDeleteDialogOpen(false)} disabled={isProcessing}>
+              Hủy
+            </Button>
+            <Button
+              onClick={handleDeletePhase}
+              color="error"
+              variant="contained"
+              disabled={isProcessing}
+              startIcon={isProcessing ? <CircularProgress size={20} /> : null}
+            >
+              {isProcessing ? 'Đang xóa...' : 'Xóa'}
             </Button>
           </DialogActions>
         </Dialog>

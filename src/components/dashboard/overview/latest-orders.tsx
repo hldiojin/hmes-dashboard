@@ -117,9 +117,7 @@ export function LatestOrders({ orders = [], sx, onViewAll }: LatestOrdersProps):
         </Table>
       </TableContainer>
       <Divider />
-      <CardActions sx={{ justifyContent: 'flex-end' }}>
-        
-      </CardActions>
+      <CardActions sx={{ justifyContent: 'flex-end' }}></CardActions>
     </Card>
   );
 }

@@ -19,6 +19,8 @@ import {
   Typography,
 } from '@mui/material';
 import { X } from '@phosphor-icons/react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 interface EditDeviceModalProps {
   open: boolean;
@@ -127,6 +129,11 @@ export function EditDeviceModal({ open, onClose, onSuccess, device }: EditDevice
     }
   };
 
+  const handleEditorChange = (value: string) => {
+    setDescription(value);
+  };
+
+
   return (
     <Dialog open={open} onClose={loading ? undefined : handleClose} maxWidth="md" fullWidth>
       <DialogTitle>
@@ -158,16 +165,13 @@ export function EditDeviceModal({ open, onClose, onSuccess, device }: EditDevice
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                label="Mô tả"
-                fullWidth
-                multiline
-                rows={3}
+              <ReactQuill
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                error={!!errors.description}
-                helperText={errors.description}
-                disabled={loading}
+                onChange={(value: string) => {
+                  setDescription(value);
+                }}
+                readOnly={loading}
+                theme="snow"
               />
             </Grid>
             <Grid item xs={12}>

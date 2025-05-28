@@ -18,10 +18,9 @@ import {
   Typography,
 } from '@mui/material';
 import { X } from '@phosphor-icons/react';
-import { ContentState, convertToRaw, EditorState } from 'draft-js';
-import MUIRichTextEditor from 'mui-rte';
-
 import { CreateDeviceRequest } from '@/types/device';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 interface AddDeviceModalProps {
   open: boolean;
@@ -29,9 +28,8 @@ interface AddDeviceModalProps {
   onSuccess: () => void;
 }
 
-export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps): React.JSX.Element {
+export default function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps): React.JSX.Element {
   const [name, setName] = React.useState<string>('');
-  const [editorState, setEditorState] = React.useState(() => EditorState.createEmpty());
   const [editorContent, setEditorContent] = React.useState<string>('');
   const [attachment, setAttachment] = React.useState<File | null>(null);
   const [price, setPrice] = React.useState<string>('');
@@ -46,9 +44,6 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
     general?: string;
   }>({});
 
-  // Reference to the editor
-  const editorRef = React.useRef<any>(null);
-
   // Reset form when modal opens
   React.useEffect(() => {
     if (open) {
@@ -58,7 +53,6 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
 
   const resetForm = () => {
     setName('');
-    setEditorState(EditorState.createEmpty());
     setEditorContent('');
     setAttachment(null);
     setPrice('');
@@ -71,20 +65,18 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
     onClose();
   };
 
-  const handleEditorChange = (state: EditorState) => {
-    setEditorState(state);
+  const handleEditorChange = (value: string) => {
+    setEditorContent(value);
 
-    // Check if the editor has text content
-    const contentState = state.getCurrentContent();
-    const rawContent = convertToRaw(contentState);
-    const hasText = rawContent.blocks.some((block) => block.text.trim().length > 0);
-
-    // Update the content value
-    setEditorContent(hasText ? JSON.stringify(rawContent) : '');
-
-    // Clear errors if any
-    if (errors.description && hasText) {
+    // Clear error if there's content
+    if (errors.description && value && value.trim() !== '<p><br></p>') {
       setErrors({ ...errors, description: undefined });
+    }
+
+    if (value.trim() === '' || value.trim() === '<p><br></p>') {
+      setErrors({
+        ...errors, description: 'Mô tả là bắt buộc'
+      });
     }
   };
 
@@ -101,12 +93,8 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
       newErrors.name = 'Tên thiết bị là bắt buộc';
     }
 
-    // Check if the editor has any content
-    const contentState = editorState.getCurrentContent();
-    const textLength = contentState.getPlainText().trim().length;
-    const hasText = textLength > 0;
-
-    if (!hasText) {
+    // Validate description
+    if (!editorContent || editorContent.trim() === '<p><br></p>') {
       newErrors.description = 'Mô tả là bắt buộc';
     }
 
@@ -127,13 +115,9 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
   };
 
   const handleSubmit = async () => {
-    // Force getting the latest editor content before validation
-    const contentState = editorState.getCurrentContent();
-    const rawContent = convertToRaw(contentState);
-    const hasText = rawContent.blocks.some((block) => block.text.trim().length > 0);
-    setEditorContent(hasText ? JSON.stringify(rawContent) : '');
-
-    if (!validateForm() || !attachment) return;
+    if (!validateForm() || !attachment) {
+      return;
+    }
 
     setLoading(true);
     try {
@@ -149,7 +133,6 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
       handleClose();
       onSuccess();
     } catch (error: any) {
-      console.error('Error creating device:', error);
       let errorMessage = 'Đã xảy ra lỗi khi tạo thiết bị';
       if (error.response?.data?.response?.message) {
         errorMessage = error.response.data.response.message;
@@ -164,7 +147,7 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
+    if (event.target.files?.[0]) {
       setAttachment(event.target.files[0]);
     }
   };
@@ -193,14 +176,14 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
                 label="Tên thiết bị"
                 fullWidth
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                error={!!errors.name}
+                onChange={(e) => { setName(e.target.value); }}
+                error={Boolean(errors.name)}
                 helperText={errors.name}
                 disabled={loading}
               />
             </Grid>
             <Grid item xs={12}>
-              <FormControl fullWidth error={!!errors.description}>
+              <FormControl fullWidth error={Boolean(errors.description)}>
                 <Typography variant="subtitle2" gutterBottom>
                   Mô tả
                 </Typography>
@@ -211,26 +194,14 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
                     borderRadius: 1,
                     minHeight: '150px',
                     bgcolor: 'background.paper',
+                    '& .ql-container': { border: 'none' },
                   }}
                 >
-                  <MUIRichTextEditor
-                    ref={editorRef}
-                    label="Nhập mô tả chi tiết..."
+                  <ReactQuill
+                    value={editorContent}
                     onChange={handleEditorChange}
-                    inlineToolbar={true}
-                    controls={[
-                      'title',
-                      'bold',
-                      'italic',
-                      'underline',
-                      'strikethrough',
-                      'link',
-                      'numberList',
-                      'bulletList',
-                      'quote',
-                      'clear',
-                    ]}
                     readOnly={loading}
+                    theme="snow"
                   />
                 </Box>
                 {errors.description && <FormHelperText error>{errors.description}</FormHelperText>}
@@ -249,8 +220,8 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
                 fullWidth
                 type="number"
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                error={!!errors.price}
+                onChange={(e) => { setPrice(e.target.value); }}
+                error={Boolean(errors.price)}
                 helperText={errors.price}
                 disabled={loading}
                 InputProps={{
@@ -264,8 +235,8 @@ export function AddDeviceModal({ open, onClose, onSuccess }: AddDeviceModalProps
                 fullWidth
                 type="number"
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                error={!!errors.quantity}
+                onChange={(e) => { setQuantity(e.target.value) }}
+                error={Boolean(errors.quantity)}
                 helperText={errors.quantity}
                 disabled={loading}
                 InputProps={{

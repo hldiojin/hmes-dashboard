@@ -4,6 +4,7 @@ export interface Phase {
   id: string;
   name: string;
   status: 'Active' | 'Inactive';
+  isDefault: boolean;
 }
 
 export interface PhaseResponse {
@@ -58,6 +59,16 @@ const phaseService = {
       },
     });
     return response.data.response.data;
+  },
+
+  deletePhase: async (id: string): Promise<{ message: string }> => {
+    const response = await axiosInstance.delete(`/phase/${id}`);
+    return response.data.response;
+  },
+
+  updatePhaseStatus: async (id: string): Promise<{ message: string }> => {
+    const response = await axiosInstance.put(`/phase/status/${id}`);
+    return response.data.response;
   },
 };
 

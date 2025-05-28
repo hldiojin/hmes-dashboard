@@ -1,3 +1,5 @@
+import { Phase } from '@/services/phaseService';
+
 import { Plant, PlantResponse } from '@/types/plant';
 
 import axiosInstance from '../api/axiosInstance';
@@ -84,6 +86,21 @@ const plantService = {
   getPlantNotSetValueOfType: async (type: string): Promise<Plant[]> => {
     const response = await axiosInstance.get(`/plant/not-set-value/${type}`);
     return response.data.response;
+  },
+
+  setPhaseForPlant: async (plantId: string, phaseId: string): Promise<{ message: string }> => {
+    const response = await axiosInstance.post(`/plant/${plantId}/set-phase/${phaseId}`);
+    return response.data.response;
+  },
+
+  removePhaseForPlant: async (plantId: string, phaseId: string): Promise<{ message: string }> => {
+    const response = await axiosInstance.delete(`/plant/${plantId}/remove-phase/${phaseId}`);
+    return response.data.response;
+  },
+
+  getPhasesNotSet: async (plantId: string): Promise<Phase[]> => {
+    const response = await axiosInstance.get(`/phase/plant/${plantId}`);
+    return response.data.response.data;
   },
 };
 
