@@ -42,6 +42,8 @@ const getStatusColor = (
       return 'success';
     case 'Cancelled':
       return 'error';
+    case 'IsWaiting':
+      return 'warning';
     default:
       return 'default';
   }
@@ -50,6 +52,8 @@ const getStatusColor = (
 const getOrderStatusStep = (status: OrderStatus) => {
   switch (status) {
     case 'Pending':
+      return 0;
+    case 'IsWaiting':
       return 0;
     case 'Delivering':
       return 1;

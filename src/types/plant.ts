@@ -1,13 +1,16 @@
+import { TargetValue } from '@/services/targetValueService';
+
+export interface PlantPhase {
+  phaseId: string;
+  phaseName: string;
+  target: TargetValue[];
+}
+
 export interface Plant {
-  description: string;
   id: string;
   name: string;
   status: 'Active' | 'Inactive';
-  targetValues?: {
-    type: string;
-    minValue: number;
-    maxValue: number;
-  }[];
+  phases: PlantPhase[];
 }
 
 export interface PlantResponse {
