@@ -189,6 +189,7 @@ export default function OrdersPage() {
         onClose={handleCloseModal}
         orderDetails={selectedOrderDetails}
         loading={modalLoading}
+        onOrderUpdate={handleRefresh}
       />
 
       {/* Success Snackbar */}

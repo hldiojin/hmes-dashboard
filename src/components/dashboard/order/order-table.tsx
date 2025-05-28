@@ -64,6 +64,8 @@ const getStatusColor = (
       return 'success';
     case 'Cancelled':
       return 'error';
+    case 'IsWaiting':
+      return 'warning';
     default:
       return 'default';
   }
@@ -462,6 +464,7 @@ export default function OrderTable({
                     <MenuItem value="Delivering">Đang giao</MenuItem>
                     <MenuItem value="Success">Thành công</MenuItem>
                     <MenuItem value="Cancelled">Đã hủy</MenuItem>
+                    <MenuItem value="IsWaiting">Chờ xác nhận</MenuItem>
                   </Select>
                 </FormControl>
               </Stack>
@@ -568,15 +571,15 @@ export default function OrderTable({
                               height: 12,
                               borderRadius: '50%',
                               bgcolor:
-                                order.status === 'Pending'
-                                  ? 'primary.main'
+                                order.status === 'Pending' || order.status === 'IsWaiting'
+                                  ? 'warning.main'
                                   : order.status === 'Cancelled'
                                     ? 'grey.500'
                                     : 'success.main',
                               border: '2px solid',
                               borderColor:
-                                order.status === 'Pending'
-                                  ? 'primary.light'
+                                order.status === 'Pending' || order.status === 'IsWaiting'
+                                  ? 'warning.light'
                                   : order.status === 'Cancelled'
                                     ? 'grey.300'
                                     : order.status === 'Delivering'

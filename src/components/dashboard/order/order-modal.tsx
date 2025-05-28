@@ -2,6 +2,7 @@
 
 import React from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -15,6 +16,7 @@ import {
   Divider,
   Grid,
   Paper,
+  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -24,7 +26,8 @@ import {
   Typography,
 } from '@mui/material';
 
-import { OrderDetailsData } from '../../../services/orderService';
+import { useUser } from '../../../hooks/use-user';
+import { confirmOrderCOD, OrderDetailsData } from '../../../services/orderService';
 import {
   formatCurrency,
   formatDate,
@@ -50,6 +53,8 @@ const getStatusColor = (
       return 'success';
     case 'Cancelled':
       return 'error';
+    case 'IsWaiting':
+      return 'warning';
     default:
       return 'default';
   }
@@ -60,9 +65,65 @@ interface OrderModalProps {
   onClose: () => void;
   orderDetails: OrderDetailsData | null;
   loading: boolean;
+  onOrderUpdate?: () => void; // Callback to refresh the order list
 }
 
-export default function OrderModal({ open, onClose, orderDetails, loading }: OrderModalProps) {
+export default function OrderModal({ open, onClose, orderDetails, loading, onOrderUpdate }: OrderModalProps) {
+  const { user } = useUser();
+  const [confirmLoading, setConfirmLoading] = React.useState(false);
+  const [snackbar, setSnackbar] = React.useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
+
+  // Check if user has permission to confirm orders (Consultant or Admin)
+  const canConfirmOrder = user && (user.role === 'Consultant' || user.role === 'Admin');
+
+  // Handle order confirmation
+  const handleConfirmOrder = async (action: 'confirm' | 'cancel') => {
+    if (!orderDetails) return;
+
+    setConfirmLoading(true);
+    try {
+      const status = action === 'confirm' ? 'Delivering' : 'Cancelled';
+      await confirmOrderCOD(orderDetails.orderId, status);
+
+      setSnackbar({
+        open: true,
+        message: action === 'confirm' ? 'Đơn hàng đã được xác nhận thành công!' : 'Đơn hàng đã được hủy thành công!',
+        severity: 'success',
+      });
+
+      // Call the update callback to refresh the order list
+      if (onOrderUpdate) {
+        onOrderUpdate();
+      }
+
+      // Close modal after a delay
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (error: any) {
+      console.error('Error confirming order:', error);
+      setSnackbar({
+        open: true,
+        message: error.message || 'Có lỗi xảy ra khi xử lý đơn hàng',
+        severity: 'error',
+      });
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
+
   if (loading) {
     return (
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -192,7 +253,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                             height: '100%',
                             bgcolor: 'primary.main',
                             width:
-                              orderStatus === 'Pending'
+                              orderStatus === 'IsWaiting' || orderStatus === 'Pending'
                                 ? '0%'
                                 : orderStatus === 'Delivering'
                                   ? '50%'
@@ -209,8 +270,8 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                       sx={{
                         zIndex: 3,
                         bgcolor:
-                          orderStatus === 'Pending'
-                            ? 'primary.main'
+                          orderStatus === 'IsWaiting' || orderStatus === 'Pending'
+                            ? 'warning.main'
                             : orderStatus === 'Cancelled'
                               ? 'grey.400'
                               : 'success.main',
@@ -283,16 +344,16 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                     <Typography
                       variant="caption"
                       sx={{
-                        fontWeight: orderStatus === 'Pending' ? 'bold' : 'regular',
+                        fontWeight: orderStatus === 'IsWaiting' || orderStatus === 'Pending' ? 'bold' : 'regular',
                         color:
-                          orderStatus === 'Pending'
-                            ? 'primary.main'
+                          orderStatus === 'IsWaiting' || orderStatus === 'Pending'
+                            ? 'warning.main'
                             : orderStatus === 'Cancelled'
                               ? 'text.secondary'
                               : 'text.secondary',
                       }}
                     >
-                      Chờ xử lý
+                      {orderStatus === 'IsWaiting' ? 'Chờ xác nhận' : 'Chờ xử lý'}
                     </Typography>
                     <Typography
                       variant="caption"
@@ -330,6 +391,36 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
                       <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5 }}>
                         Đơn hàng này đã bị hủy
                       </Typography>
+                    </Box>
+                  )}
+
+                  {/* IsWaiting Status with Action Buttons */}
+                  {orderStatus === 'IsWaiting' && canConfirmOrder && (
+                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #eee' }}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Đơn hàng này cần được xác nhận:
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                        <Button
+                          variant="contained"
+                          color="success"
+                          size="small"
+                          onClick={() => handleConfirmOrder('confirm')}
+                          disabled={confirmLoading}
+                          startIcon={confirmLoading ? <CircularProgress size={16} /> : null}
+                        >
+                          {confirmLoading ? 'Đang xử lý...' : 'Xác nhận'}
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={() => handleConfirmOrder('cancel')}
+                          disabled={confirmLoading}
+                        >
+                          Hủy
+                        </Button>
+                      </Box>
                     </Box>
                   )}
                 </Box>
@@ -505,6 +596,18 @@ export default function OrderModal({ open, onClose, orderDetails, loading }: Ord
       <DialogActions>
         <Button onClick={onClose}>Đóng</Button>
       </DialogActions>
+
+      {/* Snackbar for success/error messages */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 }

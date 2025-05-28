@@ -91,6 +91,20 @@ export interface PaginatedOrders {
   lastPage: boolean;
 }
 
+// Order confirmation request type
+export interface OrderConfirmRequest {
+  orderId: string;
+  status: 'Delivering' | 'Cancelled';
+}
+
+// Order confirmation response type
+export interface OrderConfirmResponse {
+  statusCodes: number;
+  response: {
+    message: string;
+  };
+}
+
 // Helper function to normalize Vietnamese text for searching
 export const normalizeVietnameseText = (text: string): string => {
   if (!text) return '';
@@ -132,6 +146,8 @@ function mapApiStatus(apiStatus: string): OrderStatus {
     case 'CANCELLED':
     case 'CANCELED': // Handle both spellings
       return 'Cancelled';
+    case 'ISWAITING':
+      return 'IsWaiting';
     default:
       console.warn(`Unknown status from API: ${apiStatus}, defaulting to 'Pending'`);
       return 'Pending';
@@ -391,6 +407,40 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus): P
   } catch (error) {
     console.error(`Error updating order status for ID ${orderId}:`, error);
     throw error;
+  }
+};
+
+// CONFIRM COD - Confirm or cancel COD order
+export const confirmOrderCOD = async (orderId: string, status: 'Delivering' | 'Cancelled'): Promise<void> => {
+  try {
+    const requestData: OrderConfirmRequest = {
+      orderId,
+      status,
+    };
+
+    console.log('Confirming COD order:', requestData);
+
+    const response = await axiosInstance.post<OrderConfirmResponse>('order/confirm-cod', requestData);
+
+    if (response.data && response.data.statusCodes === 200) {
+      // Clear cache for this order to force refresh
+      orderDetailsCache.delete(orderId);
+      console.log('Order COD confirmation successful:', response.data.response.message);
+      return;
+    }
+
+    throw new Error(response.data?.response?.message || 'Failed to confirm COD order');
+  } catch (error: any) {
+    console.error(`Error confirming COD order for ID ${orderId}:`, error);
+
+    // Extract error message from response if available
+    const errorMessage =
+      error.response?.data?.response?.message ||
+      error.response?.data?.message ||
+      error.message ||
+      'Failed to confirm COD order';
+
+    throw new Error(errorMessage);
   }
 };
 
