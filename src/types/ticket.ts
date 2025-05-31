@@ -29,11 +29,19 @@ export interface Ticket {
   ticketResponses?: any[];
 }
 
+// Device item detail component
+export interface DeviceItemDetail {
+  id: string;
+  name: string;
+  serial: string;
+}
+
 // Device item from ticket/device/{id} API
 export interface DeviceItem {
   id: string;
   serial: string;
   warrantyExpiryDate: string;
+  details: DeviceItemDetail[];
 }
 
 export interface DeviceItemResponse {

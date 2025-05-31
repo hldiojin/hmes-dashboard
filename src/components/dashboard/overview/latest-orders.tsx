@@ -29,12 +29,18 @@ const getStatusColor = (
   switch (status) {
     case 'Pending':
       return 'warning';
+    case 'PendingPayment':
+      return 'info';
     case 'Delivering':
       return 'info';
+    case 'AllowRepayment':
+      return 'secondary';
     case 'Success':
       return 'success';
     case 'Cancelled':
       return 'error';
+    case 'IsWaiting':
+      return 'warning';
     default:
       return 'default';
   }

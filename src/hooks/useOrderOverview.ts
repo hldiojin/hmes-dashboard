@@ -139,6 +139,10 @@ function mapOrderStatusToComponent(status: string): OrderStatus {
       return 'Delivering';
     case 'IsWaiting':
       return 'IsWaiting';
+    case 'PendingPayment':
+      return 'PendingPayment';
+    case 'AllowRepayment':
+      return 'AllowRepayment';
     case 'Pending':
     default:
       return 'Pending';
@@ -150,7 +154,9 @@ function calculateOrdersByStatus(orders: Order[]): { status: string; count: numb
   if (!orders || orders.length === 0) {
     return [
       { status: 'Pending', count: 0 },
+      { status: 'PendingPayment', count: 0 },
       { status: 'IsWaiting', count: 0 },
+      { status: 'AllowRepayment', count: 0 },
       { status: 'Delivering', count: 0 },
       { status: 'Success', count: 0 },
       { status: 'Cancelled', count: 0 },
@@ -160,7 +166,9 @@ function calculateOrdersByStatus(orders: Order[]): { status: string; count: numb
   // Count orders by status
   const statusCounts = {
     Pending: 0,
+    PendingPayment: 0,
     IsWaiting: 0,
+    AllowRepayment: 0,
     Delivering: 0,
     Success: 0,
     Cancelled: 0,

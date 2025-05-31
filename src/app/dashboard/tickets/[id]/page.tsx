@@ -798,7 +798,7 @@ function TicketDetail(): React.JSX.Element {
                 )}
 
                 {loadingDevice ? (
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Thông tin thiết bị
                     </Typography>
@@ -808,12 +808,47 @@ function TicketDetail(): React.JSX.Element {
                     </Box>
                   </Grid>
                 ) : deviceInfo ? (
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Hạn bảo hành
-                    </Typography>
-                    <Typography variant="body1">{formatWarrantyDate(deviceInfo.warrantyExpiryDate)}</Typography>
-                  </Grid>
+                  <>
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Hạn bảo hành
+                      </Typography>
+                      <Typography variant="body1">{formatWarrantyDate(deviceInfo.warrantyExpiryDate)}</Typography>
+                    </Grid>
+
+                    {deviceInfo.details && deviceInfo.details.length > 0 && (
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                          Linh kiện thiết bị
+                        </Typography>
+                        <Card variant="outlined">
+                          <CardContent>
+                            <Grid container spacing={2}>
+                              {deviceInfo.details.map((detail, index) => (
+                                <Grid item xs={12} sm={6} md={4} key={detail.id}>
+                                  <Box
+                                    sx={{
+                                      p: 2,
+                                      border: '1px solid #e0e0e0',
+                                      borderRadius: 1,
+                                      backgroundColor: '#f9f9f9',
+                                    }}
+                                  >
+                                    <Typography variant="body2" fontWeight="bold" color="primary">
+                                      {detail.name}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Serial: {detail.serial}
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                              ))}
+                            </Grid>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    )}
+                  </>
                 ) : null}
               </>
             )}

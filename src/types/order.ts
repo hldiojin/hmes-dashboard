@@ -1,4 +1,11 @@
-export type OrderStatus = 'Success' | 'Pending' | 'Delivering' | 'Cancelled' | 'IsWaiting';
+export type OrderStatus =
+  | 'Success'
+  | 'Pending'
+  | 'PendingPayment'
+  | 'Delivering'
+  | 'AllowRepayment'
+  | 'Cancelled'
+  | 'IsWaiting';
 
 export type TransactionStatus = 'PAID' | 'PENDING' | 'CANCELLED' | 'PROCESSING';
 
@@ -39,7 +46,9 @@ export interface Order {
 
 // Validation helper functions
 export function isValidOrderStatus(status: string): status is OrderStatus {
-  return ['Success', 'Pending', 'Delivering', 'Cancelled', 'IsWaiting'].includes(status);
+  return ['Success', 'Pending', 'PendingPayment', 'Delivering', 'AllowRepayment', 'Cancelled', 'IsWaiting'].includes(
+    status
+  );
 }
 
 export function isValidTransactionStatus(status: string): status is TransactionStatus {
@@ -80,7 +89,9 @@ export function formatDate(dateString: string): string {
 export function getOrderStatusLabel(status: OrderStatus): string {
   const labels: Record<OrderStatus, string> = {
     Pending: 'Chờ xử lý',
+    PendingPayment: 'Chờ thanh toán',
     Delivering: 'Đang giao',
+    AllowRepayment: 'Cho phép thanh toán lại',
     Success: 'Thành công',
     Cancelled: 'Đã hủy',
     IsWaiting: 'Chờ xác nhận',
