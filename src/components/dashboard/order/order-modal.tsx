@@ -27,7 +27,7 @@ import {
 } from '@mui/material';
 
 import { useUser } from '../../../hooks/use-user';
-import { confirmOrderCOD, OrderDetailsData } from '../../../services/orderService';
+import { confirmOrderCOD, handleCheckDelivery, OrderDetailsData } from '../../../services/orderService';
 import {
   formatCurrency,
   formatDate,
@@ -47,8 +47,12 @@ const getStatusColor = (
   switch (status) {
     case 'Pending':
       return 'warning';
+    case 'PendingPayment':
+      return 'info';
     case 'Delivering':
       return 'info';
+    case 'AllowRepayment':
+      return 'secondary';
     case 'Success':
       return 'success';
     case 'Cancelled':
@@ -71,6 +75,7 @@ interface OrderModalProps {
 export default function OrderModal({ open, onClose, orderDetails, loading, onOrderUpdate }: OrderModalProps) {
   const { user } = useUser();
   const [confirmLoading, setConfirmLoading] = React.useState(false);
+  const [deliveryLoading, setDeliveryLoading] = React.useState(false);
   const [snackbar, setSnackbar] = React.useState<{
     open: boolean;
     message: string;
@@ -84,7 +89,7 @@ export default function OrderModal({ open, onClose, orderDetails, loading, onOrd
   // Check if user has permission to confirm orders (Consultant or Admin)
   const canConfirmOrder = user && (user.role === 'Consultant' || user.role === 'Admin');
 
-  // Handle order confirmation
+  // Handle order confirmation for COD orders
   const handleConfirmOrder = async (action: 'confirm' | 'cancel') => {
     if (!orderDetails) return;
 
@@ -110,13 +115,65 @@ export default function OrderModal({ open, onClose, orderDetails, loading, onOrd
       }, 1500);
     } catch (error: any) {
       console.error('Error confirming order:', error);
+
+      // More specific error handling based on error message
+      let errorMessage = 'Có lỗi xảy ra khi xử lý đơn hàng';
+      if (error.message) {
+        // The error message is already translated to Vietnamese in orderService
+        errorMessage = error.message;
+      }
+
       setSnackbar({
         open: true,
-        message: error.message || 'Có lỗi xảy ra khi xử lý đơn hàng',
+        message: errorMessage,
         severity: 'error',
       });
     } finally {
       setConfirmLoading(false);
+    }
+  };
+
+  // Handle delivery confirmation for delivering orders
+  const handleDeliveryConfirmation = async (action: 'complete' | 'cancel') => {
+    if (!orderDetails) return;
+
+    setDeliveryLoading(true);
+    try {
+      const status = action === 'complete' ? 'Success' : 'Cancelled';
+      await handleCheckDelivery(orderDetails.orderId, status);
+
+      setSnackbar({
+        open: true,
+        message: action === 'complete' ? 'Đơn hàng đã được hoàn thành thành công!' : 'Đơn hàng đã được hủy thành công!',
+        severity: 'success',
+      });
+
+      // Call the update callback to refresh the order list
+      if (onOrderUpdate) {
+        onOrderUpdate();
+      }
+
+      // Close modal after a delay
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (error: any) {
+      console.error('Error handling delivery confirmation:', error);
+
+      // More specific error handling based on error message
+      let errorMessage = 'Có lỗi xảy ra khi xử lý giao hàng';
+      if (error.message) {
+        // The error message is already translated to Vietnamese in orderService
+        errorMessage = error.message;
+      }
+
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: 'error',
+      });
+    } finally {
+      setDeliveryLoading(false);
     }
   };
 
@@ -253,7 +310,10 @@ export default function OrderModal({ open, onClose, orderDetails, loading, onOrd
                             height: '100%',
                             bgcolor: 'primary.main',
                             width:
-                              orderStatus === 'IsWaiting' || orderStatus === 'Pending'
+                              orderStatus === 'IsWaiting' ||
+                              orderStatus === 'Pending' ||
+                              orderStatus === 'PendingPayment' ||
+                              orderStatus === 'AllowRepayment'
                                 ? '0%'
                                 : orderStatus === 'Delivering'
                                   ? '50%'
@@ -270,7 +330,10 @@ export default function OrderModal({ open, onClose, orderDetails, loading, onOrd
                       sx={{
                         zIndex: 3,
                         bgcolor:
-                          orderStatus === 'IsWaiting' || orderStatus === 'Pending'
+                          orderStatus === 'IsWaiting' ||
+                          orderStatus === 'Pending' ||
+                          orderStatus === 'PendingPayment' ||
+                          orderStatus === 'AllowRepayment'
                             ? 'warning.main'
                             : orderStatus === 'Cancelled'
                               ? 'grey.400'
@@ -344,16 +407,31 @@ export default function OrderModal({ open, onClose, orderDetails, loading, onOrd
                     <Typography
                       variant="caption"
                       sx={{
-                        fontWeight: orderStatus === 'IsWaiting' || orderStatus === 'Pending' ? 'bold' : 'regular',
+                        fontWeight:
+                          orderStatus === 'IsWaiting' ||
+                          orderStatus === 'Pending' ||
+                          orderStatus === 'PendingPayment' ||
+                          orderStatus === 'AllowRepayment'
+                            ? 'bold'
+                            : 'regular',
                         color:
-                          orderStatus === 'IsWaiting' || orderStatus === 'Pending'
+                          orderStatus === 'IsWaiting' ||
+                          orderStatus === 'Pending' ||
+                          orderStatus === 'PendingPayment' ||
+                          orderStatus === 'AllowRepayment'
                             ? 'warning.main'
                             : orderStatus === 'Cancelled'
                               ? 'text.secondary'
                               : 'text.secondary',
                       }}
                     >
-                      {orderStatus === 'IsWaiting' ? 'Chờ xác nhận' : 'Chờ xử lý'}
+                      {orderStatus === 'IsWaiting'
+                        ? 'Chờ xác nhận'
+                        : orderStatus === 'PendingPayment'
+                          ? 'Chờ thanh toán'
+                          : orderStatus === 'AllowRepayment'
+                            ? 'Cho phép thanh toán lại'
+                            : 'Chờ xử lý'}
                     </Typography>
                     <Typography
                       variant="caption"
@@ -406,8 +484,15 @@ export default function OrderModal({ open, onClose, orderDetails, loading, onOrd
                           color="success"
                           size="small"
                           onClick={() => handleConfirmOrder('confirm')}
-                          disabled={confirmLoading}
+                          disabled={confirmLoading || deliveryLoading}
                           startIcon={confirmLoading ? <CircularProgress size={16} /> : null}
+                          sx={{
+                            minWidth: 120,
+                            '&:disabled': {
+                              backgroundColor: 'grey.300',
+                              color: 'grey.500',
+                            },
+                          }}
                         >
                           {confirmLoading ? 'Đang xử lý...' : 'Xác nhận'}
                         </Button>
@@ -416,11 +501,78 @@ export default function OrderModal({ open, onClose, orderDetails, loading, onOrd
                           color="error"
                           size="small"
                           onClick={() => handleConfirmOrder('cancel')}
-                          disabled={confirmLoading}
+                          disabled={confirmLoading || deliveryLoading}
+                          sx={{
+                            minWidth: 80,
+                            '&:disabled': {
+                              borderColor: 'grey.300',
+                              color: 'grey.500',
+                            },
+                          }}
                         >
-                          Hủy
+                          {confirmLoading ? '...' : 'Hủy'}
                         </Button>
                       </Box>
+                      {confirmLoading && (
+                        <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+                            Đang xử lý yêu cầu...
+                          </Typography>
+                          <CircularProgress size={16} />
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+
+                  {/* Delivering Status with Action Buttons */}
+                  {orderStatus === 'Delivering' && canConfirmOrder && (
+                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #eee' }}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Đơn hàng đang được giao - Xác nhận hoàn thành:
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                        <Button
+                          variant="contained"
+                          color="success"
+                          size="small"
+                          onClick={() => handleDeliveryConfirmation('complete')}
+                          disabled={deliveryLoading || confirmLoading}
+                          startIcon={deliveryLoading ? <CircularProgress size={16} /> : null}
+                          sx={{
+                            minWidth: 120,
+                            '&:disabled': {
+                              backgroundColor: 'grey.300',
+                              color: 'grey.500',
+                            },
+                          }}
+                        >
+                          {deliveryLoading ? 'Đang xử lý...' : 'Hoàn thành'}
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={() => handleDeliveryConfirmation('cancel')}
+                          disabled={deliveryLoading || confirmLoading}
+                          sx={{
+                            minWidth: 80,
+                            '&:disabled': {
+                              borderColor: 'grey.300',
+                              color: 'grey.500',
+                            },
+                          }}
+                        >
+                          {deliveryLoading ? '...' : 'Hủy'}
+                        </Button>
+                      </Box>
+                      {deliveryLoading && (
+                        <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+                            Đang xử lý yêu cầu...
+                          </Typography>
+                          <CircularProgress size={16} />
+                        </Box>
+                      )}
                     </Box>
                   )}
                 </Box>

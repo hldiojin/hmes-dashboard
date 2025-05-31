@@ -58,8 +58,12 @@ const getStatusColor = (
   switch (status) {
     case 'Pending':
       return 'warning';
+    case 'PendingPayment':
+      return 'info';
     case 'Delivering':
       return 'info';
+    case 'AllowRepayment':
+      return 'secondary';
     case 'Success':
       return 'success';
     case 'Cancelled':
@@ -461,7 +465,9 @@ export default function OrderTable({
                       Tất cả
                     </MenuItem>
                     <MenuItem value="Pending">Chờ xử lý</MenuItem>
+                    <MenuItem value="PendingPayment">Chờ thanh toán</MenuItem>
                     <MenuItem value="Delivering">Đang giao</MenuItem>
+                    <MenuItem value="AllowRepayment">Cho phép thanh toán lại</MenuItem>
                     <MenuItem value="Success">Thành công</MenuItem>
                     <MenuItem value="Cancelled">Đã hủy</MenuItem>
                     <MenuItem value="IsWaiting">Chờ xác nhận</MenuItem>
@@ -571,14 +577,20 @@ export default function OrderTable({
                               height: 12,
                               borderRadius: '50%',
                               bgcolor:
-                                order.status === 'Pending' || order.status === 'IsWaiting'
+                                order.status === 'Pending' ||
+                                order.status === 'IsWaiting' ||
+                                order.status === 'PendingPayment' ||
+                                order.status === 'AllowRepayment'
                                   ? 'warning.main'
                                   : order.status === 'Cancelled'
                                     ? 'grey.500'
                                     : 'success.main',
                               border: '2px solid',
                               borderColor:
-                                order.status === 'Pending' || order.status === 'IsWaiting'
+                                order.status === 'Pending' ||
+                                order.status === 'IsWaiting' ||
+                                order.status === 'PendingPayment' ||
+                                order.status === 'AllowRepayment'
                                   ? 'warning.light'
                                   : order.status === 'Cancelled'
                                     ? 'grey.300'

@@ -36,8 +36,12 @@ const getStatusColor = (
   switch (status) {
     case 'Pending':
       return 'warning';
+    case 'PendingPayment':
+      return 'info';
     case 'Delivering':
       return 'info';
+    case 'AllowRepayment':
+      return 'secondary';
     case 'Success':
       return 'success';
     case 'Cancelled':
@@ -53,7 +57,11 @@ const getOrderStatusStep = (status: OrderStatus) => {
   switch (status) {
     case 'Pending':
       return 0;
+    case 'PendingPayment':
+      return 0;
     case 'IsWaiting':
+      return 0;
+    case 'AllowRepayment':
       return 0;
     case 'Delivering':
       return 1;

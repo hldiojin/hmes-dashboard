@@ -97,6 +97,12 @@ export interface OrderConfirmRequest {
   status: 'Delivering' | 'Cancelled';
 }
 
+// Order delivery confirmation request type
+export interface OrderDeliveryConfirmRequest {
+  orderId: string;
+  status: 'Success' | 'Cancelled';
+}
+
 // Order confirmation response type
 export interface OrderConfirmResponse {
   statusCodes: number;
@@ -139,8 +145,12 @@ function mapApiStatus(apiStatus: string): OrderStatus {
   switch (status) {
     case 'PENDING':
       return 'Pending';
+    case 'PENDINGPAYMENT':
+      return 'PendingPayment';
     case 'DELIVERING':
       return 'Delivering';
+    case 'ALLOWREPAYMENT':
+      return 'AllowRepayment';
     case 'SUCCESS':
       return 'Success';
     case 'CANCELLED':
@@ -410,6 +420,65 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus): P
   }
 };
 
+// Helper function to translate backend error messages to Vietnamese
+const translateErrorMessage = (errorMessage: string): string => {
+  const errorTranslations: Record<string, string> = {
+    // Backend specific errors
+    'Order not found': 'Không tìm thấy đơn hàng',
+    'Order is not in delivering status': 'Đơn hàng không ở trạng thái đang giao',
+    'Order is not Cash on Delivery.': 'Đơn hàng không phải là thanh toán khi giao hàng (COD)',
+    'Order is not in waiting status': 'Đơn hàng không ở trạng thái chờ xác nhận',
+    'Invalid order status.': 'Trạng thái đơn hàng không hợp lệ',
+    'Confirm order delivery successfully.': 'Xác nhận giao hàng thành công',
+    'Order cancelled successfully.': 'Hủy đơn hàng thành công',
+    'Order confirmed successfully.': 'Xác nhận đơn hàng thành công',
+    'Failed to confirm COD order': 'Không thể xác nhận đơn hàng COD',
+    'Failed to handle delivery confirmation': 'Không thể xử lý xác nhận giao hàng',
+
+    // Network and common errors
+    'Network Error': 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet',
+    'Request timeout': 'Yêu cầu bị hết thời gian chờ. Vui lòng thử lại',
+    'Internal Server Error': 'Lỗi máy chủ nội bộ. Vui lòng thử lại sau',
+    'Bad Request': 'Yêu cầu không hợp lệ',
+    Unauthorized: 'Bạn không có quyền thực hiện thao tác này',
+    Forbidden: 'Truy cập bị từ chối',
+    'Not Found': 'Không tìm thấy tài nguyên',
+    'Service Unavailable': 'Dịch vụ tạm thời không khả dụng',
+    'Connection failed': 'Không thể kết nối đến máy chủ',
+    'Request failed': 'Yêu cầu thất bại',
+  };
+
+  // Check for exact matches first
+  if (errorTranslations[errorMessage]) {
+    return errorTranslations[errorMessage];
+  }
+
+  // Check for partial matches (case insensitive)
+  const lowerErrorMessage = errorMessage.toLowerCase();
+  for (const [englishMessage, vietnameseMessage] of Object.entries(errorTranslations)) {
+    if (lowerErrorMessage.includes(englishMessage.toLowerCase())) {
+      return vietnameseMessage;
+    }
+  }
+
+  // Handle HTTP status codes
+  if (errorMessage.includes('500')) {
+    return 'Lỗi máy chủ nội bộ. Vui lòng thử lại sau';
+  }
+  if (errorMessage.includes('404')) {
+    return 'Không tìm thấy đơn hàng';
+  }
+  if (errorMessage.includes('401') || errorMessage.includes('403')) {
+    return 'Bạn không có quyền thực hiện thao tác này';
+  }
+  if (errorMessage.includes('400')) {
+    return 'Dữ liệu yêu cầu không hợp lệ';
+  }
+
+  // If no translation found, return the original message
+  return errorMessage;
+};
+
 // CONFIRM COD - Confirm or cancel COD order
 export const confirmOrderCOD = async (orderId: string, status: 'Delivering' | 'Cancelled'): Promise<void> => {
   try {
@@ -429,18 +498,58 @@ export const confirmOrderCOD = async (orderId: string, status: 'Delivering' | 'C
       return;
     }
 
-    throw new Error(response.data?.response?.message || 'Failed to confirm COD order');
+    const errorMessage = response.data?.response?.message || 'Failed to confirm COD order';
+    throw new Error(translateErrorMessage(errorMessage));
   } catch (error: any) {
     console.error(`Error confirming COD order for ID ${orderId}:`, error);
 
     // Extract error message from response if available
-    const errorMessage =
+    const rawErrorMessage =
       error.response?.data?.response?.message ||
       error.response?.data?.message ||
       error.message ||
       'Failed to confirm COD order';
 
-    throw new Error(errorMessage);
+    // Translate the error message to Vietnamese
+    const translatedMessage = translateErrorMessage(rawErrorMessage);
+    throw new Error(translatedMessage);
+  }
+};
+
+// HANDLE DELIVERY - Complete or cancel delivery order
+export const handleCheckDelivery = async (orderId: string, status: 'Success' | 'Cancelled'): Promise<void> => {
+  try {
+    const requestData: OrderDeliveryConfirmRequest = {
+      orderId,
+      status,
+    };
+
+    console.log('Handling delivery confirmation:', requestData);
+
+    const response = await axiosInstance.post<OrderConfirmResponse>('order/handle-check-delivery', requestData);
+
+    if (response.data && response.data.statusCodes === 200) {
+      // Clear cache for this order to force refresh
+      orderDetailsCache.delete(orderId);
+      console.log('Order delivery confirmation successful:', response.data.response.message);
+      return;
+    }
+
+    const errorMessage = response.data?.response?.message || 'Failed to handle delivery confirmation';
+    throw new Error(translateErrorMessage(errorMessage));
+  } catch (error: any) {
+    console.error(`Error handling delivery confirmation for ID ${orderId}:`, error);
+
+    // Extract error message from response if available
+    const rawErrorMessage =
+      error.response?.data?.response?.message ||
+      error.response?.data?.message ||
+      error.message ||
+      'Failed to handle delivery confirmation';
+
+    // Translate the error message to Vietnamese
+    const translatedMessage = translateErrorMessage(rawErrorMessage);
+    throw new Error(translatedMessage);
   }
 };
 
