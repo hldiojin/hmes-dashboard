@@ -29,8 +29,17 @@ const productSchema = z.object({
   categoryId: z.string().min(1, 'Loại sản phẩm không được để trống'),
   description: z.string().min(1, 'Mô tả không được để trống'),
   mainImage: z.any().optional(),
-  amount: z.string().min(1, 'Số lượng không được để trống'),
-  price: z.string().min(1, 'Giá không được để trống'),
+  amount: z
+    .string()
+    .min(1, 'Số lượng không được để trống')
+    .refine(
+      (val) => !isNaN(Number(val)) && Number(val) > 0 && Number.isInteger(Number(val)),
+      'Số lượng phải là số nguyên dương'
+    ),
+  price: z
+    .string()
+    .min(1, 'Giá không được để trống')
+    .refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Giá phải là số dương'),
   status: z.enum(['Active', 'Inactive']).optional(),
   images: z.array(z.any()).optional(),
 });
@@ -46,15 +55,15 @@ interface ProductModalProps {
 }
 
 // Custom file input component with Vietnamese text
-const CustomFileInput = ({ 
-  label, 
-  error, 
-  helperText, 
-  onChange, 
-  multiple = false 
-}: { 
-  label: string; 
-  error?: boolean; 
+const CustomFileInput = ({
+  label,
+  error,
+  helperText,
+  onChange,
+  multiple = false,
+}: {
+  label: string;
+  error?: boolean;
   helperText?: string;
   onChange: (files: File | File[] | null) => void;
   multiple?: boolean;
@@ -68,13 +77,13 @@ const CustomFileInput = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    
+
     if (!files || files.length === 0) {
       setSelectedFiles('Chưa chọn tệp');
       onChange(null);
       return;
     }
-    
+
     if (multiple) {
       setSelectedFiles(`Đã chọn ${files.length} tệp`);
       onChange(Array.from(files));
@@ -90,17 +99,10 @@ const CustomFileInput = ({
         {label}
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Button 
-          variant="outlined" 
-          onClick={handleClick}
-          size="small"
-        >
+        <Button variant="outlined" onClick={handleClick} size="small">
           Chọn tệp
         </Button>
-        <Typography 
-          variant="body2" 
-          color={error ? 'error' : 'text.secondary'}
-        >
+        <Typography variant="body2" color={error ? 'error' : 'text.secondary'}>
           {selectedFiles}
         </Typography>
         <input
@@ -112,9 +114,7 @@ const CustomFileInput = ({
           accept="image/*"
         />
       </Box>
-      {error && helperText && (
-        <FormHelperText error>{helperText}</FormHelperText>
-      )}
+      {error && helperText && <FormHelperText error>{helperText}</FormHelperText>}
     </Box>
   );
 };
@@ -295,7 +295,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>{mode === 'create' ? 'Thêm sản phẩm mới' : 'Cập nhật sản phẩm'}</DialogTitle>
-      <form ref={formRef} onSubmit={handleSubmit(handleFormSubmit)}>
+      <form ref={formRef} onSubmit={handleSubmit(handleFormSubmit)} noValidate>
         <DialogContent>
           <Stack spacing={3}>
             <Controller
@@ -304,13 +304,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
               render={({ field }) => {
                 console.log('Rendering name field with value:', field.value);
                 return (
-                  <TextField
-                    {...field}
-                    label="Tên"
-                    fullWidth
-                    error={!!errors.name}
-                    helperText={errors.name?.message}
-                  />
+                  <TextField {...field} label="Tên" fullWidth error={!!errors.name} helperText={errors.name?.message} />
                 );
               }}
             />
@@ -426,6 +420,9 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                     fullWidth
                     error={!!errors.amount}
                     helperText={errors.amount?.message}
+                    InputProps={{
+                      inputProps: { min: 1, step: 1 },
+                    }}
                   />
                 );
               }}
@@ -444,6 +441,9 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                     fullWidth
                     error={!!errors.price}
                     helperText={errors.price?.message}
+                    InputProps={{
+                      inputProps: { min: 0 },
+                    }}
                   />
                 );
               }}
