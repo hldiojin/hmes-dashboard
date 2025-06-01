@@ -32,10 +32,21 @@ const productSchema = z.object({
   amount: z
     .string()
     .min(1, 'Số lượng không được để trống')
-    .refine(
-      (val) => !isNaN(Number(val)) && Number(val) > 0 && Number.isInteger(Number(val)),
-      'Số lượng phải là số nguyên dương'
-    ),
+    .refine((val) => {
+      console.log(
+        'Validating amount:',
+        val,
+        'Number:',
+        Number(val),
+        'isNaN:',
+        isNaN(Number(val)),
+        'isInteger:',
+        Number.isInteger(Number(val)),
+        '>= 0:',
+        Number(val) >= 0
+      );
+      return !isNaN(Number(val)) && Number(val) >= 0 && Number.isInteger(Number(val));
+    }, 'Số lượng phải là số nguyên không âm'),
   price: z
     .string()
     .min(1, 'Giá không được để trống')
@@ -154,6 +165,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
     watch,
   } = useForm<ProductFormData>({
     resolver: zodResolver(mode === 'update' ? productSchema.partial({ mainImage: true }) : productSchema),
+    mode: 'onChange',
     defaultValues: {
       name: '',
       categoryId: '',
@@ -421,7 +433,7 @@ export default function ProductModal({ open, onClose, onSubmit, product, mode }:
                     error={!!errors.amount}
                     helperText={errors.amount?.message}
                     InputProps={{
-                      inputProps: { min: 1, step: 1 },
+                      inputProps: { min: 0, step: 1 },
                     }}
                   />
                 );
