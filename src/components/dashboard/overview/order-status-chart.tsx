@@ -18,6 +18,9 @@ export interface OrderStatusChartProps {
 // Status translation mapping
 const statusTranslations: Record<string, string> = {
   Pending: 'Chờ xử lý',
+  PendingPayment: 'Chờ thanh toán',
+  IsWaiting: 'Chờ xác nhận',
+  AllowRepayment: 'Cho phép thanh toán lại',
   Delivering: 'Đang giao hàng',
   Success: 'Thành công',
   Cancelled: 'Đã hủy',
@@ -36,6 +39,9 @@ export function OrderStatusChart({ statusData, sx }: OrderStatusChartProps): Rea
   // Define custom colors for statuses
   const statusColors = {
     Pending: theme.palette.warning.main,
+    PendingPayment: theme.palette.info.main,
+    IsWaiting: theme.palette.warning.main,
+    AllowRepayment: theme.palette.secondary.main,
     Delivering: theme.palette.info.main,
     Success: theme.palette.success.main,
     Cancelled: theme.palette.error.main,
